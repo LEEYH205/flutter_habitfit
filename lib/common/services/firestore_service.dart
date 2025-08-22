@@ -26,7 +26,8 @@ class Fs {
     });
   }
 
-  Future<void> addMeal(String uid, DateTime day, String label, int kcal, String? imageUrl) async {
+  Future<void> addMeal(String uid, DateTime day, String label, int kcal,
+      String? imageUrl) async {
     final id = _dateId(day);
     await _db.collection('meals').add({
       'uid': uid,
@@ -38,5 +39,6 @@ class Fs {
     });
   }
 
-  static String _dateId(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padStart(2, '0')}';
+  static String _dateId(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }

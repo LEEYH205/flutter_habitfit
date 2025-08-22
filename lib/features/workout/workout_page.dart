@@ -29,7 +29,7 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   @override
   void initState() {
     super.initState();
-    _estimator = MoveNetEstimator();
+    _estimator = MoveNetPoseEstimator();
     _init();
   }
 

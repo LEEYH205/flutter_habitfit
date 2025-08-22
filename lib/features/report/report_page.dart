@@ -37,7 +37,7 @@ class ReportPage extends ConsumerWidget {
             stream: habitQ,
             builder: (context, snap) {
               final done = (snap.data?.docs.isNotEmpty ?? false)
-                  ? ((snap.data!.docs.first.data() as Map<String, dynamic>)['done'] == true)
+                  ? (snap.data!.docs.first.data()['done'] == true)
                   : false;
               return Text('습관: ${done ? "완료" : "미완료"}');
             },
@@ -49,7 +49,7 @@ class ReportPage extends ConsumerWidget {
               int reps = 0;
               if (snap.data != null) {
                 for (final d in snap.data!.docs) {
-                  reps += (d.data() as Map<String, dynamic>)['reps'] as int? ?? 0;
+                  reps += d.data()['reps'] as int? ?? 0;
                 }
               }
               return Text('스쿼트: ${reps}회');
@@ -62,7 +62,7 @@ class ReportPage extends ConsumerWidget {
               int kcal = 0;
               if (snap.data != null) {
                 for (final d in snap.data!.docs) {
-                  kcal += (d.data() as Map<String, dynamic>)['kcal'] as int? ?? 0;
+                  kcal += d.data()['kcal'] as int? ?? 0;
                 }
               }
               return Text('섭취 칼로리: ${kcal} kcal');

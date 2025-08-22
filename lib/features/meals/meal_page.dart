@@ -63,7 +63,7 @@ class MealPage extends ConsumerWidget {
           if (file != null) Image.file(file, height: 180, fit: BoxFit.cover),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: label,
+            initialValue: label,
             hint: const Text('음식 라벨 선택 (MVP)'),
             items: FOOD_TABLE.keys.map((k) => DropdownMenuItem(value: k, child: Text(k))).toList(),
             onChanged: (v) {
@@ -81,7 +81,7 @@ class MealPage extends ConsumerWidget {
                 ? null
                 : () async {
                     final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
-                    await Fs.instance.addMeal(uid, DateTime.now(), label!, ref.read(_kcalProvider), null);
+                    await Fs.instance.addMeal(uid, DateTime.now(), label, ref.read(_kcalProvider), null);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('식사 기록 저장됨')));
                     }

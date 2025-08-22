@@ -20,7 +20,7 @@ class HabitFitApp extends ConsumerWidget {
 }
 
 class _HomeShell extends StatefulWidget {
-  const _HomeShell({super.key});
+  const _HomeShell({Key? key}) : super(key: key);
 
   @override
   State<_HomeShell> createState() => _HomeShellState();
