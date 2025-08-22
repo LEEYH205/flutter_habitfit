@@ -17,15 +17,17 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **🎯 AI 포즈 추정 완벽 동작**: MoveNet 모델로 실시간 스쿼트 감지 성공
 - **💪 스쿼트 카운트 정상 작동**: 무릎 각도 계산으로 정확한 운동 횟수 측정
 - **📱 실제 iPhone 호환성**: 물리 기기에서 안정적인 AI 추론 성능
+- **🔄 스쿼트 상태 머신 완벽 구현**: idle → down → up → idle 사이클 정확한 감지
+- **🎨 포즈 오버레이 UI 완성**: 실시간 키포인트 시각화 및 스켈레톤 연결선 표시
 
 **⚠️ PARTIALLY WORKING:**
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
 - Remote Config: 기본값으로 작동 중 (Firebase Console 설정 필요)
 
 **🔧 NEXT STEPS:**
-- 포즈 오버레이 UI 구현 (실시간 키포인트 시각화)
 - 운동 피드백 시스템 (자세 교정 가이드)
 - 성능 최적화 및 배터리 효율성 개선
+- 추가 운동 동작 지원 (플랭크, 푸시업 등)
 
 ## 🛠️ Tech Stack
 
@@ -54,8 +56,12 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **💪 Squat Detection**: 무릎 각도 계산으로 정확한 운동 횟수 측정
 - **📱 Real-time Processing**: iPhone에서 30fps 안정적 동작
 
+### ✅ Completed Features
+- **🎨 Pose Overlay UI**: 실시간 키포인트 시각화 및 스켈레톤 연결선 표시
+- **🔄 Squat State Machine**: idle → down → up → idle 상태 머신으로 정확한 운동 감지
+- **💪 Real-time Exercise Counting**: 무릎 각도 기반 스쿼트 횟수 자동 카운트
+
 ### 🔧 Features in Progress
-- **Pose Overlay UI**: 실시간 키포인트 시각화 및 스켈레톤 표시
 - **Exercise Feedback**: 자세 교정 가이드 및 운동 강도 조절
 - **Push Notifications**: FCM 기반 알림 (실제 기기에서 테스트 필요)
 - **Dynamic Configuration**: Remote Config 기반 임계값 조정
@@ -98,6 +104,12 @@ class MoveNetPoseEstimator extends PoseEstimator {
 - **이미지 전처리**: iOS YUV420/NV12, Android YUV420 완벽 지원
 - **실시간 추론**: TFLite Flutter 0.11.0 API 최적화
 - **스쿼트 감지**: 140-150도 임계값으로 정확한 운동 완료 감지
+
+#### **2025-08-22: 포즈 오버레이 UI 및 상태 머신 완성**
+- **🎨 포즈 오버레이**: 실시간 키포인트 시각화 및 스켈레톤 연결선 표시
+- **🔄 상태 머신**: idle → down → up → idle 사이클로 정확한 운동 감지
+- **💪 자동 카운트**: 무릎 각도 기반 스쿼트 횟수 자동 측정
+- **📱 UI 최적화**: LayoutBuilder로 정확한 화면 크기 적용 및 키포인트 정렬
 - **성능 최적화**: 디버그 로그 정리로 성능 향상
 
 #### **기술적 해결 과제**
@@ -358,14 +370,14 @@ Firebase Console에서 다음 값들을 설정해야 합니다:
   - [x] `tflite_flutter` API 호환성 문제 해결
   - [x] 4D 텐서 구조 출력 처리 완료
   - [x] iOS 이미지 전처리 최적화
-- [ ] **스쿼트 감지 로직 개선** (높은 우선순위)
-  - [ ] 무릎 각도 계산 정확도 향상
-  - [ ] 자세 유효성 검증 로직 구현
-  - [ ] 운동 횟수 카운팅 개선
-- [ ] **포즈 오버레이 UI 구현**
-  - [ ] 실시간 키포인트 시각화
-  - [ ] 스켈레톤 연결선 표시
-  - [ ] 자세 상태 색상 피드백
+- [x] **스쿼트 감지 로직 개선** ✅ 완료 (2025-08-22)
+  - [x] 무릎 각도 계산 정확도 향상
+  - [x] 자세 유효성 검증 로직 구현
+  - [x] 운동 횟수 카운팅 개선
+- [x] **포즈 오버레이 UI 구현** ✅ 완료 (2025-08-22)
+  - [x] 실시간 키포인트 시각화
+  - [x] 스켈레톤 연결선 표시
+  - [x] 자세 상태 색상 피드백
 - [ ] FCM 푸시 알림 테스트 (실제 기기)
 - [ ] 성능 최적화 및 메모리 관리
 
@@ -550,7 +562,7 @@ Future<void> processFrameAsync(CameraImage image) async {
 ```
 
 ### **개발 우선순위**
-1. **즉시**: 무릎 각도 계산 로직 수정 (현재 null 반환 문제)
-2. **단기**: 포즈 오버레이 UI 구현 (사용자 경험 개선)
-3. **중기**: 운동 피드백 시스템 고도화
-4. **장기**: 다른 운동 종목 추가 (푸시업, 플랭크 등)
+1. **✅ 완료**: 무릎 각도 계산 로직 및 스쿼트 상태 머신 구현
+2. **✅ 완료**: 포즈 오버레이 UI 구현 (실시간 키포인트 시각화)
+3. **🔄 진행중**: 운동 피드백 시스템 고도화
+4. **📋 계획**: 다른 운동 종목 추가 (푸시업, 플랭크 등)

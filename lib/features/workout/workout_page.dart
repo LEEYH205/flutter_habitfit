@@ -115,6 +115,17 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
     final angle = ref.watch(_angleProvider);
     final kps = _estimator.lastKeypoints;
 
+    // 스쿼트 단계와 카운트 정보 가져오기
+    String squatPhase = 'idle';
+    int squatCount = reps;
+
+    // MoveNet 포즈 추정기에서 스쿼트 단계 정보 가져오기
+    if (_estimator is MoveNetPoseEstimator) {
+      final moveNetEstimator = _estimator as MoveNetPoseEstimator;
+      squatPhase = moveNetEstimator.squatPhase;
+      squatCount = moveNetEstimator.repCount;
+    }
+
     Widget preview = _controller?.value.isInitialized == true
         ? CameraPreview(_controller!)
         : const Center(child: CircularProgressIndicator());
@@ -126,7 +137,18 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
           fit: StackFit.expand,
           children: [
             CameraPreview(_controller!),
-            CustomPaint(painter: PoseOverlay(kps)),
+            // 새로운 PoseOverlay 위젯 사용
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return PoseOverlay(
+                  keypoints: kps,
+                  kneeAngle: angle,
+                  squatPhase: squatPhase,
+                  squatCount: squatCount,
+                  screenSize: Size(constraints.maxWidth, constraints.maxHeight),
+                );
+              },
+            ),
           ],
         ),
       );

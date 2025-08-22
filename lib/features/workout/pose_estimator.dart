@@ -9,6 +9,8 @@ abstract class PoseEstimator {
   int process(dynamic image);
   List<Map<String, double>>? get lastKeypoints;
   double? get lastAngle;
+  String get squatPhase;
+  int get repCount;
   void dispose();
 }
 
@@ -516,17 +518,35 @@ class MoveNetPoseEstimator implements PoseEstimator {
 
     final angle = _lastAngle!;
 
-    // 스쿼트 동작 감지 로직 (더 쉬운 임계값)
-    if (_squatPhase == 'idle' && angle < 140.0) {
-      _squatPhase = 'down';
-      return 0;
-    } else if (_squatPhase == 'down' && angle > 150.0) {
-      _squatPhase = 'up';
-      _repCount++;
-      return 1; // 한 번의 반복 완료
-    } else if (_squatPhase == 'up' && angle < 140.0) {
-      _squatPhase = 'down';
-      return 0;
+    // 스쿼트 동작 감지 로직 (개선된 상태 머신)
+    switch (_squatPhase) {
+      case 'idle':
+        if (angle < 140.0) {
+          _squatPhase = 'down';
+          print('🔄 State: idle → down (angle: ${angle.toStringAsFixed(1)}°)');
+        }
+        break;
+
+      case 'down':
+        if (angle > 150.0) {
+          _squatPhase = 'up';
+          print('🔄 State: down → up (angle: ${angle.toStringAsFixed(1)}°)');
+        }
+        break;
+
+      case 'up':
+        if (angle < 140.0) {
+          _squatPhase = 'down';
+          print('🔄 State: up → down (angle: ${angle.toStringAsFixed(1)}°)');
+        } else if (angle > 160.0) {
+          // 완전히 서있을 때 idle로 복귀
+          _squatPhase = 'idle';
+          _repCount++;
+          print(
+              '💪 Squat completed! Count: $_repCount (angle: ${angle.toStringAsFixed(1)}°)');
+          return 1; // 한 번의 반복 완료
+        }
+        break;
     }
 
     return 0;
@@ -537,6 +557,12 @@ class MoveNetPoseEstimator implements PoseEstimator {
 
   @override
   double? get lastAngle => _lastAngle;
+
+  @override
+  String get squatPhase => _squatPhase;
+
+  @override
+  int get repCount => _repCount;
 
   @override
   void dispose() {
@@ -714,6 +740,16 @@ class SimulationPoseEstimator implements PoseEstimator {
 
   @override
   double? get lastAngle => _lastAngle;
+
+  @override
+  String get squatPhase {
+    if (_squatPhase < 0.3) return 'idle';
+    if (_squatPhase < 0.7) return 'down';
+    return 'up';
+  }
+
+  @override
+  int get repCount => (_time ~/ 3); // 3초마다 1회 카운트
 
   @override
   void dispose() {
