@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -34,29 +33,46 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   }
 
   Future<void> _init() async {
-    final cams = await availableCameras();
-    final cam = cams.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => cams.first);
-    _controller = CameraController(
-      cam,
-      ResolutionPreset.medium,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.yuv420,
-    );
-    await _controller!.initialize();
+    try {
+      final cams = await availableCameras();
+      if (cams.isEmpty) {
+        // Simulator에서는 카메라가 없을 수 있음
+        return;
+      }
+      final cam = cams.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+          orElse: () => cams.first);
+      _controller = CameraController(
+        cam,
+        ResolutionPreset.medium,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.yuv420,
+      );
+      await _controller!.initialize();
+    } catch (e) {
+      // Simulator에서는 카메라 초기화 실패할 수 있음
+      print('Camera initialization failed: $e');
+      return;
+    }
 
     // Remote Config 임계값 로딩 & 주입
-    final rc = RemoteConfigService.instance;
-    _estimator.setThresholds(
-      downEnter: rc.downEnter,
-      upExit: rc.upExit,
-      smoothWin: rc.smoothWindow,
-    );
+    try {
+      final rc = RemoteConfigService.instance;
+      _estimator.setThresholds(
+        downEnter: rc.downEnter,
+        upExit: rc.upExit,
+        smoothWin: rc.smoothWindow,
+      );
+    } catch (e) {
+      print('Remote Config threshold loading failed: $e');
+    }
 
     await _estimator.load();
     if (!mounted) return;
     setState(() {
       _aspectRatioOverride = _controller!.value.previewSize != null
-          ? _controller!.value.previewSize!.width / _controller!.value.previewSize!.height
+          ? _controller!.value.previewSize!.width /
+              _controller!.value.previewSize!.height
           : null;
     });
   }
@@ -85,7 +101,9 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   }
 
   void _stop() async {
-    try { await _controller?.stopImageStream(); } catch (_) {}
+    try {
+      await _controller?.stopImageStream();
+    } catch (_) {}
   }
 
   @override
@@ -108,7 +126,7 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
 
     if (_controller?.value.isInitialized == true) {
       preview = AspectRatio(
-        aspectRatio: _aspectRatioOverride ?? ( _controller!.value.aspectRatio ),
+        aspectRatio: _aspectRatioOverride ?? (_controller!.value.aspectRatio),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -126,7 +144,9 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Reps: $reps', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Reps: $reps',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(width: 16),
             Text('Angle: ${angle?.toStringAsFixed(1) ?? "-"}°'),
           ],
@@ -135,16 +155,23 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton.icon(onPressed: _start, icon: const Icon(Icons.play_arrow), label: const Text('Start')),
+            ElevatedButton.icon(
+                onPressed: _start,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start')),
             const SizedBox(width: 12),
-            ElevatedButton.icon(onPressed: _stop, icon: const Icon(Icons.stop), label: const Text('Stop')),
+            ElevatedButton.icon(
+                onPressed: _stop,
+                icon: const Icon(Icons.stop),
+                label: const Text('Stop')),
             const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: () async {
                 final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
                 await Fs.instance.addWorkout(uid, DateTime.now(), reps);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('운동 저장됨')));
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(const SnackBar(content: Text('운동 저장됨')));
                 }
               },
               icon: const Icon(Icons.save),
@@ -155,7 +182,9 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
         const SizedBox(height: 6),
         const Padding(
           padding: EdgeInsets.all(8.0),
-          child: Text('※ Remote Config로 임계값/스무딩 조절. 모델 파일은 assets/models/movenet.tflite 로 교체하세요.', style: TextStyle(color: Colors.grey)),
+          child: Text(
+              '※ Remote Config로 임계값/스무딩 조절. 모델 파일은 assets/models/movenet.tflite 로 교체하세요.',
+              style: TextStyle(color: Colors.grey)),
         ),
       ],
     );
