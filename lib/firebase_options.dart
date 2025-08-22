@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     projectId: 'flutterhabitfit',
     storageBucket: 'flutterhabitfit.firebasestorage.app',
     iosClientId: '1:83611695902:ios:ca51185c8ffc330ee9270f',
-    iosBundleId: 'com.example.habitfitMvp',
+    iosBundleId: 'com.leeyoungho.habitfitMvp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -74,7 +74,7 @@ class DefaultFirebaseOptions {
     projectId: 'flutterhabitfit',
     storageBucket: 'flutterhabitfit.firebasestorage.app',
     iosClientId: '1:83611695902:ios:ca51185c8ffc330ee9270f',
-    iosBundleId: 'com.example.habitfitMvp',
+    iosBundleId: 'com.leeyoungho.habitfitMvp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

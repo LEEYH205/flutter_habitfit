@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 class PoseOverlay extends CustomPainter {
-  final List<List<double>>? kps; // 17x3 (y,x,score) normalized 0..1
+  final List<Map<String, double>>? kps; // 17 keypoints with x, y, confidence
   PoseOverlay(this.kps);
 
   static const List<List<int>> edges = [
@@ -23,20 +23,33 @@ class PoseOverlay extends CustomPainter {
 
     // 점
     for (int i = 0; i < kps!.length; i++) {
-      final s = kps![i][2];
-      if (s < 0.3) continue;
-      final dx = kps![i][1] * size.width;
-      final dy = kps![i][0] * size.height;
+      final keypoint = kps![i];
+      final confidence = keypoint['confidence'] ?? 0.0;
+      if (confidence < 0.3) continue;
+      
+      final x = keypoint['x'] ?? 0.0;
+      final y = keypoint['y'] ?? 0.0;
+      
+      final dx = x * size.width;
+      final dy = y * size.height;
       canvas.drawCircle(Offset(dx, dy), 3.5, paintP);
     }
+    
     // 선
     for (final e in edges) {
       final a = e[0], b = e[1];
-      if (kps![a][2] < 0.3 || kps![b][2] < 0.3) continue;
-      final ax = kps![a][1] * size.width;
-      final ay = kps![a][0] * size.height;
-      final bx = kps![b][1] * size.width;
-      final by = kps![b][0] * size.height;
+      if (a >= kps!.length || b >= kps!.length) continue;
+      
+      final confidenceA = kps![a]['confidence'] ?? 0.0;
+      final confidenceB = kps![b]['confidence'] ?? 0.0;
+      
+      if (confidenceA < 0.3 || confidenceB < 0.3) continue;
+      
+      final ax = (kps![a]['x'] ?? 0.0) * size.width;
+      final ay = (kps![a]['y'] ?? 0.0) * size.height;
+      final bx = (kps![b]['x'] ?? 0.0) * size.width;
+      final by = (kps![b]['y'] ?? 0.0) * size.height;
+      
       canvas.drawLine(Offset(ax, ay), Offset(bx, by), paintL);
     }
   }

@@ -23,6 +23,7 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   CameraController? _controller;
   late PoseEstimator _estimator;
   bool _busy = false;
+  bool _isStreaming = false; // Add streaming state tracking
   double? _aspectRatioOverride; // 프리뷰 비율 유지
 
   @override
@@ -55,18 +56,7 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
       return;
     }
 
-    // Remote Config 임계값 로딩 & 주입
-    try {
-      final rc = RemoteConfigService.instance;
-      _estimator.setThresholds(
-        downEnter: rc.downEnter,
-        upExit: rc.upExit,
-        smoothWin: rc.smoothWindow,
-      );
-    } catch (e) {
-      print('Remote Config threshold loading failed: $e');
-    }
-
+    // 포즈 추정기 로드
     await _estimator.load();
     if (!mounted) return;
     setState(() {
@@ -79,11 +69,14 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
 
   void _start() {
     if (!(_controller?.value.isInitialized ?? false)) return;
+    if (_isStreaming) return; // Don't start if already streaming
+
+    _isStreaming = true;
     _controller!.startImageStream((img) async {
       if (_busy) return;
       _busy = true;
       try {
-        final inc = await _estimator.process(img);
+        final inc = _estimator.process(img);
         final angle = _estimator.lastAngle;
         if (angle != null && mounted) {
           ref.read(_angleProvider.notifier).state = angle;
@@ -103,12 +96,14 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   void _stop() async {
     try {
       await _controller?.stopImageStream();
+      _isStreaming = false; // Reset streaming state
     } catch (_) {}
   }
 
   @override
   void dispose() {
     _stop();
+    _isStreaming = false; // Ensure streaming state is reset
     _controller?.dispose();
     _estimator.dispose();
     super.dispose();
