@@ -99,70 +99,107 @@ class MoveNetPoseEstimator implements PoseEstimator {
       print(
           'DEBUG: Input tensor prepared. shape=$inputShape, type=${inputTensor.type}');
 
-      // rgbU8: Uint8List(H*W*3) 0..255
-      List<dynamic> inputBuffer;
+      // rgbU8: Uint8List(H*W*3) 0..255 → 올바른 API 사용
       try {
-        if (inputTensor.type.toString().contains('float')) {
-          // float/float16 가중치 모델의 입력은 보통 float32
+        if (inputTensor.type == TensorType.float32) {
+          // float32 입력: 0~1 정규화
           final f32 = Float32List(rgbU8.length);
           for (int i = 0; i < rgbU8.length; i++) {
-            f32[i] = rgbU8[i] / 255.0; // 0~1 정규화
+            f32[i] = rgbU8[i] / 255.0;
           }
-          inputBuffer = f32.toList();
-          print('DEBUG: Using float32 input buffer');
-        } else if (inputTensor.type.toString().contains('uint8')) {
-          // 진짜 uint8 입력 모델(드뭅니다)
-          inputBuffer = rgbU8.toList();
-          print('DEBUG: Using uint8 input buffer');
-        } else if (inputTensor.type.toString().contains('int8')) {
-          // int8 양자화 모델: 대략적 변환
+          inputTensor.setTo(f32);
+          print('DEBUG: Using float32 input buffer with setTo()');
+        } else if (inputTensor.type == TensorType.uint8) {
+          // uint8 입력: 직접 설정
+          inputTensor.setTo(rgbU8);
+          print('DEBUG: Using uint8 input buffer with setTo()');
+        } else if (inputTensor.type == TensorType.int8) {
+          // int8 입력: 양자화 파라미터 적용
           final i8 = Int8List(rgbU8.length);
           for (int i = 0; i < rgbU8.length; i++) {
             i8[i] = (rgbU8[i] - 128);
           }
-          inputBuffer = i8.toList();
-          print('DEBUG: Using int8 input buffer');
+          inputTensor.setTo(i8);
+          print('DEBUG: Using int8 input buffer with setTo()');
         } else {
           // 기본값: float32
           final f32 = Float32List(rgbU8.length);
           for (int i = 0; i < rgbU8.length; i++) {
             f32[i] = rgbU8[i] / 255.0;
           }
-          inputBuffer = f32.toList();
-          print('DEBUG: Using default float32 input buffer');
+          inputTensor.setTo(f32);
+          print('DEBUG: Using default float32 input buffer with setTo()');
         }
-        print('DEBUG: Input buffer prepared. length=${inputBuffer.length}');
+        print('DEBUG: Input buffer prepared successfully with setTo()');
       } catch (e) {
         print('ERROR: Failed to prepare input buffer: $e');
         return 0;
       }
 
-      // 3) 추론 (run 메서드 사용)
+      // 3) 추론 (올바른 API: invoke() + copyTo() 사용)
       print('DEBUG: Preparing output tensor');
       final outTensor = _interpreter!.getOutputTensor(0);
       final outShape = outTensor.shape; // 보통 [1,1,17,3]
       final outElems = outShape.fold<int>(1, (a, b) => a * b);
-      final output = List.filled(outElems, 0.0);
+
       print(
-          'DEBUG: Output tensor prepared. shape=$outShape, elements=$outElems, output.length=${output.length}');
+          'DEBUG: Output tensor prepared. shape=$outShape, elements=$outElems');
 
       try {
-        print('DEBUG: Running inference');
-        _interpreter!.run(inputBuffer, output);
-        print('DEBUG: Inference successful, output length: ${output.length}');
+        print('DEBUG: Running inference with invoke()');
+        _interpreter!.invoke(); // setTo() 후 invoke() 사용
+        print('DEBUG: Inference successful with invoke()');
       } catch (e) {
         print('ERROR: Failed to run inference: $e');
         return 0;
       }
 
-      print('outShape=$outShape, outElems=$outElems, outLen=${output.length}');
+      // 출력 데이터 추출 (올바른 API: copyTo() 사용 - 4D 구조)
+      List<double> flatOutput;
+      try {
+        // 텐서와 같은 shape [1,1,17,3]의 4차원 리스트 준비
+        final output4d = List.generate(
+          1,
+          (_) => List.generate(
+            1,
+            (_) => List.generate(
+              17,
+              (_) => List.filled(3, 0.0),
+              growable: false,
+            ),
+            growable: false,
+          ),
+          growable: false,
+        );
+
+        // 텐서에서 4D 구조로 결과 복사
+        outTensor.copyTo(output4d);
+        print(
+            'DEBUG: Output extracted successfully with copyTo() to 4D structure');
+
+        // 사용하기 쉽게 1차원으로 평탄화
+        final kps = output4d[0][0]; // List<List<double>> 크기 17x3
+        flatOutput = <double>[];
+        for (var i = 0; i < 17; i++) {
+          flatOutput.add(kps[i][0]); // y
+          flatOutput.add(kps[i][1]); // x
+          flatOutput.add(kps[i][2]); // score
+        }
+        print('DEBUG: Flattened to 1D. length=${flatOutput.length}');
+      } catch (e) {
+        print('ERROR: Failed to extract output: $e');
+        return 0;
+      }
+
+      print(
+          'outShape=$outShape, outElems=$outElems, outLen=${flatOutput.length}');
 
       // 4) 키포인트 파싱
       print(
-          'DEBUG: About to parse keypoints. output.length=${output.length}, outShape=$outShape');
+          'DEBUG: About to parse keypoints. flatOutput.length=${flatOutput.length}, outShape=$outShape');
       List<Map<String, double>> keypoints;
       try {
-        keypoints = _parseKeypoints(output, outShape);
+        keypoints = _parseKeypoints(flatOutput, outShape);
         print(
             'DEBUG: Keypoints parsed successfully. keypoints.length=${keypoints.length}');
       } catch (e) {
