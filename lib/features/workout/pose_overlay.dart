@@ -57,9 +57,10 @@ class PoseOverlay extends StatelessWidget {
         final x = kp['x'] ?? 0.0;
         final y = kp['y'] ?? 0.0;
 
-        // 화면 좌표로 변환 (0.0~1.0 → 픽셀)
-        final screenX = x * screenSize.width;
-        final screenY = y * screenSize.height;
+        // 기기별 좌표계 조정
+        final adjustedCoords = _adjustCoordinatesForDevice(x, y);
+        final screenX = adjustedCoords.dx;
+        final screenY = adjustedCoords.dy;
 
         // 신뢰도에 따른 색상
         final color = _getConfidenceColor(confidence);
@@ -93,6 +94,32 @@ class PoseOverlay extends StatelessWidget {
     }
 
     return widgets;
+  }
+
+  /// 기기별 좌표계 조정 메서드
+  Offset _adjustCoordinatesForDevice(double x, double y) {
+    // 기본 좌표계 (0.0~1.0 → 픽셀)
+    double screenX = x * screenSize.width;
+    double screenY = y * screenSize.height;
+
+    // 기기별 특수 조정
+    if (screenSize.width > 1000) {
+      // 고해상도 기기 (Android 대부분)
+      // Y축 미세 조정 (Android 카메라 좌표계 차이)
+      screenY = screenY * 0.95 + screenSize.height * 0.025;
+
+      // X축 미세 조정 (Android 화면 비율 차이)
+      screenX = screenX * 0.98 + screenSize.width * 0.01;
+    } else {
+      // iOS 기기 (기본값 유지)
+      // 추가 조정 불필요
+    }
+
+    // 화면 경계 체크
+    screenX = screenX.clamp(0.0, screenSize.width);
+    screenY = screenY.clamp(0.0, screenSize.height);
+
+    return Offset(screenX, screenY);
   }
 
   /// 스켈레톤 연결선 생성 (수정된 버전)
@@ -144,11 +171,14 @@ class PoseOverlay extends StatelessWidget {
         final endX = end['x'] ?? 0.0;
         final endY = end['y'] ?? 0.0;
 
-        // 화면 좌표로 변환
-        final screenStartX = startX * screenSize.width;
-        final screenStartY = startY * screenSize.height;
-        final screenEndX = endX * screenSize.width;
-        final screenEndY = endY * screenSize.height;
+        // 기기별 좌표계 조정
+        final startCoords = _adjustCoordinatesForDevice(startX, startY);
+        final endCoords = _adjustCoordinatesForDevice(endX, endY);
+
+        final screenStartX = startCoords.dx;
+        final screenStartY = startCoords.dy;
+        final screenEndX = endCoords.dx;
+        final screenEndY = endCoords.dy;
 
         // 선의 길이와 각도 계산
         final dx = screenEndX - screenStartX;
