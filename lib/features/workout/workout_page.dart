@@ -200,7 +200,7 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
         const Padding(
           padding: EdgeInsets.all(8.0),
           child: Text(
-              '※ Remote Config로 임계값/스무딩 조절. 모델 파일은 assets/models/movenet.tflite 로 교체하세요.',
+              '※ Remote Config로 임계값/스무딩 조절. 모델 파일은 assets/models/에 *.tflite',
               style: TextStyle(color: Colors.grey)),
         ),
       ],

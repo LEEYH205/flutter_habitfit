@@ -7,6 +7,7 @@ import 'dart:io';
 import 'firebase_options.dart';
 import 'app.dart';
 import 'common/services/fcm_service.dart';
+import 'common/services/local_notification_service.dart';
 import 'common/services/remote_config_service.dart';
 
 @pragma('vm:entry-point')
@@ -31,6 +32,14 @@ Future<void> main() async {
     await RemoteConfigService.instance.init();
   } catch (e) {
     print('Firebase services initialization failed: $e');
+  }
+
+  // 로컬 알림 서비스 초기화 (FCM과 독립적으로 작동)
+  try {
+    await LocalNotificationService.instance.init();
+    print('✅ 로컬 알림 서비스 초기화 성공');
+  } catch (e) {
+    print('❌ 로컬 알림 서비스 초기화 실패: $e');
   }
 
   runApp(const ProviderScope(child: HabitFitApp()));

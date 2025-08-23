@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../common/services/fcm_service.dart';
+import '../../common/services/local_notification_service.dart';
 
 class ReportPage extends ConsumerWidget {
   const ReportPage({super.key});
@@ -88,7 +89,7 @@ class ReportPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '🔔 FCM 푸시 알림 테스트',
+                  '🔔 로컬 알림 시스템 테스트',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -97,7 +98,7 @@ class ReportPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  '푸시 알림 기능을 테스트해보세요.',
+                  '로컬 알림 기능들을 테스트해보세요.',
                   style: TextStyle(fontSize: 14, color: Colors.blue),
                 ),
                 const SizedBox(height: 16),
@@ -179,9 +180,119 @@ class ReportPage extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                const Text(
+                  '📱 고급 알림 기능들',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await LocalNotificationService.instance
+                              .showWorkoutCompletionNotification(15, '스쿼트');
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('💪 운동 완료 알림을 보냈습니다!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.fitness_center),
+                        label: const Text('운동 완료 알림'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await LocalNotificationService.instance
+                              .showDailyWorkoutSummary(25, 120);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('📊 일일 요약 알림을 보냈습니다!'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.summarize),
+                        label: const Text('일일 요약 알림'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await LocalNotificationService.instance
+                              .showGoalAchievementNotification('스쿼트', 20);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('🎯 목표 달성 알림을 보냈습니다!'),
+                                backgroundColor: Colors.purple,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.emoji_events),
+                        label: const Text('목표 달성 알림'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await LocalNotificationService.instance
+                              .scheduleHabitReminder(
+                                  const TimeOfDay(hour: 20, minute: 0));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('📝 오후 8시 습관 체크 리마인더를 설정했습니다!'),
+                                backgroundColor: Colors.blue,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.schedule),
+                        label: const Text('습관 리마인더'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 const Text(
-                  '💡 Firebase Console에서 이 토큰으로 테스트 메시지를 보내보세요!',
+                  '💡 로컬 알림은 FCM 없이도 완벽하게 작동합니다!',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.blue,
