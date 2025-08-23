@@ -41,6 +41,8 @@
 		<string>remote-notification</string>
 		<string>background-processing</string>
 		<string>processing</string>
+		<string>network-authentication</string>
+		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

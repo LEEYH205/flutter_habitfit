@@ -12,11 +12,12 @@ class LocalNotificationService {
 
   Future<void> init() async {
     print('🔔 로컬 알림 서비스 초기화 시작...');
-    
+
     // 타임존 초기화
     tz.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -40,12 +41,13 @@ class LocalNotificationService {
   }
 
   // 1. 운동 완료 시 자동 알림
-  Future<void> showWorkoutCompletionNotification(int reps, String exerciseType) async {
+  Future<void> showWorkoutCompletionNotification(
+      int reps, String exerciseType) async {
     try {
       await _localNotifications.show(
         1,
         '💪 운동 완료!',
-        '오늘 ${exerciseType} ${reps}회 완료했습니다!',
+        '오늘 $exerciseType $reps회 완료했습니다!',
         _getWorkoutNotificationDetails(),
       );
       print('✅ 운동 완료 알림 전송 성공');
@@ -81,9 +83,44 @@ class LocalNotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      print('✅ 습관 체크 리마인더 설정 성공: ${reminderTime.hour}:${reminderTime.minute.toString().padLeft(2, '0')}');
+      print(
+          '✅ 습관 체크 리마인더 설정 성공: ${reminderTime.hour}:${reminderTime.minute.toString().padLeft(2, '0')}');
     } catch (e) {
       print('❌ 습관 체크 리마인더 설정 실패: $e');
+    }
+  }
+
+  // 2-1. 일일 운동 요약 알림 (매일 특정 시간)
+  Future<void> scheduleDailyWorkoutSummary(TimeOfDay summaryTime) async {
+    try {
+      final now = DateTime.now();
+      var scheduledDate = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        summaryTime.hour,
+        summaryTime.minute,
+      );
+
+      // 이미 오늘 시간이 지났다면 내일로 설정
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+
+      await _localNotifications.zonedSchedule(
+        3,
+        '📊 일일 운동 요약',
+        '오늘의 운동 기록을 확인해보세요!',
+        tz.TZDateTime.from(scheduledDate, tz.local),
+        _getSummaryNotificationDetails(),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+      print(
+          '✅ 일일 운동 요약 알림 설정 성공: ${summaryTime.hour}:${summaryTime.minute.toString().padLeft(2, '0')}');
+    } catch (e) {
+      print('❌ 일일 운동 요약 알림 설정 실패: $e');
     }
   }
 
@@ -93,7 +130,7 @@ class LocalNotificationService {
       await _localNotifications.show(
         3,
         '📊 오늘의 운동 요약',
-        '총 ${totalReps}회, ${totalCalories}kcal 소모!',
+        '총 $totalReps회, ${totalCalories}kcal 소모!',
         _getSummaryNotificationDetails(),
       );
       print('✅ 일일 운동 요약 알림 전송 성공');
@@ -103,12 +140,13 @@ class LocalNotificationService {
   }
 
   // 4. 목표 달성 축하 알림
-  Future<void> showGoalAchievementNotification(String goalType, int achievedValue) async {
+  Future<void> showGoalAchievementNotification(
+      String goalType, int achievedValue) async {
     try {
       await _localNotifications.show(
         4,
         '🎯 목표 달성!',
-        '${goalType} 목표를 달성했습니다! (${achievedValue})',
+        '$goalType 목표를 달성했습니다! ($achievedValue)',
         _getAchievementNotificationDetails(),
       );
       print('✅ 목표 달성 축하 알림 전송 성공');
@@ -122,12 +160,12 @@ class LocalNotificationService {
     try {
       final now = DateTime.now();
       var nextSunday = now;
-      
+
       // 다음 일요일 찾기
       while (nextSunday.weekday != DateTime.sunday) {
         nextSunday = nextSunday.add(const Duration(days: 1));
       }
-      
+
       // 오후 8시로 설정
       final scheduledDate = DateTime(
         nextSunday.year,

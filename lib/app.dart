@@ -5,6 +5,7 @@ import 'features/habit/habit_page.dart';
 import 'features/workout/workout_page.dart';
 import 'features/meals/meal_page.dart';
 import 'features/report/report_page.dart';
+import 'features/settings/settings_page.dart';
 
 class HabitFitApp extends ConsumerWidget {
   const HabitFitApp({super.key});
@@ -20,7 +21,7 @@ class HabitFitApp extends ConsumerWidget {
 }
 
 class _HomeShell extends StatefulWidget {
-  const _HomeShell({Key? key}) : super(key: key);
+  const _HomeShell({super.key});
 
   @override
   State<_HomeShell> createState() => _HomeShellState();
@@ -33,6 +34,7 @@ class _HomeShellState extends State<_HomeShell> {
     WorkoutPage(),
     MealPage(),
     ReportPage(),
+    SettingsPage(),
   ];
 
   @override
@@ -45,9 +47,11 @@ class _HomeShellState extends State<_HomeShell> {
         onDestinationSelected: (i) => setState(() => _idx = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.check_circle), label: 'Habit'),
-          NavigationDestination(icon: Icon(Icons.fitness_center), label: 'Workout'),
+          NavigationDestination(
+              icon: Icon(Icons.fitness_center), label: 'Workout'),
           NavigationDestination(icon: Icon(Icons.restaurant), label: 'Meals'),
           NavigationDestination(icon: Icon(Icons.assessment), label: 'Report'),
+          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );
