@@ -8,6 +8,7 @@ class PoseOverlay extends StatelessWidget {
   final String squatPhase;
   final int squatCount;
   final Size screenSize;
+  final String exerciseType; // 새로 추가
 
   const PoseOverlay({
     super.key,
@@ -16,6 +17,7 @@ class PoseOverlay extends StatelessWidget {
     required this.squatPhase,
     required this.squatCount,
     required this.screenSize,
+    this.exerciseType = 'squat', // 기본값
   });
 
   @override
@@ -35,8 +37,8 @@ class PoseOverlay extends StatelessWidget {
         // 자세 상태 표시
         _buildPoseStatus(),
 
-        // 스쿼트 카운트
-        _buildSquatCount(),
+        // 운동 카운트
+        _buildExerciseCount(),
 
         // 디버깅 정보 (개발 중에만)
         if (keypoints!.isNotEmpty) _buildDebugInfo(),
@@ -257,15 +259,19 @@ class PoseOverlay extends StatelessWidget {
     );
   }
 
-  /// 스쿼트 카운트 표시
-  Widget _buildSquatCount() {
+  /// 운동 카운트 표시
+  Widget _buildExerciseCount() {
+    final exerciseLabel = exerciseType == 'pushup' ? 'PUSHUPS' : 'SQUATS';
+    final exerciseColor =
+        exerciseType == 'pushup' ? Colors.orange : Colors.blue;
+
     return Positioned(
       top: 50,
       right: 20,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.9),
+          color: exerciseColor.withOpacity(0.9),
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
@@ -278,9 +284,9 @@ class PoseOverlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'SQUATS',
-              style: TextStyle(
+            Text(
+              exerciseLabel,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,

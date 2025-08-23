@@ -12,6 +12,12 @@ abstract class PoseEstimator {
   String get squatPhase;
   int get repCount;
   void dispose();
+
+  // 새로운 메서드들
+  String get exerciseType;
+  String get exercisePhase;
+  bool isExerciseComplete();
+  double? get exerciseSpecificMetric;
 }
 
 /// MoveNet 포즈 추정기 (float16 모델 사용, 안전한 텐서 처리)
@@ -30,6 +36,9 @@ class MoveNetPoseEstimator implements PoseEstimator {
   String _squatPhase = 'idle'; // 'idle', 'down', 'up'
   int _repCount = 0;
   bool _busy = false; // 재진입 방지
+
+  // 운동 타입 관련 변수
+  final String _exerciseType = 'squat'; // 기본값은 스쿼트
 
   @override
   Future<void> load() async {
@@ -242,14 +251,6 @@ class MoveNetPoseEstimator implements PoseEstimator {
   // --- YUV/BGRA → RGB888 (Uint8List) ---
   Uint8List _preprocessImageToRGB888(CameraImage img, int outW, int outH) {
     try {
-      // 이미지 포맷 체크 (첫 번째만 출력)
-      bool formatLogged = false;
-      if (!formatLogged) {
-        print(
-            '📸 Image format: ${img.format.group}, planes: ${img.planes.length}');
-        formatLogged = true;
-      }
-
       // iOS: BGRA, Android: YUV420 (일반적)
       if (img.format.group == ImageFormatGroup.bgra8888) {
         final plane = img.planes[0];
@@ -571,6 +572,19 @@ class MoveNetPoseEstimator implements PoseEstimator {
     } catch (_) {}
     print('MoveNet pose estimator disposed');
   }
+
+  // 새로운 메서드들 구현
+  @override
+  String get exerciseType => _exerciseType;
+
+  @override
+  String get exercisePhase => squatPhase; // 스쿼트와 호환성을 위해
+
+  @override
+  bool isExerciseComplete() => _repCount > 0;
+
+  @override
+  double? get exerciseSpecificMetric => lastAngle;
 }
 
 /// 시뮬레이션 모드 포즈 추정기 (AI 모델 대신 사용)
@@ -584,6 +598,10 @@ class SimulationPoseEstimator implements PoseEstimator {
   double _time = 0.0;
   double _squatPhase = 0.0; // 0.0 ~ 1.0 (스쿼트 동작 단계)
   bool _isSquatting = false;
+
+  // 운동 타입 관련 변수
+  final String _exerciseType = 'squat';
+  int _repCount = 0;
 
   @override
   Future<void> load() async {
@@ -604,6 +622,10 @@ class SimulationPoseEstimator implements PoseEstimator {
     // 스쿼트 감지 (중간 단계에서)
     if (_squatPhase > 0.3 && _squatPhase < 0.7) {
       _isSquatting = true;
+      // 스쿼트 완료 시 카운트 증가
+      if (_squatPhase > 0.6) {
+        _repCount++;
+      }
     } else {
       _isSquatting = false;
     }
@@ -749,11 +771,24 @@ class SimulationPoseEstimator implements PoseEstimator {
   }
 
   @override
-  int get repCount => (_time ~/ 3); // 3초마다 1회 카운트
+  int get repCount => _repCount;
 
   @override
   void dispose() {
     _isInitialized = false;
     print('Simulation pose estimator disposed');
   }
+
+  // 새로운 메서드들 구현
+  @override
+  String get exerciseType => _exerciseType;
+
+  @override
+  String get exercisePhase => squatPhase; // 스쿼트와 호환성을 위해
+
+  @override
+  bool isExerciseComplete() => _repCount > 0;
+
+  @override
+  double? get exerciseSpecificMetric => lastAngle;
 }

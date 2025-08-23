@@ -40,8 +40,9 @@ class _HomeShellState extends State<_HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('HabitFit MVP')),
-      body: _pages[_idx],
+      body: SafeArea(
+        child: _pages[_idx],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _idx,
         onDestinationSelected: (i) => setState(() => _idx = i),
