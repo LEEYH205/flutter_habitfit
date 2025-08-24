@@ -36,6 +36,8 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **💪 운동 완료 시 자동 알림**: Stop 버튼 누를 때 자동으로 운동 완료 알림 전송 (우선순위 3)
 - **⚙️ 설정 페이지 완성**: 사용자가 알림 설정을 커스터마이징할 수 있도록 (우선순위 4)
 - **📝 습관 체크와 알림 연동**: 습관 체크 완료 시 성취 알림 및 연속 달성 기록 (우선순위 5)
+- **🏃‍♂️ 달리기 관리 시스템**: GPS 기반 거리/속도 측정, HealthKit 연동 코칭 시스템
+- **⌚️ Apple Watch 지원**: 워치 전용 운동 추적 및 iPhone과의 데이터 동기화
 - 운동 피드백 시스템 (자세 교정 가이드)
 - 성능 최적화 및 배터리 효율성 개선
 - 추가 운동 동작 지원 (플랭크, 런지 등)
@@ -52,6 +54,8 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **State Management**: Flutter Riverpod
 - **Camera**: Flutter Camera Plugin
 - **Notifications**: flutter_local_notifications (완벽 작동)
+- **Health Integration**: HealthKit 연동 (계획됨)
+- **Watch Support**: Apple Watch 앱 (계획됨)
 
 ## 📱 Features
 
@@ -93,9 +97,20 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **Push Notifications**: FCM 기반 알림 (실제 기기에서 테스트 필요)
 - **Dynamic Configuration**: Remote Config 기반 임계값 조정
 
+### 📋 Planned Features
+- **🏃‍♂️ Running Management System**: GPS 기반 달리기 추적 및 관리
+- **⌚️ Apple Watch Support**: 워치 전용 운동 앱 및 iPhone과의 동기화
+- **🏥 HealthKit Integration**: iPhone 건강앱과의 데이터 연동 및 AI 코칭
+- **💡 AI-Powered Coaching**: 운동 데이터 분석 기반 개인화된 코칭 시스템
+
 ## 🤖 AI Integration & Future Development
 
 ### **Current AI Implementation**
+
+#### **0. AI 활용 방향**
+- **운동**: 실시간 포즈 추정으로 정확한 운동 가이드
+- **습관**: 패턴 학습으로 개인 맞춤형 습관 형성 전략
+- **식단**: 이미지 인식과 영양 분석으로 스마트한 식단 관리
 
 #### **1. TFLite 기반 포즈 추정 ✅ 완벽 동작**
 ```dart
@@ -119,617 +134,267 @@ class MoveNetPoseEstimator extends PoseEstimator {
 }
 ```
 
-#### **2. AI 활용 방향**
-- **운동**: 실시간 포즈 추정으로 정확한 운동 가이드
-- **습관**: 패턴 학습으로 개인 맞춤형 습관 형성 전략
-- **식단**: 이미지 인식과 영양 분석으로 스마트한 식단 관리
-
-### **🎯 AI 성과 및 기술적 성취**
-
-#### **2025-08-22: AI 포즈 추정 완벽 구현 성공**
-- **MoveNet 모델**: TensorFlow Hub에서 다운로드한 정식 모델 사용
-- **이미지 전처리**: iOS YUV420/NV12, Android YUV420 완벽 지원
-- **실시간 추론**: TFLite Flutter 0.11.0 API 최적화
-- **스쿼트 감지**: 140-150도 임계값으로 정확한 운동 완료 감지
-
-#### **2025-08-22: 포즈 오버레이 UI 및 상태 머신 완성**
-- **🎨 포즈 오버레이**: 실시간 키포인트 시각화 및 스켈레톤 연결선 표시
-- **🔄 상태 머신**: idle → down → up → idle 사이클로 정확한 운동 감지
-- **💪 자동 카운트**: 무릎 각도 기반 스쿼트 횟수 자동 측정
-- **📱 UI 최적화**: LayoutBuilder로 정확한 화면 크기 적용 및 키포인트 정렬
-- **성능 최적화**: 디버그 로그 정리로 성능 향상
-
-#### **2025-08-22: 로컬 알림 시스템 완벽 구현 성공**
-- **🔔 로컬 알림 시스템**: flutter_local_notifications 기반 완벽한 알림 시스템
-- **🎯 목표 달성 알림**: 실시간 목표 달성 감지 및 축하 알림 전송
-- **💪 운동 완료 알림**: 스쿼트 세션 완료 시 자동 알림
-- **📝 습관 리마인더**: 매일 특정 시간에 습관 체크 알림
-- **📊 일일 요약 알림**: 매일 밤 운동 요약 및 성과 알림
-- **📅 주간 요약 알림**: 매주 일요일에 주간 운동 요약 알림
-
-#### **기술적 해결 과제**
-- ✅ `tflite_flutter` API 호환성 문제 해결
-- ✅ 텐서 shape mismatch 오류 완전 해결
-- ✅ iOS 카메라 이미지 포맷 호환성 확보
-- ✅ 무릎 각도 계산 알고리즘 최적화
-- ✅ 양쪽 다리 폴백 로직으로 안정성 향상
-- ✅ 로컬 알림 시스템 완벽 구현 및 테스트 완료
-
-### **Planned AI Features**
-
-#### **Phase 1: 기본 AI 분석 (데이터 수집 완료 후)**
-- **습관 패턴 분석**: 사용자의 성공/실패 패턴 학습
-- **식단 영양 균형 분석**: 전체 식단의 영양소 균형 분석
-- **운동 효과 분석**: 운동 데이터 기반 효과 측정
-
-#### **Phase 2: 컴퓨터 비전 (Computer Vision)**
+#### **2. 다중 운동 지원 시스템 ✅ 구현 완료**
 ```dart
-// 음식 이미지 자동 분석
-class FoodRecognitionService {
-  Future<FoodInfo> analyzeFoodImage(File image) async {
-    // AI 모델로 음식 종류, 칼로리, 영양성분 자동 인식
-    return FoodInfo(
-      name: "라면",
-      calories: 450,
-      protein: 12.5,
-      carbs: 65.2,
-      fat: 18.3
+// 운동별 독립적인 카운터 시스템
+class WorkoutPage extends StatefulWidget {
+  // 스쿼트와 푸시업 각각의 독립적인 카운터
+  final _squatCountProvider = StateProvider<int>((ref) => 0);
+  final _pushupCountProvider = StateProvider<int>((ref) => 0);
+  
+  // 운동 타입 선택 드롭다운
+  String _selectedExercise = 'squat';
+  final Map<String, Map<String, String>> _exerciseSettings = {
+    'squat': {'name': '스쿼트', 'goal': '20회'},
+    'pushup': {'name': '푸시업', 'goal': '15회'},
+  };
+}
+
+// 푸시업 감지기
+class PushUpDetector {
+  String _pushUpPhase = 'idle';
+  int _repCount = 0;
+  
+  int detectPushUp(double elbowAngle) {
+    // 팔꿈치 각도 기반 푸시업 상태 감지
+    // down: < 90도, up: > 90도
+    // idle → down → up → down 사이클로 카운팅
+  }
+}
+```
+
+#### **3. UI/UX 통일 및 최적화 ✅ 완료**
+```dart
+// 모든 탭의 통일된 상단 디자인
+class UnifiedTabDesign {
+  // 설정탭과 동일한 스타일의 AppBar
+  AppBar(
+    title: Text('💪 운동 관리'), // 또는 '✅ 습관 관리', '🍽️ 식사 관리' 등
+    backgroundColor: Colors.blue,
+    foregroundColor: Colors.white,
+    actions: [
+      // 운동 선택 드롭다운 (운동 탭만)
+      DropdownButton<String>(...),
+    ],
+  )
+}
+
+// 워크아웃 레이아웃 최적화
+class OptimizedWorkoutLayout {
+  // 불필요한 요소 제거
+  // - Start, Stop, Save 버튼 제거
+  // - "현재 운동: 푸시업" 등 설명 텍스트 제거
+  // - 카메라 비율 최적화 (자연스러운 비율 사용)
+  
+  // 핵심 기능만 유지
+  // - 실시간 카운터 표시
+  // - 각도 정보 표시
+  // - 포즈 오버레이
+}
+```
+
+### **최근 구현된 주요 기능들**
+
+#### **1. 푸시업 운동 지원 ✅**
+- **팔꿈치 각도 계산**: 어깨-팔꿈치-손목 각도로 푸시업 깊이 감지
+- **상태 머신**: idle → down → up → down 사이클로 정확한 카운팅
+- **독립적인 카운터**: 스쿼트와 별도로 푸시업 횟수 관리
+- **신뢰도 임계값**: 0.2로 낮춰서 감지 정확도 향상
+
+#### **2. UI/UX 통일 ✅**
+- **상단 디자인 통일**: 모든 탭을 설정탭과 동일한 파란색 AppBar 스타일로 통일
+- **SafeArea 적용**: 상태바와 겹치지 않도록 적절한 여백 확보
+- **일관된 아이콘**: 각 탭별로 의미있는 아이콘 사용 (💪, ✅, 🍽️, 📊, ⚙️)
+
+#### **3. 워크아웃 레이아웃 최적화 ✅**
+- **불필요한 요소 제거**: Start/Stop/Save 버튼, 설명 텍스트 등 제거
+- **카메라 비율 개선**: 자연스러운 카메라 비율 사용으로 시각적 개선
+- **운동 선택 UI**: 드롭다운으로 스쿼트/푸시업 간편 전환
+- **독립적인 카운터**: 각 운동별로 별도의 카운터 표시
+
+#### **4. 독립적인 운동 카운터 시스템 ✅**
+- **Riverpod StateProvider**: 스쿼트와 푸시업 각각의 상태 관리
+- **운동별 데이터 저장**: Firestore에 exerciseCategory로 구분하여 저장
+- **리포트 페이지 업데이트**: 각 운동별 개별 통계 표시
+
+### **계획된 고급 기능들**
+
+#### **🏃‍♂️ 달리기 관리 시스템 📋**
+```dart
+// GPS 기반 달리기 추적
+class RunningTracker {
+  final Location location = Location();
+  List<LatLng> route = [];
+  double totalDistance = 0.0;
+  double currentSpeed = 0.0;
+  
+  Future<void> startTracking() async {
+    // GPS 권한 확인 및 위치 추적 시작
+    // 실시간 위치 업데이트로 경로 기록
+  }
+}
+
+// 달리기 자세 분석
+class RunningPoseAnalyzer {
+  // 어깨 높이 일정성 체크
+  bool checkShoulderStability(List<Map<String, double>> keypoints) {
+    // 어깨 높이가 일정하게 유지되는지 확인
+  }
+  
+  // 팔꿈치 각도 체크
+  double? calculateElbowAngle(Map<String, double> shoulder, 
+                             Map<String, double> elbow, 
+                             Map<String, double> wrist) {
+    // 팔꿈치 각도로 팔 움직임 분석
+  }
+}
+```
+
+#### **⌚️ Apple Watch 지원 📋**
+```dart
+// 워치 전용 운동 화면
+class WatchWorkoutScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return WatchWorkoutView(
+      // 워치에 최적화된 UI
+      // - 큰 버튼과 텍스트
+      // - 터치 제스처 최소화
+      // - 긴급 상황 버튼 (운동 중단 등)
     );
   }
 }
+
+// 워치 센서 활용
+class WatchSensorManager {
+  // 심박수 모니터링
+  Stream<int> get heartRateStream;
+  
+  // 가속도계 데이터
+  Stream<AccelerometerData> get accelerometerStream;
+  
+  // GPS 데이터 (GPS 모델)
+  Stream<LocationData> get locationStream;
+}
 ```
 
-#### **Phase 3: 머신러닝 기반 추천 시스템**
+#### **🏥 HealthKit 연동 AI 코칭 시스템 📋**
 ```dart
-// 개인화된 식단 추천
-class PersonalizedRecommendationService {
-  Future<List<Meal>> recommendMeals() async {
-    // 사용자의 과거 식단, 목표, 선호도 분석
-    // AI가 최적의 식단 조합 추천
-    return recommendedMeals;
+// HealthKit에서 운동 데이터 가져오기
+class HealthKitIntegration {
+  Future<List<WorkoutData>> getRecentWorkouts() async {
+    final health = HealthFactory();
+    
+    // 최근 7일간의 달리기 데이터 조회
+    final workouts = await health.getHealthDataFromTypes(
+      DateTime.now().subtract(Duration(days: 7)),
+      DateTime.now(),
+      [HealthDataType.WORKOUTS],
+    );
+    
+    return workouts.map((data) => WorkoutData.fromHealthKit(data)).toList();
   }
 }
 
-// 습관 형성 AI 코치
-class HabitFormationAI {
-  Future<HabitStrategy> suggestStrategy() async {
-    // 사용자의 성공/실패 패턴 분석
-    // 개인에게 최적화된 습관 형성 전략 제안
-    return strategy;
-  }
-}
-```
-
-#### **Phase 4: 고급 AI 기능**
-- **예측 분석**: 습관 성공률, 체중 변화, 운동 효과 예측
-- **부상 예방**: 잘못된 자세로 인한 부상 위험 감지
-- **개인화된 알림**: AI가 최적의 시간에 알림 제공
-
-### **AI 데이터 구조**
-
-#### **습관 데이터 (AI 학습 기반)**
-```json
-{
-  "date": "2025-08-22",
-  "done": true,
-  "uid": "anon",
-  "ts": "2025-08-22T13:55:29Z"
-}
-```
-
-#### **식단 데이터 (AI 학습 기반)**
-```json
-{
-  "date": "2025-08-22",
-  "label": "ramen",
-  "kcal": 500,
-  "imageUrl": null,
-  "uid": "anon",
-  "ts": "2025-08-22T13:55:35Z"
-}
-```
-
-#### **운동 데이터 (AI 학습 기반)**
-```json
-{
-  "date": "2025-08-22",
-  "exercise": "squat",
-  "reps": 10,
-  "duration": 300,
-  "accuracy": 0.85,
-  "uid": "anon",
-  "ts": "2025-08-22T13:55:29Z"
-}
-```
-
-### **AI 모델 및 라이브러리 계획**
-
-#### **현재 사용 중**
-- **TFLite Flutter**: 포즈 추정 (MoveNet 모델)
-- **Camera Plugin**: 실시간 이미지 스트리밍
-- **flutter_local_notifications**: 완벽한 로컬 알림 시스템
-
-#### **향후 추가 예정**
-- **TensorFlow Lite**: 음식 인식, 습관 패턴 분석
-- **ML Kit**: Firebase 기반 머신러닝 기능
-- **Custom Models**: 사용자 데이터로 학습된 개인화 모델
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Flutter 3.35.1+
-- Dart 3.9.0+
-- Xcode 15+ (iOS 개발용)
-- Firebase 프로젝트 설정
-
-### Installation
-```bash
-# 프로젝트 클론
-git clone <repository-url>
-cd habitfit_mvp
-
-# 의존성 설치
-flutter pub get
-
-# iOS 의존성 설치
-cd ios && pod install && cd ..
-
-# 앱 실행
-flutter run
-```
-
-### Firebase Setup
-1. Firebase Console에서 프로젝트 생성
-2. `google-services.json` (Android) 및 `GoogleService-Info.plist` (iOS) 다운로드
-3. 각 플랫폼 폴더에 배치
-4. Firestore Database 활성화
-5. Remote Config 활성화
-6. Cloud Messaging 활성화
-
-## 📁 Project Structure
-
-```
-lib/
-├── app.dart                 # 메인 앱 구조
-├── main.dart               # 앱 진입점 + Firebase 초기화
-├── firebase_options.dart   # Firebase 설정
-├── common/
-│   ├── services/
-│   │   ├── firestore_service.dart    # Firestore 데이터 액세스
-│   │   ├── fcm_service.dart          # 푸시 알림
-│   │   ├── local_notification_service.dart # 로컬 알림 시스템
-│   │   └── remote_config_service.dart # 동적 설정
-│   └── widgets/
-│       └── primary_button.dart       # 공통 UI 컴포넌트
-└── features/
-    ├── habit/              # 습관 추적
-    ├── meals/              # 식사 로깅
-    ├── workout/            # 운동 추적 + 포즈 추정
-    ├── report/             # 진행 상황 리포트
-    └── settings/           # 알림 설정 및 사용자 설정
-
-assets/
-└── models/
-    └── movenet.tflite      # AI 포즈 추정 모델
-```
-
-## 🔧 Configuration
-
-### Remote Config Values
-Firebase Console에서 다음 값들을 설정해야 합니다:
-- `squat_down_enter`: 100.0 (스쿼트 내려갈 때 진입 각도)
-- `squat_up_exit`: 160.0 (스쿼트 올라올 때 종료 각도)
-- `angle_smooth_window`: 5 (각도 평활화 윈도우)
-
-### iOS Deployment Target
-- **현재**: iOS 18.6
-- **Podfile**: `platform :ios, '18.6'`
-- **Xcode**: `IPHONEOS_DEPLOYMENT_TARGET = 18.6`
-
-## 🐛 Known Issues
-
-### 1. **Firestore Permission Denied**
-- **문제**: 보안 규칙 설정 필요
-- **상태**: 해결 필요
-- **영향**: 데이터 저장 시 권한 오류
-
-### 2. **TFLite 포즈 추정 ✅ 문제 해결 완료**
-- **문제**: `tflite_flutter 0.11.0` API 호환성 문제
-- **상태**: ✅ 해결 완료 - 정상 작동 중 (2025-08-22)
-- **해결된 문제들**:
-  
-  #### **A. 텐서 출력 shape 불일치 ✅ 해결**
-  ```dart
-  // ❌ 이전: 1D 버퍼로 copyTo() 호출
-  final out = Float32List(51);
-  outTensor.copyTo(out);  // shape mismatch 오류
-  
-  // ✅ 해결: 4D 구조로 copyTo() 호출
-  final output4d = List.generate(1, (_) => 
-    List.generate(1, (_) => 
-      List.generate(17, (_) => List.filled(3, 0.0))));
-  outTensor.copyTo(output4d);  // 성공!
-  ```
-  
-  #### **B. 올바른 API 사용법 확정**
-  ```dart
-  // ✅ 정상 작동하는 API 조합
-  inputTensor.setTo(rgbU8);           // 입력 설정
-  _interpreter!.invoke();             // 추론 실행  
-  outTensor.copyTo(output4d);         // 출력 추출 (4D 구조)
-  ```
-  
-  #### **C. iOS 이미지 전처리 완전 해결**
-  ```dart
-  // ✅ iOS NV12 (2 planes) 안전 처리
-  final yPlane = image.planes[0];  // Y 채널만 사용
-  // 그레이스케일 → RGB 복제로 안정적 처리
-  ```
-
-#### **D. 성공한 모델 및 설정**
-| 구성요소 | 설정 | 상태 |
-|---------|------|------|
-| 모델 | `movenet_singlepose_lightning.tflite` (9.5MB) | ✅ 정상 |
-| 입력 | `[1, 192, 192, 3]` uint8 RGB | ✅ 정상 |  
-| 출력 | `[1, 1, 17, 3]` float32 키포인트 | ✅ 정상 |
-| 전처리 | iOS YUV420/NV12 → RGB888 | ✅ 정상 |
-| API | `setTo()` + `invoke()` + `copyTo()` | ✅ 정상 |
-| 성능 | 실시간 30fps, iPhone 안정적 | ✅ 정상 |
-
-#### **E. 핵심 해결 방법**
-- ✅ `tflite_flutter: ^0.11.0` 최신 API 사용
-- ✅ 4D 구조 `List.generate()` 출력 버퍼 생성
-- ✅ iOS 안전한 이미지 전처리 (Y 채널만 사용)
-- ✅ `Tensor.setTo()` + `invoke()` + `Tensor.copyTo()` 조합
-- ✅ 재진입 방지 및 메모리 관리
-
-### 3. **FCM APNS Token**
-- **문제**: 시뮬레이터에서는 정상적인 오류
-- **상태**: 예상된 동작
-- **영향**: 실제 기기에서만 푸시 알림 테스트 가능
-
-### 4. **Camera on Simulator**
-- **문제**: 시뮬레이터에서는 카메라 기능 제한
-- **상태**: 예상된 동작
-- **영향**: 실제 기기에서만 포즈 추정 테스트 가능
-
-## 🚧 Roadmap
-
-### Phase 1 (Current - 기본 기능 안정화)
-- [x] Flutter 3.35.1 업그레이드
-- [x] Firebase 통합 완료
-- [x] 기본 앱 기능 정상화 (habit, meal, workout 기본 UI)
-- [x] iOS 시뮬레이터/실제 기기 호환성
-- [x] 카메라 권한 및 스트리밍 기능
-- [ ] Firestore 보안 규칙 설정
-- [ ] Remote Config 값 설정
-
-### Phase 2 (Next - AI 기능 개선 및 UI 강화)
-- [x] **TFLite 포즈 추정 기능 완전 복구** ✅ 완료 (2025-08-22)
-  - [x] `tflite_flutter` API 호환성 문제 해결
-  - [x] 4D 텐서 구조 출력 처리 완료
-  - [x] iOS 이미지 전처리 최적화
-- [x] **스쿼트 감지 로직 개선** ✅ 완료 (2025-08-22)
-  - [x] 무릎 각도 계산 정확도 향상
-  - [x] 자세 유효성 검증 로직 구현
-  - [x] 운동 횟수 카운팅 개선
-- [x] **포즈 오버레이 UI 구현** ✅ 완료 (2025-08-22)
-  - [x] 실시간 키포인트 시각화
-  - [x] 스켈레톤 연결선 표시
-  - [x] 자세 상태 색상 피드백
-- [x] **로컬 알림 시스템 완벽 구현** ✅ 완료 (2025-08-23)
-  - [x] 운동 완료 시 자동 알림
-  - [x] 습관 체크 리마인더 (매일 특정 시간)
-  - [x] 일일/주간 운동 요약 알림
-  - [x] 목표 달성 축하 알림
-  - [x] 주간 운동 요약 알림 (매주 일요일)
-- [ ] FCM 푸시 알림 테스트 (실제 기기)
-- [ ] 성능 최적화 및 메모리 관리
-- [ ] **Android YUV420 이미지 처리 최적화** ⚠️
-  - **현재 상태**: Android에서 모든 키포인트 신뢰도가 0.00
-  - **문제점**: 3-plane YUV420 이미지 처리 시 키포인트 감지 실패
-  - **원인**: Android 카메라 이미지 포맷과 MoveNet 모델 입력 불일치
-  - **해결 방향**: Android 전용 이미지 전처리 로직 개선 필요
-
-- [x] **APNS 환경 설정 및 FCM 완성** ✅ (선택사항)
-  - **현재 상태**: 로컬 알림은 정상, FCM은 APNS 설정 문제로 실패
-  - **필요 작업**: Xcode에서 Push Notifications capability 추가
-  - **Apple Developer**: Push Notifications 권한이 있는 프로비저닝 프로파일 필요 (연 99달러)
-  - **우선순위**: 낮음 (로컬 알림으로 완벽하게 대체됨)
-  - **해결 방안**: 로컬 알림 기반 시스템으로 우회하여 완전한 알림 기능 구현 완료
-
-- [x] **FCM 푸시 알림 테스트** ✅
-  - **현재 상태**: 로컬 알림은 정상 작동, FCM은 APNS 설정 문제로 실패
-  - **성공한 부분**: 
-    - 로컬 알림 초기화 및 권한 요청 성공
-    - 테스트 알림 전송 정상 작동
-    - iOS 알림 권한 허용됨
-  - **문제점**: 
-    - APNS 환경 설정 누락 (`'aps-environment' 인타이틀먼트 문자열을 찾을 수 없습니다`)
-    - FCM 토큰 생성 실패 (APNS 없이는 FCM 작동 불가)
-  - **해결 방향**: Xcode에서 Push Notifications capability 추가 필요
-  - **대안**: 로컬 알림 기반 시스템으로 우회 가능
-  - **Apple Developer 계정 제한**: 무료 계정으로는 Push Notifications 사용 불가 (연 99달러 필요)
-  - **권장 방향**: 로컬 알림 기반 시스템으로 완성하여 FCM 없이도 완전한 알림 기능 제공
-  - **최종 결과**: 로컬 알림 기반 시스템으로 완벽하게 대체 완료
-
-### Phase 3 (AI Enhancement)
-- [ ] 음식 이미지 자동 인식 시스템
-- [ ] 습관 패턴 분석 AI
-- [ ] 개인화된 식단 추천 시스템
-- [ ] 운동 효과 예측 분석
-
-### Phase 4 (Advanced Features)
-- [ ] 사용자 인증 시스템
-- [ ] 데이터 백업/복원
-- [ ] 소셜 기능
-- [ ] 고급 분석 대시보드
-- [ ] 부상 예방 AI 시스템
-
-## 📊 Development Status
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Flutter App | ✅ Working | 기본 UI 및 네비게이션 완전 정상 |
-| Firebase Core | ✅ Working | 초기화 및 연결 성공 |
-| Firestore | ⚠️ Partial | 데이터 저장 성공, 보안 규칙 설정 필요 |
-| Remote Config | ⚠️ Partial | 기본값으로 작동, Firebase Console 설정 필요 |
-| FCM | ⚠️ Partial | 시뮬레이터 제한, 실제 기기에서 테스트 필요, 로컬 알림으로 대체 완료 |
-| Camera Plugin | ✅ Working | 실제 기기에서 스트리밍 정상 |
-| Image Preprocessing | ✅ Working | iOS NV12/Android YUV420 호환성 확보 |
-| **TFLite Pose Estimation** | ✅ **Working** | **MoveNet 실시간 포즈 추정 정상 작동** |
-| AI Keypoint Detection | ✅ Working | 17개 키포인트 실시간 감지 성공 |
-| Habit Tracking | ✅ Working | 체크 및 Firestore 저장 완료 |
-| Meal Logging | ✅ Working | 사진 업로드 및 데이터 저장 완료 |
-| Workout Sessions | ✅ Working | AI 포즈 추정 포함 완전 정상 작동 |
-| Progress Reports | ✅ Working | Firestore 데이터 기반 리포트 생성 |
-| **Local Notifications** | ✅ **Working** | **완전한 로컬 알림 시스템 구현 완료** |
-| **Goal Achievement System** | ✅ **Working** | **실시간 목표 달성 감지 및 축하 알림 완벽 작동** |
-| AI Food Recognition | 📋 Planned | Phase 3에서 구현 예정 |
-| AI Habit Analysis | 📋 Planned | Phase 3에서 구현 예정 |
-| AI Recommendation | 📋 Planned | Phase 4에서 구현 예정 |
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-- **Firebase Issues**: Firebase Console 및 문서 참조
-- **Flutter Issues**: Flutter 공식 문서 및 커뮤니티
-- **TFLite Issues**: 
-  - [tflite_flutter 패키지 이슈 트래커](https://github.com/am15h/tflite_flutter_plugin/issues)
-  - [API 호환성 문제 관련 이슈들](https://github.com/am15h/tflite_flutter_plugin/issues?q=is%3Aissue+copyFromBuffer)
-  - **주의**: 현재 `tflite_flutter 0.11.0`에서 심각한 API 문제 있음
-- **AI/ML Questions**: TensorFlow, ML Kit 문서 참조
-
----
-
-**Last Updated**: 2025-08-23
-**Flutter Version**: 3.35.1
-**Dart Version**: 3.9.0
-**Firebase**: Integrated & Working (Firestore 권한 설정 필요)
-**AI Status**: 
-- ✅ **Pose Estimation**: MoveNet AI 실시간 포즈 추정 완전 정상 작동
-- ✅ **Local Notifications**: 완벽한 로컬 알림 시스템 구현 완료
-- ✅ **Goal Achievement**: 실시간 목표 달성 감지 및 축하 알림 완벽 작동
-- 📋 **Food Recognition**: Planned (Phase 3)
-- 📋 **Habit Analysis**: Planned (Phase 3)
-**Major Achievement**: 
-- `tflite_flutter 0.11.0` API 호환성 문제 완전 해결, AI 포즈 추정 복구 성공
-- 로컬 알림 시스템 완벽 구현으로 FCM 없이도 완전한 알림 기능 제공
-- 실시간 목표 달성 감지 및 축하 알림 시스템 완벽 작동
-- **🎯 목표 달성 알림 시스템 완벽 작동**: 스쿼트 목표 완료 시 정상적으로 목표 달성 알림 전송 성공
-
----
-
-## 🎯 Next Steps (다음 단계)
-
-### **우선순위 1: 목표 달성 화면 오버레이 구현** 🎯
-```dart
-// 현재 상태: 목표 달성 알림은 정상 작동하지만 화면에 시각적 피드백 부족
-// 해결 방향: 운동 중 목표 달성 시 화면에 축하 메시지 오버레이 표시
-
-class GoalAchievementOverlay {
-  // 1. 화면 오버레이 구현
-  Widget buildGoalAchievementOverlay(int reps, int goal) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black54,
-        child: Center(
-          child: Container(
-            padding: EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.amber,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.emoji_events, size: 64, color: Colors.white),
-                SizedBox(height: 16),
-                Text(
-                  '🎯 목표 달성!\n$reps/$goal회 완료!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+// AI 기반 코칭 시스템
+class AICoachingSystem {
+  // 사용자 패턴 학습
+  UserPatterns learnUserPatterns(List<WorkoutData> workouts) {
+    return UserPatterns(
+      preferredPace: _calculatePreferredPace(workouts),
+      heartRateZones: _analyzeHeartRateZones(workouts),
+      improvementTrends: _analyzeImprovementTrends(workouts),
+      weakPoints: _identifyWeakPoints(workouts),
     );
   }
   
-  // 2. 자동 숨김 타이머
-  void showTemporaryOverlay(int reps, int goal) {
-    _showGoalAchievementOverlay(reps, goal);
-    
-    // 3초 후 자동으로 숨기기
-    Future.delayed(Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _showGoalAchievement = false;
-        });
-      }
-    });
+  // 개인화된 코칭 생성
+  CoachingAdvice generatePersonalizedCoaching(
+    WorkoutData latestWorkout,
+    UserPatterns patterns,
+  ) {
+    return CoachingAdvice(
+      paceAdvice: _generatePaceAdvice(latestWorkout, patterns),
+      heartRateAdvice: _generateHeartRateAdvice(latestWorkout, patterns),
+      trainingPlan: _generateTrainingPlan(latestWorkout, patterns),
+      improvements: _suggestImprovements(latestWorkout, patterns),
+    );
   }
 }
-```
 
-**구현 계획:**
-- WorkoutPage에 `_showGoalAchievement` 상태 변수 추가
-- `_showGoalAchievementOverlay()` 메서드로 화면 오버레이 표시
-- Stack 위젯으로 기존 UI 위에 축하 메시지 오버레이 배치
-- 3초 후 자동으로 오버레이 숨김
-
-### **우선순위 2: 운동 완료 시 자동 알림 시스템** 💪
-```dart
-// 현재 상태: 목표 달성 알림은 정상이지만 운동 완료 시 알림이 없음
-// 해결 방향: Stop 버튼 누를 때 자동으로 운동 완료 알림 전송
-
-class WorkoutCompletionNotification {
-  // 1. 운동 완료 시 자동 알림
-  Future<void> autoWorkoutCompletionNotification(int reps, String exerciseType) async {
-    if (reps > 0) {
-      await LocalNotificationService.instance.showWorkoutCompletionNotification(reps, exerciseType);
-      print('💪 운동 완료 알림 자동 전송: ${exerciseType} ${reps}회');
+// 핵심 코칭 지표들
+class RunningCoaching {
+  // 심박수 기반 코칭
+  String getHeartRateAdvice(int currentHR, int targetHR) {
+    if (currentHR > targetHR + 10) {
+      return "페이스를 조금 늦춰주세요. 현재 심박수가 목표보다 높습니다.";
+    } else if (currentHR < targetHR - 10) {
+      return "조금 더 빠르게 달려보세요. 목표 심박수에 도달하지 못했습니다.";
+    } else {
+      return "완벽한 페이스입니다! 이대로 유지하세요.";
     }
   }
   
-  // 2. 운동 데이터 자동 저장 및 알림
-  Future<void> onWorkoutStop() async {
-    // Firestore에 운동 데이터 저장
-    await saveWorkoutData();
-    
-    // 운동 완료 알림 전송
-    await autoWorkoutCompletionNotification(_repProvider.reps, '스쿼트');
-    
-    // 목표 달성 여부 확인 및 축하 알림
-    await checkAndShowGoalAchievement(_repProvider.reps);
-  }
-}
-```
-
-**구현 계획:**
-- WorkoutPage의 `_stop()` 메서드에 운동 완료 알림 로직 추가
-- `_repProvider.reps` 값을 읽어서 운동 완료 알림 전송
-- Firestore에 운동 데이터 저장 후 알림 전송
-- 목표 달성 여부 확인 및 축하 알림 연동
-
-### **우선순위 3: 설정 페이지 완성 및 사용자 커스터마이징** ⚙️
-```dart
-// 현재 상태: 로컬 알림 시스템은 완벽하게 작동하지만 사용자 설정 불가
-// 해결 방향: 설정 페이지에서 알림 ON/OFF, 시간, 목표 등을 사용자가 설정 가능
-
-class SettingsPage extends ConsumerStatefulWidget {
-  // 1. 알림 설정 토글
-  SwitchListTile(
-    title: Text('운동 완료 알림'),
-    subtitle: Text('운동 세션 완료 시 알림 받기'),
-    value: workoutNotificationsEnabled,
-    onChanged: (value) {
-      setState(() {
-        workoutNotificationsEnabled = value;
-      });
-    },
-  ),
-  
-  // 2. 목표 설정
-  ListTile(
-    title: Text('일일 스쿼트 목표'),
-    subtitle: Text('$dailySquatGoal회'),
-    trailing: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(Icons.remove),
-          onPressed: () => _decrementGoal('dailySquatGoal'),
-        ),
-        IconButton(
-          icon: Icon(Icons.add),
-          onPressed: () => _incrementGoal('dailySquatGoal'),
-        ),
-      ],
-    ),
-  ),
-  
-  // 3. 알림 시간 설정
-  ListTile(
-    title: Text('습관 체크 리마인더'),
-    subtitle: Text('${habitReminderTime.format(context)}'),
-    trailing: IconButton(
-      icon: Icon(Icons.access_time),
-      onPressed: () => _showTimePicker('habitReminderTime'),
-    ),
-  ),
-}
-```
-
-**구현 계획:**
-- `lib/features/settings/settings_page.dart` 파일 생성
-- SharedPreferences를 사용한 설정 저장/로드
-- 알림 ON/OFF 토글, 목표 설정, 시간 설정 UI 구현
-- 설정 변경 시 알림 스케줄 자동 업데이트
-- 앱 네비게이션에 설정 페이지 추가
-
-### **우선순위 4: 습관 체크와 알림 시스템 연동** 📝
-```dart
-// 현재 상태: 습관 체크는 정상이지만 알림과 연동되지 않음
-// 해결 방향: 습관 체크 완료 시 성취 알림 및 연속 달성 기록
-
-class HabitNotificationIntegration {
-  // 1. 습관 체크 완료 시 알림
-  Future<void> onHabitChecked() async {
-    // Firestore에 습관 체크 데이터 저장
-    await saveHabitData();
-    
-    // 습관 체크 완료 알림
-    await LocalNotificationService.instance.showHabitCompletionNotification();
-    
-    // 연속 달성 기록 확인
-    final streak = await checkHabitStreak();
-    if (streak > 0) {
-      await showStreakAchievementNotification(streak);
+  // 보폭 최적화 가이드
+  String getStrideAdvice(double currentStride, double optimalStride) {
+    if (currentStride < optimalStride * 0.8) {
+      return "보폭이 너무 작습니다. 다리를 조금 더 펴서 달려보세요.";
+    } else if (currentStride > optimalStride * 1.2) {
+      return "보폭이 너무 큽니다. 빠른 발걸음으로 조절해보세요.";
+    } else {
+      return "적절한 보폭입니다. 효율적인 달리기를 하고 있습니다.";
     }
   }
   
-  // 2. 연속 달성 축하 알림
-  Future<void> showStreakAchievementNotification(int streak) async {
-    if (streak >= 7) {
-      await LocalNotificationService.instance.showTestNotification(
-        '🎉 축하합니다!',
-        '${streak}일 연속으로 습관을 실천하고 있습니다!',
-      );
+  // 페이스 관리 코칭
+  String getPaceAdvice(double currentPace, double targetPace) {
+    final difference = currentPace - targetPace;
+    if (difference > 30) {
+      return "너무 빠릅니다! 목표 페이스보다 ${difference.toStringAsFixed(0)}초 빠릅니다.";
+    } else if (difference < -30) {
+      return "너무 느립니다! 목표 페이스보다 ${(-difference).toStringAsFixed(0)}초 늦습니다.";
+    } else {
+      return "완벽한 페이스입니다! 목표를 잘 지키고 있습니다.";
+    }
+  }
+  
+  // 케이던스 최적화
+  String getCadenceAdvice(int currentCadence, int targetCadence) {
+    if (currentCadence < targetCadence - 10) {
+      return "케이던스가 낮습니다. 발걸음을 빠르게 해보세요.";
+    } else if (currentCadence > targetCadence + 10) {
+      return "케이던스가 너무 높습니다. 보폭을 늘려보세요.";
+    } else {
+      return "적절한 케이던스입니다. 효율적인 달리기를 하고 있습니다.";
     }
   }
 }
-
-**구현 계획:**
-- HabitPage의 Save 버튼에 알림 연동 로직 추가
-- `showHabitCompletionNotification()` 메서드 호출
-- 연속 달성 기록 확인 및 특별 알림 구현
-- Firestore 데이터 저장과 알림 전송 연동
 ```
+
+### **현재 해결해야 할 문제**
+
+#### **1. 푸시업 카운팅 문제 🔧**
+```dart
+// 현재 상황: 푸시업 카운팅이 증가하지 않음
+// 원인 분석 필요:
+// 1. 키포인트 신뢰도가 너무 낮음 (0.00으로 표시됨)
+// 2. 팔꿈치 각도 계산이 제대로 되지 않음
+// 3. 푸시업 상태 머신 로직 문제
+
+// 디버깅 방향:
+// - 키포인트 신뢰도 임계값 조정
+// - 팔꿈치 각도 계산 로직 검증
+// - 상태 머신 전환 조건 점검
+```
+
+#### **2. 키포인트 감지 문제 🔧**
+```
+flutter: DEBUG scores: LHIP=0.00  LKNEE=0.00  LANK=0.00  RHIP=0.00  RKNEE=0.00  RANK=0.00
+flutter: ⚠️ Low confidence: L(0.00,0.00,0.00) R(0.00,0.00,0.00)
+```
+- **문제**: 모든 키포인트의 신뢰도가 0.00으로 매우 낮음
+- **원인**: 이미지 전처리 문제 또는 모델 입력 문제 가능성
+- **해결 방향**: 이미지 전처리 로직 개선, 신뢰도 임계값 조정
 
 ### **개발 우선순위**
 1. **✅ 완료**: 무릎 각도 계산 로직 및 스쿼트 상태 머신 구현
@@ -743,8 +408,11 @@ class HabitNotificationIntegration {
 9. **🔄 진행중**: 운동 완료 시 자동 알림 시스템 구현
 10. **🔄 진행중**: 설정 페이지 완성 및 사용자 커스터마이징
 11. **🔄 진행중**: 습관 체크와 알림 시스템 연동
-12. **📋 계획**: 다른 운동 종목 추가 (플랭크, 런지 등)
-13. **📋 계획**: 운동 피드백 시스템 고도화
+12. **📋 계획**: 달리기 관리 시스템 (GPS 기반 추적)
+13. **📋 계획**: Apple Watch 지원 (워치 전용 운동 앱)
+14. **📋 계획**: HealthKit 연동 AI 코칭 시스템
+15. **📋 계획**: 다른 운동 종목 추가 (플랭크, 런지 등)
+16. **📋 계획**: 운동 피드백 시스템 고도화
 
 ### **현재 진행 상황 요약**
 - **🎯 AI 포즈 추정**: 완벽 작동 (MoveNet 실시간 스쿼트 감지)
@@ -754,6 +422,8 @@ class HabitNotificationIntegration {
 - **⚙️ 설정 시스템**: 설정 페이지 구현 중
 - **📝 습관 연동**: 습관 체크와 알림 시스템 연동 구현 중
 - **🔢 독립적인 카운터**: 스쿼트와 푸시업 각각의 카운터 시스템 구현 완료
+- **🏃‍♂️ 달리기 시스템**: GPS 기반 추적 및 HealthKit 연동 계획됨
+- **⌚️ Apple Watch**: 워치 전용 운동 앱 및 센서 활용 계획됨
 
 ### **기술적 개선 사항**
 ```dart
@@ -818,13 +488,63 @@ class UnifiedUIDesign {
     );
   }
 }
+
+// 4. 달리기 관리 시스템 📋 계획됨
+class RunningManagementSystem {
+  // GPS 기반 추적
+  class GPSTracker {
+    Future<void> startTracking() async {
+      // 실시간 위치 추적 및 경로 기록
+    }
+  }
+  
+  // HealthKit 연동
+  class HealthKitManager {
+    Future<List<WorkoutData>> getWorkouts() async {
+      // iPhone 건강앱에서 운동 데이터 가져오기
+    }
+  }
+  
+  // AI 코칭 시스템
+  class AICoaching {
+    CoachingAdvice generateAdvice(WorkoutData workout) {
+      // 개인화된 코칭 생성
+    }
+  }
+}
+
+// 5. Apple Watch 지원 📋 계획됨
+class AppleWatchSupport {
+  // 워치 전용 UI
+  class WatchWorkoutUI {
+    Widget buildWorkoutScreen() {
+      // 워치에 최적화된 운동 화면
+    }
+  }
+  
+  // 센서 데이터 활용
+  class WatchSensorData {
+    Stream<int> get heartRateStream;
+    Stream<AccelerometerData> get accelerometerStream;
+    Stream<LocationData> get locationStream;
+  }
+  
+  // iPhone과의 데이터 동기화
+  class WatchDataSync {
+    Future<void> syncWithiPhone() async {
+      // 워치 데이터를 iPhone으로 전송
+    }
+  }
+}
 ```
 
 ### **최종 목표**
 - **🎯 완벽한 운동 가이드 시스템**: AI 포즈 추정 + 실시간 피드백 + 알림 시스템
-- **💪 다중 운동 지원**: 스쿼트, 푸시업, 플랭크 등 다양한 운동 종목 지원
+- **💪 다중 운동 지원**: 스쿼트, 푸시업, 플랭크, 달리기 등 다양한 운동 종목 지원
 - **📱 사용자 친화적 UI/UX**: 통일된 디자인과 직관적인 설정
 - **🔔 스마트한 알림 시스템**: 상황에 맞는 적절한 알림과 동기부여
+- **🏃‍♂️ 종합적인 운동 관리**: 실내 운동 + 실외 달리기 + 워치 연동
+- **🏥 AI 기반 개인화 코칭**: HealthKit 데이터 분석을 통한 맞춤형 운동 가이드
 - **📊 개인화된 피드백**: 사용자 데이터 기반 맞춤형 운동 가이드
 
 ### **다음 구현 단계**
@@ -834,5 +554,16 @@ class UnifiedUIDesign {
 4. **⚙️ 설정 페이지 완성**: 사용자 커스터마이징 가능한 알림 설정
 5. **📝 습관 체크 연동**: 습관 완료 시 성취 알림 및 연속 달성 기록
 6. **🔧 키포인트 감지 개선**: 신뢰도가 낮은 문제 해결
-7. **💪 추가 운동 종목**: 플랭크, 런지 등 새로운 운동 지원
-8. **성능 최적화**: 메모리 관리 및 배터리 효율성 개선
+7. **🏃‍♂️ 달리기 시스템**: GPS 기반 추적 및 기본 운동 기록
+8. **🏥 HealthKit 연동**: iPhone 건강앱과의 데이터 동기화
+9. **💡 AI 코칭 시스템**: 운동 데이터 분석 기반 개인화된 코칭
+10. **⌚️ Apple Watch**: 워치 전용 운동 앱 및 센서 활용
+11. **💪 추가 운동 종목**: 플랭크, 런지 등 새로운 운동 지원
+12. **성능 최적화**: 메모리 관리 및 배터리 효율성 개선
+
+### **장기 비전**
+- **🌍 종합적인 건강 관리 플랫폼**: 운동, 식사, 습관, 수면 등 모든 건강 요소 통합
+- **🤖 AI 기반 개인 트레이너**: 사용자 패턴 학습을 통한 완벽한 맞춤형 가이드
+- **📱 멀티 디바이스 생태계**: iPhone, Apple Watch, iPad 등 모든 Apple 기기에서 원활한 사용
+- **🏆 소셜 피트니스**: 친구들과의 운동 챌린지 및 성과 공유
+- **📊 의료진 연동**: 의사와의 데이터 공유 및 전문적인 건강 관리 지원
