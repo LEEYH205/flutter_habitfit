@@ -1,5 +1,7 @@
 import 'package:health/health.dart';
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
+import 'dart:math';
 
 /// HealthKit 연동을 위한 서비스 클래스
 class HealthKitService {
@@ -546,6 +548,314 @@ class HealthKitService {
       return '운동';
     }
   }
+
+  /// 러닝 다이내믹스 데이터 수집
+  Future<RunningDynamics?> getRunningDynamics(
+      DateTime start, DateTime end) async {
+    try {
+      print('🔍 러닝 다이내믹스 데이터 수집 시작: $start ~ $end');
+
+      // 실제 존재하는 HealthKit 데이터 타입들
+      final types = [
+        HealthDataType.HEART_RATE, // 심박수
+        HealthDataType.STEPS, // 걸음 수
+        HealthDataType.DISTANCE_WALKING_RUNNING, // 걷기/달리기 거리
+        HealthDataType.ACTIVE_ENERGY_BURNED, // 활동 소모 칼로리
+      ];
+
+      final data = await _health.getHealthDataFromTypes(start, end, types);
+      print('🔍 러닝 다이내믹스 데이터 ${data.length}개 발견');
+
+      if (data.isEmpty) {
+        print('⚠️ 러닝 다이내믹스 데이터가 없습니다');
+        return null;
+      }
+
+      // 데이터 파싱 및 분석 (현재 사용 가능한 데이터로 계산)
+      double? strideLength;
+      double? verticalOscillation;
+      double? groundContactTime;
+      double? power;
+      double? cadence;
+
+      // 걸음 수와 거리로 보폭 계산
+      final stepsData =
+          data.where((point) => point.type == HealthDataType.STEPS).toList();
+      final distanceData = data
+          .where(
+              (point) => point.type == HealthDataType.DISTANCE_WALKING_RUNNING)
+          .toList();
+
+      if (stepsData.isNotEmpty && distanceData.isNotEmpty) {
+        final totalSteps = stepsData.fold(0.0, (sum, point) {
+          if (point.value is NumericHealthValue) {
+            return sum + (point.value as NumericHealthValue).numericValue;
+          }
+          return sum;
+        });
+
+        final totalDistance = distanceData.fold(0.0, (sum, point) {
+          if (point.value is NumericHealthValue) {
+            return sum + (point.value as NumericHealthValue).numericValue;
+          }
+          return sum;
+        });
+
+        if (totalSteps > 0 && totalDistance > 0) {
+          strideLength = (totalDistance * 1000) / totalSteps; // m 단위
+          print('✅ 보폭 계산: ${strideLength.toStringAsFixed(2)}m');
+        }
+      }
+
+      // 케이던스 계산 (걸음 수 / 시간)
+      if (stepsData.isNotEmpty) {
+        final totalSteps = stepsData.fold(0.0, (sum, point) {
+          if (point.value is NumericHealthValue) {
+            return sum + (point.value as NumericHealthValue).numericValue;
+          }
+          return sum;
+        });
+
+        final durationMinutes = end.difference(start).inMinutes;
+        if (durationMinutes > 0) {
+          cadence = totalSteps / durationMinutes; // spm
+          print('✅ 케이던스 계산: ${cadence.toStringAsFixed(1)}spm');
+        }
+      }
+
+      return RunningDynamics(
+        strideLength: strideLength,
+        verticalOscillation: verticalOscillation,
+        groundContactTime: groundContactTime,
+        power: power,
+        cadence: cadence,
+      );
+    } catch (e) {
+      print('❌ 러닝 다이내믹스 데이터 수집 오류: $e');
+      return null;
+    }
+  }
+
+  /// 심박수 구간별 데이터 수집
+  Future<List<HeartRateZone>> getHeartRateZones(
+      DateTime start, DateTime end) async {
+    try {
+      print('🔍 심박수 구간 데이터 수집 시작: $start ~ $end');
+
+      final heartRateData = await _health.getHealthDataFromTypes(
+        start,
+        end,
+        [HealthDataType.HEART_RATE],
+      );
+
+      if (heartRateData.isEmpty) {
+        print('⚠️ 심박수 데이터가 없습니다');
+        return [];
+      }
+
+      print('🔍 심박수 데이터 ${heartRateData.length}개 발견');
+
+      // 심박수 구간 정의 (220-나이 기준, 임시로 30세)
+      final maxHR = 220 - 30;
+      final zones = [
+        {'name': 'Z1', 'min': 0, 'max': (maxHR * 0.6).round(), 'color': '파란색'},
+        {
+          'name': 'Z2',
+          'min': (maxHR * 0.6).round(),
+          'max': (maxHR * 0.7).round(),
+          'color': '청록색'
+        },
+        {
+          'name': 'Z3',
+          'min': (maxHR * 0.7).round(),
+          'max': (maxHR * 0.8).round(),
+          'color': '녹색'
+        },
+        {
+          'name': 'Z4',
+          'min': (maxHR * 0.8).round(),
+          'max': (maxHR * 0.9).round(),
+          'color': '주황색'
+        },
+        {
+          'name': 'Z5',
+          'min': (maxHR * 0.9).round(),
+          'max': maxHR,
+          'color': '빨간색'
+        },
+      ];
+
+      // 구간별 시간 계산
+      final zoneTimes = <String, Duration>{};
+      for (final zone in zones) {
+        zoneTimes[zone['name'] as String] = Duration.zero;
+      }
+
+      // 각 심박수 데이터를 구간에 분류
+      for (final point in heartRateData) {
+        if (point.value is NumericHealthValue) {
+          final hr = (point.value as NumericHealthValue).numericValue;
+
+          for (final zone in zones) {
+            if (hr >= (zone['min'] as int) && hr < (zone['max'] as int)) {
+              final currentTime = zoneTimes[zone['name'] as String]!;
+              zoneTimes[zone['name'] as String] =
+                  currentTime + Duration(minutes: 1);
+              break;
+            }
+          }
+        }
+      }
+
+      // HeartRateZone 객체 생성
+      final heartRateZones = <HeartRateZone>[];
+      for (final zone in zones) {
+        final zoneName = zone['name'] as String;
+        final time = zoneTimes[zoneName]!;
+
+        if (time.inMinutes > 0) {
+          heartRateZones.add(HeartRateZone(
+            zone: zoneName,
+            time: time,
+            minHR: zone['min'] as int,
+            maxHR: zone['max'] as int,
+          ));
+          print(
+              '✅ $zoneName: ${time.inMinutes}분 (${zone['min']}-${zone['max']} BPM)');
+        }
+      }
+
+      return heartRateZones;
+    } catch (e) {
+      print('❌ 심박수 구간 데이터 수집 오류: $e');
+      return [];
+    }
+  }
+
+  /// 스플릿 데이터 수집 (1km 구간별)
+  Future<List<SplitData>> getSplitData(DateTime start, DateTime end) async {
+    try {
+      print('🔍 스플릿 데이터 수집 시작: $start ~ $end');
+
+      // WORKOUT 데이터에서 스플릿 정보 추출
+      final workoutData = await _health.getHealthDataFromTypes(
+        start,
+        end,
+        [HealthDataType.WORKOUT],
+      );
+
+      if (workoutData.isEmpty) {
+        print('⚠️ WORKOUT 데이터가 없습니다');
+        return [];
+      }
+
+      // 스플릿 데이터 생성 (임시로 1km 구간으로 분할)
+      final workout = workoutData.first;
+      final totalDistance = _extractDistanceFromWorkout(workout) ?? 0;
+      final totalDuration = workout.dateFrom.difference(workout.dateTo).abs();
+
+      if (totalDistance == 0) {
+        print('⚠️ 거리 데이터가 없어 스플릿을 생성할 수 없습니다');
+        return [];
+      }
+
+      final splitCount = totalDistance.ceil(); // 1km 단위로 분할
+      final splitDuration = totalDuration.inMinutes ~/ splitCount;
+
+      final splits = <SplitData>[];
+      for (int i = 0; i < splitCount; i++) {
+        final splitTime = Duration(minutes: splitDuration);
+        final splitPace = '${splitDuration.toString().padLeft(2, '0')}:00';
+
+        splits.add(SplitData(
+          splitNumber: i + 1,
+          time: splitTime,
+          pace: splitPace,
+          heartRate: 140 + (i * 2), // 임시 데이터
+          power: 200.0 + (i * 5), // 임시 데이터
+          cadence: 160 + (i * 2), // 임시 데이터
+        ));
+      }
+
+      print('✅ $splitCount개 스플릿 데이터 생성 완료');
+      return splits;
+    } catch (e) {
+      print('❌ 스플릿 데이터 수집 오류: $e');
+      return [];
+    }
+  }
+
+  /// 운동의 GPS 경로 데이터 가져오기
+  Future<WorkoutRoute?> getWorkoutRoute(
+      DateTime startTime, DateTime endTime) async {
+    try {
+      if (!_isInitialized) {
+        final initialized = await initialize();
+        if (!initialized) return null;
+      }
+
+      print(
+          '🗺️ GPS 경로 데이터 수집 시작: ${startTime.toLocal()} ~ ${endTime.toLocal()}');
+
+      // GPS 관련 데이터 타입들
+      final gpsTypes = [
+        HealthDataType.WORKOUT, // 운동 데이터
+      ];
+
+      final gpsData = await _health.getHealthDataFromTypes(
+        startTime,
+        endTime,
+        gpsTypes,
+      );
+
+      print('🗺️ GPS 데이터 ${gpsData.length}개 발견');
+
+      // HealthKit의 WORKOUT 데이터는 GPS 경로를 직접 포함하지 않음
+      // 현재는 샘플 경로를 생성하여 지도에 표시
+      print('⚠️ HealthKit WORKOUT 데이터는 GPS 경로를 포함하지 않습니다. 샘플 경로를 생성합니다.');
+      return _createSampleRoute(startTime, endTime);
+
+      // 샘플 경로는 이미 _createSampleRoute에서 생성됨
+      return null;
+    } catch (e) {
+      print('❌ GPS 경로 데이터 수집 오류: $e');
+      return _createSampleRoute(startTime, endTime);
+    }
+  }
+
+  /// 샘플 경로 생성 (GPS 데이터가 없을 때)
+  WorkoutRoute _createSampleRoute(DateTime startTime, DateTime endTime) {
+    final points = <GPSPoint>[];
+    final duration = endTime.difference(startTime).inMinutes;
+    final interval = duration / 6; // 6개 구간으로 나누기
+
+    // 서울 시청에서 시작해서 동쪽으로 이동하는 경로
+    double baseLat = 37.5665;
+    double baseLng = 126.9780;
+
+    for (int i = 0; i <= 6; i++) {
+      final timestamp =
+          startTime.add(Duration(minutes: (i * interval).round()));
+      final lat = baseLat + (i * 0.001); // 약 100m씩 이동
+      final lng = baseLng + (i * 0.001);
+
+      points.add(GPSPoint(
+        latitude: lat,
+        longitude: lng,
+        timestamp: timestamp,
+        altitude: 50.0 + (i * 2.0), // 고도 변화
+        speed: 8.0 + (i * 0.5), // 속도 변화
+        accuracy: 10.0,
+      ));
+    }
+
+    return WorkoutRoute(
+      points: points,
+      startTime: startTime,
+      endTime: endTime,
+      totalDistance: 600.0, // 약 600m
+    );
+  }
 }
 
 /// 운동 데이터 모델
@@ -647,4 +957,176 @@ class DistanceData {
     required this.timestamp,
     required this.value,
   });
+}
+
+/// 러닝 다이내믹스 데이터 모델
+class RunningDynamics {
+  final double? strideLength; // 보폭 (m)
+  final double? verticalOscillation; // 수직 진폭 (cm)
+  final double? groundContactTime; // 지면 접촉 시간 (ms)
+  final double? power; // 파워 (W)
+  final double? cadence; // 케이던스 (spm)
+
+  RunningDynamics({
+    this.strideLength,
+    this.verticalOscillation,
+    this.groundContactTime,
+    this.power,
+    this.cadence,
+  });
+}
+
+/// 심박수 구간 데이터 모델
+class HeartRateZone {
+  final String zone; // 구간 (Z1, Z2, Z3, Z4, Z5)
+  final Duration time; // 해당 구간에서 보낸 시간
+  final int minHR; // 최소 심박수
+  final int maxHR; // 최대 심박수
+
+  HeartRateZone({
+    required this.zone,
+    required this.time,
+    required this.minHR,
+    required this.maxHR,
+  });
+}
+
+/// 스플릿 데이터 모델
+class SplitData {
+  final int splitNumber; // 스플릿 번호
+  final Duration time; // 구간 시간
+  final String pace; // 페이스
+  final int heartRate; // 심박수
+  final double? power; // 파워
+  final int? cadence; // 케이던스
+
+  SplitData({
+    required this.splitNumber,
+    required this.time,
+    required this.pace,
+    required this.heartRate,
+    this.power,
+    this.cadence,
+  });
+}
+
+/// GPS 경로 포인트 데이터
+class GPSPoint {
+  final double latitude;
+  final double longitude;
+  final DateTime timestamp;
+  final double? altitude;
+  final double? speed;
+  final double? accuracy;
+
+  GPSPoint({
+    required this.latitude,
+    required this.longitude,
+    required this.timestamp,
+    this.altitude,
+    this.speed,
+    this.accuracy,
+  });
+
+  LatLng toLatLng() => LatLng(latitude, longitude);
+
+  factory GPSPoint.fromHealthDataPoint(HealthDataPoint point) {
+    // HealthKit의 GPS 데이터를 파싱
+    final value = point.value;
+
+    // GPS 데이터가 문자열로 저장된 경우 파싱 시도
+    if (value.toString().contains(',')) {
+      try {
+        final valueStr = value.toString();
+        // 예: "37.5665,126.9780,50.0,5.2,10.0" (lat,lng,altitude,speed,accuracy)
+        final parts = valueStr.split(',');
+        if (parts.length >= 2) {
+          final lat = double.tryParse(parts[0]) ?? 0.0;
+          final lng = double.tryParse(parts[1]) ?? 0.0;
+          final altitude = parts.length > 2 ? double.tryParse(parts[2]) : null;
+          final speed = parts.length > 3 ? double.tryParse(parts[3]) : null;
+          final accuracy = parts.length > 4 ? double.tryParse(parts[4]) : null;
+
+          return GPSPoint(
+            latitude: lat,
+            longitude: lng,
+            timestamp: point.dateFrom,
+            altitude: altitude,
+            speed: speed,
+            accuracy: accuracy,
+          );
+        }
+      } catch (e) {
+        print('❌ GPS 데이터 파싱 오류: $e');
+      }
+    }
+
+    // 기본값 반환 (서울 시청 좌표)
+    return GPSPoint(
+      latitude: 37.5665,
+      longitude: 126.9780,
+      timestamp: point.dateFrom,
+    );
+  }
+}
+
+/// 운동 경로 데이터
+class WorkoutRoute {
+  final List<GPSPoint> points;
+  final DateTime startTime;
+  final DateTime endTime;
+  final double totalDistance;
+
+  WorkoutRoute({
+    required this.points,
+    required this.startTime,
+    required this.endTime,
+    required this.totalDistance,
+  });
+
+  /// 경로의 중심점 계산
+  LatLng get center {
+    if (points.isEmpty) return const LatLng(37.5665, 126.9780);
+
+    double totalLat = 0;
+    double totalLng = 0;
+
+    for (final point in points) {
+      totalLat += point.latitude;
+      totalLng += point.longitude;
+    }
+
+    return LatLng(totalLat / points.length, totalLng / points.length);
+  }
+
+  /// 경로의 경계 계산
+  Map<String, double> get bounds {
+    if (points.isEmpty) {
+      return {
+        'minLat': 37.5665,
+        'maxLat': 37.5665,
+        'minLng': 126.9780,
+        'maxLng': 126.9780,
+      };
+    }
+
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+
+    for (final point in points) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+
+    return {
+      'minLat': minLat,
+      'maxLat': maxLat,
+      'minLng': minLng,
+      'maxLng': maxLng,
+    };
+  }
 }

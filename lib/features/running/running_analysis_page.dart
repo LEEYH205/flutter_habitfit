@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/health_kit_service.dart';
 import '../../services/running_coaching_service.dart';
+import 'running_detail_page.dart'; // Added import for RunningDetailPage
 
 /// 달리기 전용 분석 페이지
 class RunningAnalysisPage extends ConsumerStatefulWidget {
@@ -290,27 +291,46 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         final workout = _runningWorkouts[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue[100],
-              child: Icon(Icons.directions_run, color: Colors.blue[600]),
-            ),
-            title: Text('${workout.type} - ${workout.startTime.day}일'),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    '거리: ${workout.distance != null ? "${workout.distance!.toStringAsFixed(2)}km" : "데이터 없음"}'),
-                Text('시간: ${workout.duration.inMinutes}분'),
-                if (workout.calories != null)
-                  Text('칼로리: ${workout.calories!.toInt()}kcal')
-                else
-                  const Text('칼로리: 데이터 없음'),
-              ],
-            ),
-            trailing: Text(
-              workout.startTime.toString().substring(11, 16),
-              style: const TextStyle(color: Colors.grey),
+          child: InkWell(
+            onTap: () {
+              // 상세 페이지로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RunningDetailPage(workout: workout),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.blue[100],
+                child: Icon(Icons.directions_run, color: Colors.blue[600]),
+              ),
+              title: Text('${workout.type} - ${workout.startTime.day}일'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      '거리: ${workout.distance != null ? "${workout.distance!.toStringAsFixed(2)}km" : "데이터 없음"}'),
+                  Text('시간: ${workout.duration.inMinutes}분'),
+                  if (workout.calories != null)
+                    Text('칼로리: ${workout.calories!.toInt()}kcal')
+                  else
+                    const Text('칼로리: 데이터 없음'),
+                ],
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    workout.startTime.toString().substring(11, 16),
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  const Icon(Icons.arrow_forward_ios,
+                      size: 16, color: Colors.grey),
+                ],
+              ),
             ),
           ),
         );
