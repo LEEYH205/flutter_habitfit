@@ -24,15 +24,22 @@ class HealthKitRouteService {
     DateTime endTime,
   ) async {
     try {
+      print('🔍 HealthKitRouteService: getWorkoutRoute 호출');
+      print('🔍 HealthKitRouteService: 시작 시간: $startTime');
+      print('🔍 HealthKitRouteService: 종료 시간: $endTime');
+
       final List<dynamic>? result =
           await _channel.invokeMethod('getWorkoutRoute', {
         'startDate': startTime.millisecondsSinceEpoch,
         'endDate': endTime.millisecondsSinceEpoch,
       });
 
+      print(
+          '🔍 HealthKitRouteService: MethodChannel 결과: ${result?.length ?? 0}개 포인트');
+
       if (result != null) {
         // 안전한 타입 변환
-        return result.map((item) {
+        final convertedResult = result.map((item) {
           if (item is Map) {
             final convertedMap = <String, dynamic>{};
             item.forEach((key, value) {
@@ -46,10 +53,19 @@ class HealthKitRouteService {
           }
           return <String, dynamic>{};
         }).toList();
+
+        print(
+            '🔍 HealthKitRouteService: 타입 변환 완료: ${convertedResult.length}개 포인트');
+        return convertedResult;
       }
       return null;
     } on PlatformException catch (e) {
-      print('❌ 운동 경로 데이터 가져오기 실패: ${e.message}');
+      print('❌ HealthKitRouteService: 운동 경로 데이터 가져오기 실패: ${e.message}');
+      print('❌ HealthKitRouteService: 오류 코드: ${e.code}');
+      print('❌ HealthKitRouteService: 오류 세부사항: ${e.details}');
+      return null;
+    } catch (e) {
+      print('❌ HealthKitRouteService: 예상치 못한 오류: $e');
       return null;
     }
   }

@@ -789,10 +789,21 @@ class HealthKitService {
   /// 운동의 GPS 경로 데이터 가져오기
   Future<WorkoutRoute?> getWorkoutRoute(
       DateTime startTime, DateTime endTime) async {
+    print('🚀 ===== getWorkoutRoute 메서드 시작 =====');
+    print('🚀 입력 시간: $startTime ~ $endTime');
+    print('🚀 현재 시간: ${DateTime.now()}');
+    print('🚀 메서드 호출됨 - 새로운 코드 실행 중');
+    print('🚀 이 로그가 보이면 새로운 코드가 실행된 것입니다!');
+    print('🚀 파일 경로: lib/services/health_kit_service.dart');
+
     try {
       if (!_isInitialized) {
+        print('🚀 HealthKit 초기화 필요');
         final initialized = await initialize();
+        print('🚀 HealthKit 초기화 결과: $initialized');
         if (!initialized) return null;
+      } else {
+        print('🚀 HealthKit 이미 초기화됨');
       }
 
       print(
@@ -803,15 +814,21 @@ class HealthKitService {
         print('🔍 실제 GPS 경로 데이터 수집 시도...');
 
         // 1. HealthKit 권한 확인
+        print('🔐 HealthKit 경로 권한 요청 시작...');
         final hasPermissions = await HealthKitRouteService.requestPermissions();
+        print('🔐 HealthKit 경로 권한 결과: $hasPermissions');
+
         if (!hasPermissions) {
           print('⚠️ HealthKit 경로 권한이 없습니다.');
           return _createSampleRoute(startTime, endTime);
         }
 
         // 2. 실제 GPS 경로 데이터 가져오기
+        print('🔍 HealthKitRouteService.getWorkoutRoute 호출 시작...');
         final routeData =
             await HealthKitRouteService.getWorkoutRoute(startTime, endTime);
+        print(
+            '🔍 HealthKitRouteService.getWorkoutRoute 결과: ${routeData?.length ?? 0}개 포인트');
 
         if (routeData != null && routeData.isNotEmpty) {
           print('✅ 실제 GPS 경로 데이터 발견: ${routeData.length}개 포인트');
@@ -826,6 +843,45 @@ class HealthKitService {
               '🔍 첫 번째 포인트 longitude 타입: ${routeData.first['longitude']?.runtimeType}');
           print('🔍 첫 번째 포인트 latitude 값: ${routeData.first['latitude']}');
           print('🔍 첫 번째 포인트 longitude 값: ${routeData.first['longitude']}');
+
+          // 좌표값 검증: 처음, 중간, 마지막 포인트
+          print('🔍 좌표값 검증:');
+          print(
+              '  📍 첫 번째: lat=${routeData.first['latitude']}, lng=${routeData.first['longitude']}');
+          print(
+              '  📍 중간: lat=${routeData[routeData.length ~/ 2]['latitude']}, lng=${routeData[routeData.length ~/ 2]['longitude']}');
+          print(
+              '  📍 마지막: lat=${routeData.last['latitude']}, lng=${routeData.last['longitude']}');
+
+          // 좌표 범위 확인
+          final latitudes =
+              routeData.map((p) => p['latitude'] as double).toList();
+          final longitudes =
+              routeData.map((p) => p['longitude'] as double).toList();
+          print(
+              '  📊 위도 범위: ${latitudes.reduce((a, b) => a < b ? a : b)} ~ ${latitudes.reduce((a, b) => a > b ? a : b)}');
+          print(
+              '  📊 경도 범위: ${longitudes.reduce((a, b) => a < b ? a : b)} ~ ${longitudes.reduce((a, b) => a > b ? a : b)}');
+
+          // 좌표계 검증 (WGS84: 위도 -90~90, 경도 -180~180)
+          final minLat = latitudes.reduce((a, b) => a < b ? a : b);
+          final maxLat = latitudes.reduce((a, b) => a > b ? a : b);
+          final minLng = longitudes.reduce((a, b) => a < b ? a : b);
+          final maxLng = longitudes.reduce((a, b) => a > b ? a : b);
+
+          print('  🔍 좌표계 검증:');
+          print('    ✅ 위도 범위: $minLat ~ $maxLat (WGS84: -90 ~ 90)');
+          print('    ✅ 경도 범위: $minLng ~ $maxLng (WGS84: -180 ~ 180)');
+
+          // 한국 지역 좌표 범위 확인 (대략적인 범위)
+          if (minLat >= 33.0 &&
+              maxLat <= 38.5 &&
+              minLng >= 124.5 &&
+              maxLng <= 132.0) {
+            print('    ✅ 한국 지역 좌표 범위에 포함됨');
+          } else {
+            print('    ⚠️ 한국 지역 좌표 범위를 벗어남 (좌표계 변환 필요할 수 있음)');
+          }
 
           // GPS 데이터를 GPSPoint로 변환 (이미 타입이 변환됨)
           final gpsPoints = _convertRouteDataToGPSPoints(routeData);
@@ -865,22 +921,42 @@ class HealthKitService {
 
       // 3. 실제 GPS 데이터가 없으면 샘플 경로 생성
       print('⚠️ 실제 GPS 데이터가 없습니다. 샘플 경로를 생성합니다.');
-      return _createSampleRoute(startTime, endTime);
+      print('⚠️ 샘플 경로 생성 시작...');
+      print('⚠️ _createSampleRoute 메서드 호출 예정');
+      final sampleRoute = _createSampleRoute(startTime, endTime);
+      print(
+          '⚠️ 샘플 경로 생성 완료: ${sampleRoute.points.length}개 포인트, ${sampleRoute.totalDistance.toStringAsFixed(0)}m');
+      print('⚠️ 샘플 경로 반환 - 새로운 코드 실행됨');
+      return sampleRoute;
     } catch (e) {
       print('❌ GPS 경로 데이터 수집 오류: $e');
-      return _createSampleRoute(startTime, endTime);
+      print('❌ 샘플 경로로 대체');
+      final fallbackRoute = _createSampleRoute(startTime, endTime);
+      print('❌ 대체 경로 생성 완료: ${fallbackRoute.points.length}개 포인트');
+      return fallbackRoute;
+    } finally {
+      print('🚀 ===== getWorkoutRoute 메서드 종료 =====');
+      print('🚀 이 로그가 보이면 새로운 코드가 실행된 것입니다!');
+      print('🚀 파일 경로: lib/services/health_kit_service.dart');
     }
   }
 
   /// 샘플 경로 생성 (GPS 데이터가 없을 때)
   WorkoutRoute _createSampleRoute(DateTime startTime, DateTime endTime) {
+    print('🎭 ===== _createSampleRoute 메서드 시작 =====');
+    print('🎭 입력 시간: $startTime ~ $endTime');
+
     final points = <GPSPoint>[];
     final duration = endTime.difference(startTime).inMinutes;
     final interval = duration / 6; // 6개 구간으로 나누기
 
+    print('🎭 운동 지속 시간: $duration분, 구간 간격: ${interval.toStringAsFixed(1)}분');
+
     // 서울 시청에서 시작해서 동쪽으로 이동하는 경로
     double baseLat = 37.5665;
     double baseLng = 126.9780;
+
+    print('🎭 기본 좌표: lat=$baseLat, lng=$baseLng');
 
     for (int i = 0; i <= 6; i++) {
       final timestamp =
@@ -896,14 +972,21 @@ class HealthKitService {
         speed: 8.0 + (i * 0.5), // 속도 변화
         accuracy: 10.0,
       ));
+
+      print('🎭 포인트 $i: lat=$lat, lng=$lng, 시간=$timestamp');
     }
 
-    return WorkoutRoute(
+    final route = WorkoutRoute(
       points: points,
       startTime: startTime,
       endTime: endTime,
       totalDistance: 600.0, // 약 600m
     );
+
+    print('🎭 샘플 경로 생성 완료: ${points.length}개 포인트, ${route.totalDistance}m');
+    print('🎭 ===== _createSampleRoute 메서드 종료 =====');
+
+    return route;
   }
 
   /// GPS 경로 데이터를 GPSPoint 리스트로 변환

@@ -20,16 +20,22 @@ class RunningDetailPage extends ConsumerStatefulWidget {
 class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  late MapController _mapController; // 지도 컨트롤러 추가
   bool _isLoading = true;
   RunningDynamics? _runningDynamics;
   List<HeartRateZone>? _heartRateZones;
   List<SplitData>? _splitData;
   WorkoutRoute? _workoutRoute;
 
+  // 마커와 폴리라인 상태 관리
+  List<Marker> _routeMarkers = [];
+  List<Polyline> _routePolylines = [];
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _mapController = MapController(); // 지도 컨트롤러 초기화
     _loadDetailedData();
   }
 
@@ -78,11 +84,29 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
       // GPS 경로 데이터
       print('🔍 GPS 경로 데이터 수집 시도...');
+
+      // 운동 시작부터 끝까지의 전체 GPS 데이터 수집 (시간 범위 확장)
+      final gpsStartTime =
+          widget.workout.startTime.subtract(Duration(minutes: 10));
+      final gpsEndTime = widget.workout.startTime
+          .add(widget.workout.duration)
+          .add(Duration(minutes: 10));
+
+      print(
+          '🗺️ GPS 데이터 수집 시간 범위: ${gpsStartTime.toLocal()} ~ ${gpsEndTime.toLocal()}');
+      print(
+          '🗺️ 원본 운동 시간: ${widget.workout.startTime.toLocal()} ~ ${widget.workout.startTime.add(widget.workout.duration).toLocal()}');
+
       _workoutRoute = await healthKitService.getWorkoutRoute(
-        widget.workout.startTime,
-        widget.workout.startTime.add(widget.workout.duration),
+        gpsStartTime,
+        gpsEndTime,
       );
       print('✅ GPS 경로: ${_workoutRoute?.points.length ?? 0}개 포인트');
+
+      // 지도 요소 업데이트
+      if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
+        _updateMapElements();
+      }
 
       setState(() {
         _isLoading = false;
@@ -571,13 +595,53 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: FlutterMap(
+                  mapController: _mapController, // 지도 컨트롤러 연결
                   options: MapOptions(
                     initialCenter: _getMapCenter(),
-                    initialZoom: 15.0,
+                    initialZoom: _calculateOptimalZoom(),
                     minZoom: 10.0,
                     maxZoom: 18.0,
                     onMapReady: () {
                       print('🗺️ 지도가 준비되었습니다');
+                      print('🗺️ 지도 중심점: ${_getMapCenter()}');
+                      print('🗺️ 지도 줌 레벨: ${_calculateOptimalZoom()}');
+
+                      // 마커와 폴리라인 상태 확인
+                      final markers = _createRouteMarkers();
+                      final polylines = _createRoutePolylines();
+
+                      print('🗺️ 마커 개수: ${markers.length}');
+                      print('🗺️ 폴리라인 개수: ${polylines.length}');
+
+                      if (markers.isNotEmpty) {
+                        print('  📍 첫 번째 마커 위치: ${markers.first.point}');
+                        print('  📍 마지막 마커 위치: ${markers.last.point}');
+                      }
+
+                      if (polylines.isNotEmpty) {
+                        print(
+                            '  📍 첫 번째 폴리라인 포인트 수: ${polylines.first.points.length}');
+                        print('  📍 첫 번째 폴리라인 색상: ${polylines.first.color}');
+                      }
+
+                      print('🗺️ 지도 바운드: ${_calculateMapBounds()}');
+
+                      // 지도가 준비되면 실제 GPS 경로 바운드로 이동
+                      final bounds = _calculateMapBounds();
+                      if (bounds != null) {
+                        print('🗺️ 지도 바운드로 이동 시도...');
+                        // 바운드의 중심점 계산
+                        final centerLat = (bounds.northEast.latitude +
+                                bounds.southWest.latitude) /
+                            2;
+                        final centerLng = (bounds.northEast.longitude +
+                                bounds.southWest.longitude) /
+                            2;
+                        final center = LatLng(centerLat, centerLng);
+
+                        _mapController.move(center, _calculateOptimalZoom());
+                        print('✅ 지도 바운드 이동 완료: $center');
+                      }
                     },
                   ),
                   children: [
@@ -588,12 +652,16 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                       maxZoom: 19,
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(
-                      markers: _createRouteMarkers(),
-                    ),
-                    PolylineLayer(
-                      polylines: _createRoutePolylines(),
-                    ),
+                    // 실제 GPS 경로 데이터가 있는 경우에만 마커와 폴리라인 표시
+                    if (_workoutRoute != null &&
+                        _workoutRoute!.points.isNotEmpty) ...[
+                      PolylineLayer(
+                        polylines: _routePolylines,
+                      ),
+                      MarkerLayer(
+                        markers: _routeMarkers,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -953,13 +1021,122 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     );
   }
 
+  /// 마커와 폴리라인 상태 업데이트
+  void _updateMapElements() {
+    if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
+      setState(() {
+        _routeMarkers = _createRouteMarkers();
+        _routePolylines = _createRoutePolylines();
+      });
+
+      print('🗺️ 지도 요소 업데이트 완료:');
+      print('  📍 마커: ${_routeMarkers.length}개');
+      print('  📍 폴리라인: ${_routePolylines.length}개');
+    }
+  }
+
   /// 지도 중심점 계산
   LatLng _getMapCenter() {
     if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
-      return _workoutRoute!.center;
+      final points = _workoutRoute!.points;
+
+      // 실제 GPS 데이터의 중심점 계산
+      double totalLat = 0;
+      double totalLng = 0;
+
+      for (final point in points) {
+        totalLat += point.latitude;
+        totalLng += point.longitude;
+      }
+
+      final centerLat = totalLat / points.length;
+      final centerLng = totalLng / points.length;
+
+      print(
+          '🗺️ 지도 중심점 계산: lat=$centerLat, lng=$centerLng (${points.length}개 포인트)');
+
+      return LatLng(centerLat, centerLng);
     }
+
     // 기본값: 서울 시청 좌표
+    print('🗺️ 기본 중심점 사용: 서울 시청');
     return const LatLng(37.5665, 126.9780);
+  }
+
+  /// 최적 줌 레벨 계산
+  double _calculateOptimalZoom() {
+    if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
+      final points = _workoutRoute!.points;
+
+      // 경로의 범위 계산
+      double minLat = points.first.latitude;
+      double maxLat = points.first.latitude;
+      double minLng = points.first.longitude;
+      double maxLng = points.first.longitude;
+
+      for (final point in points) {
+        if (point.latitude < minLat) minLat = point.latitude;
+        if (point.latitude > maxLat) maxLat = point.latitude;
+        if (point.longitude < minLng) minLng = point.longitude;
+        if (point.longitude > maxLng) maxLng = point.longitude;
+      }
+
+      // 위도/경도 차이에 따른 줌 레벨 계산
+      final latDiff = maxLat - minLat;
+      final lngDiff = maxLng - minLng;
+      final maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
+
+      double zoom = 15.0; // 기본값
+      if (maxDiff > 0.1)
+        zoom = 10.0; // 매우 넓은 범위
+      else if (maxDiff > 0.05)
+        zoom = 12.0; // 넓은 범위
+      else if (maxDiff > 0.02)
+        zoom = 13.0; // 중간 범위
+      else if (maxDiff > 0.01)
+        zoom = 14.0; // 좁은 범위
+      else
+        zoom = 15.0; // 매우 좁은 범위
+
+      print('🗺️ 최적 줌 레벨 계산: $zoom (범위: $maxDiff)');
+      return zoom;
+    }
+
+    return 15.0; // 기본값
+  }
+
+  /// 지도 바운드 계산 (실제 GPS 경로 전체 범위)
+  LatLngBounds? _calculateMapBounds() {
+    if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
+      final points = _workoutRoute!.points;
+
+      // 경로의 범위 계산
+      double minLat = points.first.latitude;
+      double maxLat = points.first.latitude;
+      double minLng = points.first.longitude;
+      double maxLng = points.first.longitude;
+
+      for (final point in points) {
+        if (point.latitude < minLat) minLat = point.latitude;
+        if (point.latitude > maxLat) maxLat = point.latitude;
+        if (point.longitude < minLng) minLng = point.longitude;
+        if (point.longitude > maxLng) maxLng = point.longitude;
+      }
+
+      // 여백을 위해 약간 확장
+      final latMargin = (maxLat - minLat) * 0.1;
+      final lngMargin = (maxLng - minLng) * 0.1;
+
+      final bounds = LatLngBounds(
+        LatLng(minLat - latMargin, minLng - lngMargin),
+        LatLng(maxLat + latMargin, maxLng + lngMargin),
+      );
+
+      print('🗺️ 지도 바운드 계산: $bounds');
+      return bounds;
+    }
+
+    return null;
   }
 
   /// 경로 마커 생성
@@ -970,10 +1147,15 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       // 실제 GPS 데이터가 있는 경우
       final points = _workoutRoute!.points;
 
+      print('🗺️ 마커 생성: ${points.length}개 GPS 포인트');
+
       // 시작점 마커
+      final startPoint = points.first.toLatLng();
+      print('  📍 시작점 마커: $startPoint');
+
       markers.add(
         Marker(
-          point: points.first.toLatLng(),
+          point: startPoint,
           width: 80,
           height: 80,
           child: Column(
@@ -1006,9 +1188,12 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       // 중간 구간별 마커 (실제 GPS 데이터 기반)
       for (int i = 1; i < points.length - 1; i++) {
         final point = points[i];
+        final latLng = point.toLatLng();
+        print('  📍 중간 마커 $i: $latLng');
+
         markers.add(
           Marker(
-            point: point.toLatLng(),
+            point: latLng,
             width: 60,
             height: 60,
             child: Column(
@@ -1041,9 +1226,12 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
       // 종료점 마커
       if (points.length > 1) {
+        final endPoint = points.last.toLatLng();
+        print('  📍 종료점 마커: $endPoint');
+
         markers.add(
           Marker(
-            point: points.last.toLatLng(),
+            point: endPoint,
             width: 80,
             height: 80,
             child: Column(
@@ -1073,8 +1261,11 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
           ),
         );
       }
+
+      print('✅ 마커 생성 완료: ${markers.length}개');
     } else {
       // GPS 데이터가 없으면 기본 마커만 표시
+      print('⚠️ GPS 데이터 없음: 기본 마커만 생성');
       markers.add(
         Marker(
           point: const LatLng(37.5665, 126.9780),
@@ -1120,15 +1311,27 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       final points = _workoutRoute!.points;
       final latLngPoints = points.map((point) => point.toLatLng()).toList();
 
-      polylines.add(
-        Polyline(
-          points: latLngPoints,
-          color: Colors.blue,
-          strokeWidth: 3,
-        ),
+      print(
+          '🗺️ 폴리라인 생성: ${points.length}개 GPS 포인트 -> ${latLngPoints.length}개 LatLng 포인트');
+      print('  📍 첫 번째 LatLng: ${latLngPoints.first}');
+      print('  📍 마지막 LatLng: ${latLngPoints.last}');
+
+      // 폴리라인 생성
+      final polyline = Polyline(
+        points: latLngPoints,
+        color: Colors.blue,
+        strokeWidth: 3,
       );
+
+      polylines.add(polyline);
+
+      print('✅ 폴리라인 생성 완료: ${polylines.length}개');
+      print('  📍 폴리라인 포인트 수: ${polyline.points.length}');
+      print('  📍 폴리라인 색상: ${polyline.color}');
+      print('  📍 폴리라인 두께: ${polyline.strokeWidth}');
     } else {
       // GPS 데이터가 없으면 샘플 경로 생성
+      print('⚠️ GPS 데이터 없음: 샘플 경로 생성');
       final samplePoints = <LatLng>[];
       final baseLat = 37.5665;
       final baseLng = 126.9780;
