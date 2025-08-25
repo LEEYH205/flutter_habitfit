@@ -6,6 +6,8 @@ import 'features/workout/workout_page.dart';
 import 'features/meals/meal_page.dart';
 import 'features/report/report_page.dart';
 import 'features/settings/settings_page.dart';
+import 'features/health/health_test_page.dart';
+import 'features/running/running_analysis_page.dart';
 
 class HabitFitApp extends ConsumerWidget {
   const HabitFitApp({super.key});

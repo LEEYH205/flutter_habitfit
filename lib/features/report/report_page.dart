@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../common/services/fcm_service.dart';
 import '../../common/services/local_notification_service.dart';
 import '../health/health_test_page.dart';
+import '../running/running_analysis_page.dart';
 
 class ReportPage extends ConsumerWidget {
   const ReportPage({super.key});
@@ -263,6 +264,40 @@ class ReportPage extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.red,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  // 달리기 분석 섹션
+                  const Text(
+                    '🏃‍♂️ 달리기 분석 시스템',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RunningAnalysisPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.analytics),
+                    label: const Text('달리기 분석'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '💡 AI 기반 달리기 데이터 분석 및 개인화된 코칭을 제공합니다',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green,
                       fontStyle: FontStyle.italic,
                     ),
                   ),

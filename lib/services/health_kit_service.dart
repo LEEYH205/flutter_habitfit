@@ -438,16 +438,39 @@ class HealthKitService {
   /// WORKOUT 데이터에서 거리 추출
   double? _extractDistanceFromWorkout(HealthDataPoint point) {
     try {
-      // WORKOUT 데이터에서 거리 정보를 추출하는 로직
-      // 실제로는 더 복잡한 로직이 필요할 수 있음
-      if (point.value is NumericHealthValue) {
-        final numericValue = point.value as NumericHealthValue;
-        // WORKOUT의 경우 거리가 별도로 저장될 수 있음
-        return numericValue.numericValue.toDouble();
+      if (point.value is WorkoutHealthValue) {
+        // value.toString()에서 거리 정보 파싱
+        final valueStr = point.value.toString();
+        print('🔍 거리 파싱 시도: $valueStr');
+
+        if (valueStr.contains('totalDistance:')) {
+          final regex = RegExp(r'totalDistance:\s*(\d+)');
+          final match = regex.firstMatch(valueStr);
+          if (match != null) {
+            final distanceMeters = int.parse(match.group(1)!);
+            final distanceKm = distanceMeters / 1000.0;
+            print('✅ 거리 파싱 성공: ${distanceMeters}m -> ${distanceKm}km');
+            return distanceKm;
+          }
+        }
+
+        // 다른 패턴 시도
+        if (valueStr.contains('distance:')) {
+          final regex = RegExp(r'distance:\s*(\d+)');
+          final match = regex.firstMatch(valueStr);
+          if (match != null) {
+            final distanceMeters = int.parse(match.group(1)!);
+            final distanceKm = distanceMeters / 1000.0;
+            print('✅ 거리 파싱 성공 (대체 패턴): ${distanceMeters}m -> ${distanceKm}km');
+            return distanceKm;
+          }
+        }
       }
+
+      print('❌ 거리 파싱 실패: 지원되지 않는 데이터 타입');
       return null;
     } catch (e) {
-      print('⚠️ 거리 추출 오류: $e');
+      print('❌ 거리 추출 오류: $e');
       return null;
     }
   }
@@ -455,14 +478,37 @@ class HealthKitService {
   /// WORKOUT 데이터에서 칼로리 추출
   double? _extractCaloriesFromWorkout(HealthDataPoint point) {
     try {
-      // WORKOUT 데이터에서 칼로리 정보를 추출하는 로직
-      if (point.value is NumericHealthValue) {
-        final numericValue = point.value as NumericHealthValue;
-        return numericValue.numericValue.toDouble();
+      if (point.value is WorkoutHealthValue) {
+        // value.toString()에서 칼로리 정보 파싱
+        final valueStr = point.value.toString();
+        print('🔍 칼로리 파싱 시도: $valueStr');
+
+        if (valueStr.contains('totalEnergyBurned:')) {
+          final regex = RegExp(r'totalEnergyBurned:\s*(\d+)');
+          final match = regex.firstMatch(valueStr);
+          if (match != null) {
+            final calories = double.parse(match.group(1)!);
+            print('✅ 칼로리 파싱 성공: ${calories}kcal');
+            return calories;
+          }
+        }
+
+        // 다른 패턴 시도
+        if (valueStr.contains('energyBurned:')) {
+          final regex = RegExp(r'energyBurned:\s*(\d+)');
+          final match = regex.firstMatch(valueStr);
+          if (match != null) {
+            final calories = double.parse(match.group(1)!);
+            print('✅ 칼로리 파싱 성공 (대체 패턴): ${calories}kcal');
+            return calories;
+          }
+        }
       }
+
+      print('❌ 칼로리 파싱 실패: 지원되지 않는 데이터 타입');
       return null;
     } catch (e) {
-      print('⚠️ 칼로리 추출 오류: $e');
+      print('❌ 칼로리 추출 오류: $e');
       return null;
     }
   }

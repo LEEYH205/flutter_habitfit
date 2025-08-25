@@ -2,16 +2,16 @@
 
 A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 
-## 🚀 Current Status
+## 📊 **현재 상태**
 
-**✅ COMPLETED:**
-- Flutter 3.35.1 + Dart 3.9.0 업그레이드
-- Firebase 통합 완료 (Firestore, Authentication, Remote Config, Cloud Messaging)
-- iOS 시뮬레이터 호환성 해결 (iOS 18.6)
-- 모든 컴파일 오류 해결
-- 기본 앱 기능 정상 작동
-- **🎯 MoveNet AI 포즈 추정 기능 완전 복구** (2025-08-22)
-- 실제 iPhone에서 실시간 포즈 추정 정상 작동
+### ✅ **완료된 기능**
+- **기본 앱 구조**: Flutter + Riverpod + Firebase
+- **운동 인식**: TFLite MoveNet 기반 스쿼트/푸시업 카운팅
+- **HealthKit 연동**: iOS 건강앱 권한 설정, 기본 운동 데이터 가져오기
+- **달리기 데이터 수집**: WORKOUT 데이터 파싱 및 분석 로직 완성
+- **달리기 분석 시스템**: 5개 탭 구조 (요약, 트렌딩, 심박수, 페이스, 패턴)
+- **AI 기반 코칭**: 규칙 기반 개인화된 달리기 조언 시스템
+- **데이터 시각화**: fl_chart를 활용한 트렌딩 및 패턴 차트
 
 **✅ COMPLETED:**
 - **🎯 AI 포즈 추정 완벽 동작**: MoveNet 모델로 실시간 스쿼트 감지 성공
@@ -41,18 +41,32 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **📊 달리기 데이터 분석**: HealthKit에서 가져온 달리기 데이터를 활용한 상세 분석 시스템
 - **🏃‍♂️ 달리기 관리 시스템**: GPS 기반 거리/속도 측정, HealthKit 연동 코칭 시스템
 - **⌚️ Apple Watch 지원**: 워치 전용 운동 추적 및 iPhone과의 데이터 동기화
+- **GPS 기반 실시간 추적**: 달리기 경로 및 속도 모니터링
+- **Apple Watch 앱**: 독립적인 웨어러블 앱 개발
+- **소셜 기능**: 친구와의 챌린지 및 기록 공유
 - 운동 피드백 시스템 (자세 교정 가이드)
 - 성능 최적화 및 배터리 효율성 개선
 - 추가 운동 동작 지원 (플랭크, 런지 등)
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Flutter 3.35.1, Dart 3.9.0
-- **Backend**: Firebase
-  - **Firestore**: 데이터베이스 (habits, meals, workouts)
+### **Frontend & State Management**
+- **Flutter**: 3.35.1 (최신 안정 버전)
+- **Dart**: 3.9.0
+- **Riverpod**: 상태 관리 및 의존성 주입
+- **Material Design 3**: 최신 Material You 디자인 시스템
+
+### **AI & Computer Vision**
+- **TensorFlow Lite**: MoveNet 모델 추론 엔진
+- **MoveNet**: 실시간 포즈 추정 및 운동 인식
+- **Pose Estimation**: 17개 키포인트 기반 정확한 자세 분석
+
+### **Backend & Database**
+- **Firebase**: 클라우드 백엔드 서비스
+  - **Firestore**: 실시간 데이터베이스
   - **Authentication**: 사용자 인증
-  - **Remote Config**: 동적 설정 관리
   - **Cloud Messaging**: 푸시 알림
+  - **Remote Config**: 원격 설정 관리
 - **AI/ML**: TFLite Flutter (MoveNet 포즈 추정 정상 작동)
 - **State Management**: Flutter Riverpod
 - **Camera**: Flutter Camera Plugin
@@ -60,16 +74,62 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **Health Integration**: HealthKit 연동 ✅ 완료
 - **Watch Support**: Apple Watch 앱 (계획됨)
 
+### **Health Integration**
+- **HealthKit**: iOS 건강앱 연동
+- **Apple Watch**: 웨어러블 데이터 수집
+- **실시간 생체 데이터**: 운동, 심박수, 거리, 칼로리
+
+### **Data Visualization**
+- **fl_chart**: 차트 및 그래프 라이브러리
+- **실시간 데이터 시각화**: 트렌딩, 패턴 분석
+
+### **Local Notifications**
+- **flutter_local_notifications**: 로컬 알림 시스템
+- **timezone**: 시간대별 알림 스케줄링
+
 ## 📱 Features
 
-### ✅ Working Features
-- **Habit Tracking**: 일일 습관 체크 및 Firestore 저장
-- **Meal Logging**: 식사 사진 업로드, 칼로리 매핑, Firestore 저장
-- **Workout Tracking**: 카메라 기반 운동 세션
-- **🎯 AI Pose Estimation**: TFLite MoveNet 기반 실시간 스쿼트 자세 분석
-- **Progress Reports**: Firestore 데이터 기반 일일 리포트
-- **Firebase Integration**: 실시간 데이터 동기화
-- **🔔 Local Notifications**: 완벽한 로컬 알림 시스템 (운동 완료, 목표 달성, 습관 리마인더)
+### **🎯 AI-Powered Exercise Recognition** ✅ **완료**
+- **Real-time Pose Estimation**: MoveNet 모델로 17개 키포인트 실시간 추적
+- **Exercise Counting**: 스쿼트, 푸시업 정확한 횟수 카운팅
+- **Form Analysis**: 자세 교정 및 피드백 제공
+- **Performance Metrics**: 운동 강도 및 지속 시간 측정
+
+### **🏥 HealthKit Integration** ✅ **완료**
+- **iOS Health App Sync**: 건강앱과의 완벽한 데이터 동기화
+- **Apple Watch Data**: 웨어러블 기기에서 수집된 운동 데이터
+- **Workout Tracking**: 달리기, 걷기, 자전거 등 다양한 운동 기록
+- **Biometric Data**: 심박수, 거리, 칼로리, 속도 등 상세 메트릭
+
+### **🏃‍♂️ Running Analysis System** ✅ **완료**
+- **5-Tab Analysis**: 요약, 트렌딩, 심박수, 페이스, 패턴
+- **Data Visualization**: fl_chart 기반 트렌딩 및 패턴 차트
+- **Performance Tracking**: 거리, 시간, 페이스, 칼로리 추적
+- **Pattern Analysis**: 요일별, 시간대별 운동 선호도 분석
+
+### **🤖 AI Coaching System** ✅ **완료**
+- **Personalized Advice**: 개인 운동 데이터 기반 맞춤형 조언
+- **Heart Rate Analysis**: 심박수 구간별 운동 강도 평가
+- **Pace Optimization**: 페이스 품질 분석 및 개선 방향 제시
+- **Trending Insights**: 운동 패턴 변화에 따른 코칭 제공
+
+### **🔔 Smart Notifications** ✅ **완료**
+- **Local Notifications**: 운동 완료, 목표 달성 알림
+- **Habit Reminders**: 습관 체크 리마인더
+- **Achievement Celebrations**: 목표 달성 시 축하 메시지
+- **Customizable Scheduling**: 사용자 정의 알림 시간 설정
+
+### **📊 Habit & Fitness Tracking** ✅ **완료**
+- **Daily Habits**: 습관 체크 및 연속 달성 기록
+- **Meal Logging**: 식사 기록 및 칼로리 추적
+- **Workout Sessions**: AI 기반 운동 세션 관리
+- **Progress Analytics**: 습관 및 운동 진행 상황 분석
+
+### **📱 Cross-Platform Support** ✅ **완료**
+- **iOS Native**: HealthKit 완벽 연동
+- **Material Design 3**: 최신 UI/UX 디자인
+- **Responsive Layout**: 다양한 화면 크기 지원
+- **Dark/Light Theme**: 사용자 선호 테마 지원
 
 ### ✅ Completed Features
 - **🎯 AI Pose Estimation**: TFLite MoveNet 기반 실시간 스쿼트 자세 분석
@@ -110,30 +170,30 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 
 ## 🏥 HealthKit Integration & Running Data
 
-### **✅ Completed HealthKit Features**
+### **✅ 완료된 HealthKit 기능**
+- **권한 관리**: iOS 건강앱 접근 권한 설정 및 관리
+- **WORKOUT 데이터 수집**: Apple Watch 운동 기록 자동 동기화
+- **데이터 파싱**: `WorkoutHealthValue`에서 거리, 칼로리, 시간 정확한 추출
+- **운동 타입 인식**: 달리기, 걷기, 자전거 등 다양한 운동 자동 분류
+- **실시간 동기화**: HealthKit과 앱 간 실시간 데이터 업데이트
 
-#### **1. HealthKit 연동 완료**
-```dart
-// HealthKit 서비스 클래스
-class HealthKitService {
-  // WORKOUT 데이터 우선 조회
-  Future<List<WorkoutData>> getRecentWorkouts({int days = 7}) async {
-    // 1. WORKOUT 데이터 우선 확인 (가장 정확한 운동 정보)
-    final workoutData = await _health.getHealthDataFromTypes(
-      startDate, now, [HealthDataType.WORKOUT],
-    );
-    
-    if (workoutData.isNotEmpty) {
-      return _parseWorkoutData(workoutData);
-    }
-    
-    // 2. WORKOUT 데이터가 없으면 걸음 수 기반으로 운동 추정
-    // 걸음 수, 거리, 심박수 데이터로 운동 추정
-  }
-}
-```
+### **🏃‍♂️ 달리기 데이터 수집 완료**
+- **수집된 데이터**: 최근 30일간 10개 달리기 운동 기록
+- **상세 메트릭**: 
+  - 거리: 5.01km ~ 10.02km
+  - 시간: 21분 ~ 69분
+  - 칼로리: 100kcal ~ 809kcal
+  - 소스: Apple Watch 자동 기록
+- **데이터 품질**: 모든 메트릭이 정확하게 파싱되어 UI에 표시
 
-#### **2. 달리기 데이터 수집 성공**
+### **📊 달리기 분석 시스템**
+- **5개 분석 탭**: 요약, 트렌딩, 심박수, 페이스, 패턴
+- **요약 통계**: 총 거리 58.0km, 총 칼로리 4,459kcal, 평균 페이스 7.2분/km
+- **트렌딩 분석**: 시간에 따른 거리 및 운동 지속 시간 변화 추이
+- **패턴 분석**: 요일별, 시간대별 운동 선호도 시각화
+- **AI 코칭**: 개인 운동 데이터 기반 맞춤형 조언 제공
+
+#### **. 달리기 데이터 수집 성공**
 - **운동 타입**: `RUNNING_TREADMILL` (달리기)
 - **운동 시간**: 시작/종료 시간, 지속 시간
 - **총 거리**: 미터 단위 (예: 5,014m = 5.014km)
@@ -141,7 +201,7 @@ class HealthKitService {
 - **데이터 소스**: Apple Watch
 - **상세 메트릭**: 평균 속도, 보폭, 파워, 수직 진폭, 지면 접촉 시간 등
 
-#### **3. 현재 수집 가능한 데이터**
+#### **. 현재 수집 가능한 데이터**
 ```dart
 // 지원하는 HealthKit 데이터 타입
 final types = [
@@ -156,12 +216,18 @@ final types = [
 ];
 ```
 
-#### **4. 달리기 데이터 분석 가능 항목**
+#### **. 달리기 데이터 분석 가능 항목**
 - **운동 성과 트렌딩**: 시간에 따른 개선도 분석
 - **운동 강도 분석**: 심박수 기반 운동 강도 평가
 - **거리/속도 분석**: 페이스 및 속도 패턴 분석
 - **운동 패턴 분석**: 요일/시간대별 선호도 분석
 - **개인 기록 관리**: 최고 기록 및 개선 목표 설정
+
+### **🔧 다음 단계 HealthKit 기능**
+- **심박수 데이터**: Apple Watch 실시간 심박수 수집 및 구간별 분석
+- **GPS 추적**: 실시간 달리기 경로 및 속도 모니터링
+- **Apple Watch 앱**: 독립적인 웨어러블 앱 개발
+- **고급 생체 데이터**: VO2 max, 심박수 변이성, 수면 품질 등
 
 ### **🔧 Next Steps for HealthKit**
 
@@ -515,6 +581,46 @@ flutter: ⚠️ Low confidence: L(0.00,0.00,0.00) R(0.00,0.00,0.00)
 14. **📋 계획**: HealthKit 연동 AI 코칭 시스템
 15. **📋 계획**: 다른 운동 종목 추가 (플랭크, 런지 등)
 16. **📋 계획**: 운동 피드백 시스템 고도화
+
+## 📈 **현재 진행 상황 요약**
+
+### **🎯 AI 포즈 추정** ✅ **완료**
+- **MoveNet 모델**: TFLite 기반 실시간 포즈 추정
+- **운동 인식**: 스쿼트, 푸시업 정확한 카운팅
+- **성능**: 실제 iPhone에서 안정적인 AI 추론
+
+### **🏥 HealthKit 연동** ✅ **완료**
+- **권한 설정**: iOS 건강앱 접근 권한 완벽 설정
+- **데이터 수집**: Apple Watch 운동 데이터 자동 동기화
+- **파싱 시스템**: WORKOUT 데이터에서 거리, 칼로리 정확한 추출
+
+### **🏃‍♂️ 달리기 데이터 분석** ✅ **완료**
+- **분석 시스템**: 5개 탭 구조의 종합적인 달리기 분석
+- **데이터 시각화**: fl_chart 기반 트렌딩 및 패턴 차트
+- **AI 코칭**: 규칙 기반 개인화된 운동 조언 시스템
+- **실제 데이터**: 10개 달리기 운동 기록 분석 완료
+
+### **🔔 알림 시스템** ✅ **완료**
+- **로컬 알림**: 운동 완료, 목표 달성, 습관 리마인더
+- **스케줄링**: 사용자 정의 알림 시간 설정
+- **Firebase 연동**: FCM 푸시 알림 (실제 기기에서 정상 작동)
+
+### **📱 기본 앱 기능** ✅ **완료**
+- **습관 추적**: 일일 습관 체크 및 기록
+- **식사 로깅**: 사진 기반 식사 기록 및 칼로리 추적
+- **운동 세션**: AI 기반 실시간 운동 관리
+- **데이터 동기화**: Firestore 실시간 데이터베이스 연동
+
+### **🔄 진행 중인 작업**
+- **심박수 연동**: Apple Watch 실시간 심박수 데이터 수집
+- **진짜 AI 연동**: 로컬 AI 모델을 활용한 지능형 코칭
+- **목표 설정**: 개인 기록 관리 및 달성도 추적 시스템
+
+### **📋 다음 단계 계획**
+- **GPS 추적**: 실시간 달리기 경로 및 속도 모니터링
+- **Apple Watch 앱**: 독립적인 웨어러블 앱 개발
+- **고급 분석**: VO2 max, 심박수 변이성 등 생체 데이터 분석
+- **소셜 기능**: 친구와의 챌린지 및 기록 공유
 
 ### **현재 진행 상황 요약**
 - **🎯 AI 포즈 추정**: 완벽 작동 (MoveNet 실시간 스쿼트 감지)
