@@ -24,6 +24,8 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **🎨 UI/UX 통일**: 모든 탭의 상단 디자인을 설정탭과 동일한 스타일로 통일
 - **📱 워크아웃 레이아웃 최적화**: 불필요한 버튼과 텍스트 제거, 카메라 비율 개선
 - **🔢 독립적인 운동 카운터**: 스쿼트와 푸시업 각각의 독립적인 카운터 시스템
+- **🏥 HealthKit 연동 완료**: iPhone 건강앱과의 데이터 연동 및 WORKOUT 데이터 가져오기 성공
+- **🏃‍♂️ 달리기 데이터 수집**: Apple Watch로 기록된 달리기 운동 데이터 성공적으로 가져오기
 
 **⚠️ PARTIALLY WORKING:**
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
@@ -36,6 +38,7 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **💪 운동 완료 시 자동 알림**: Stop 버튼 누를 때 자동으로 운동 완료 알림 전송 (우선순위 3)
 - **⚙️ 설정 페이지 완성**: 사용자가 알림 설정을 커스터마이징할 수 있도록 (우선순위 4)
 - **📝 습관 체크와 알림 연동**: 습관 체크 완료 시 성취 알림 및 연속 달성 기록 (우선순위 5)
+- **📊 달리기 데이터 분석**: HealthKit에서 가져온 달리기 데이터를 활용한 상세 분석 시스템
 - **🏃‍♂️ 달리기 관리 시스템**: GPS 기반 거리/속도 측정, HealthKit 연동 코칭 시스템
 - **⌚️ Apple Watch 지원**: 워치 전용 운동 추적 및 iPhone과의 데이터 동기화
 - 운동 피드백 시스템 (자세 교정 가이드)
@@ -54,7 +57,7 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **State Management**: Flutter Riverpod
 - **Camera**: Flutter Camera Plugin
 - **Notifications**: flutter_local_notifications (완벽 작동)
-- **Health Integration**: HealthKit 연동 (계획됨)
+- **Health Integration**: HealthKit 연동 ✅ 완료
 - **Watch Support**: Apple Watch 앱 (계획됨)
 
 ## 📱 Features
@@ -86,6 +89,8 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **📱 Optimized Workout Layout**: 불필요한 버튼과 텍스트 제거, 카메라 비율 최적화
 - **🔢 Independent Exercise Counters**: 스쿼트와 푸시업 각각의 독립적인 카운터 시스템
 - **🔄 Multi-Exercise Support**: 운동 타입 선택 드롭다운으로 스쿼트/푸시업 전환 가능
+- **🏥 HealthKit Integration**: iPhone 건강앱과의 완벽한 데이터 연동 및 WORKOUT 데이터 수집
+- **🏃‍♂️ Running Data Collection**: Apple Watch로 기록된 달리기 운동 데이터 성공적으로 가져오기
 
 ### 🔧 Features in Progress
 - **🔧 Push-up Detection Debugging**: 푸시업 카운팅이 증가하지 않는 문제 해결
@@ -98,10 +103,107 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **Dynamic Configuration**: Remote Config 기반 임계값 조정
 
 ### 📋 Planned Features
+- **📊 Running Data Analysis**: HealthKit에서 가져온 달리기 데이터를 활용한 상세 분석 시스템
 - **🏃‍♂️ Running Management System**: GPS 기반 달리기 추적 및 관리
 - **⌚️ Apple Watch Support**: 워치 전용 운동 앱 및 iPhone과의 동기화
-- **🏥 HealthKit Integration**: iPhone 건강앱과의 데이터 연동 및 AI 코칭
-- **💡 AI-Powered Coaching**: 운동 데이터 분석 기반 개인화된 코칭 시스템
+- **💡 AI-Powered Coaching**: HealthKit 운동 데이터 분석 기반 개인화된 코칭 시스템
+
+## 🏥 HealthKit Integration & Running Data
+
+### **✅ Completed HealthKit Features**
+
+#### **1. HealthKit 연동 완료**
+```dart
+// HealthKit 서비스 클래스
+class HealthKitService {
+  // WORKOUT 데이터 우선 조회
+  Future<List<WorkoutData>> getRecentWorkouts({int days = 7}) async {
+    // 1. WORKOUT 데이터 우선 확인 (가장 정확한 운동 정보)
+    final workoutData = await _health.getHealthDataFromTypes(
+      startDate, now, [HealthDataType.WORKOUT],
+    );
+    
+    if (workoutData.isNotEmpty) {
+      return _parseWorkoutData(workoutData);
+    }
+    
+    // 2. WORKOUT 데이터가 없으면 걸음 수 기반으로 운동 추정
+    // 걸음 수, 거리, 심박수 데이터로 운동 추정
+  }
+}
+```
+
+#### **2. 달리기 데이터 수집 성공**
+- **운동 타입**: `RUNNING_TREADMILL` (달리기)
+- **운동 시간**: 시작/종료 시간, 지속 시간
+- **총 거리**: 미터 단위 (예: 5,014m = 5.014km)
+- **총 칼로리**: 킬로칼로리 (예: 376kcal)
+- **데이터 소스**: Apple Watch
+- **상세 메트릭**: 평균 속도, 보폭, 파워, 수직 진폭, 지면 접촉 시간 등
+
+#### **3. 현재 수집 가능한 데이터**
+```dart
+// 지원하는 HealthKit 데이터 타입
+final types = [
+  HealthDataType.WORKOUT,           // 운동 세션 데이터 (달리기 포함)
+  HealthDataType.HEART_RATE,       // 심박수
+  HealthDataType.STEPS,            // 걸음 수
+  HealthDataType.DISTANCE_WALKING_RUNNING, // 걷기/달리기 거리
+  HealthDataType.ACTIVE_ENERGY_BURNED,     // 활동 소모 칼로리
+  HealthDataType.BASAL_ENERGY_BURNED,      // 기초 대사 칼로리
+  HealthDataType.EXERCISE_TIME,            // 운동 시간
+  HealthDataType.FLIGHTS_CLIMBED,          // 계단 오르기
+];
+```
+
+#### **4. 달리기 데이터 분석 가능 항목**
+- **운동 성과 트렌딩**: 시간에 따른 개선도 분석
+- **운동 강도 분석**: 심박수 기반 운동 강도 평가
+- **거리/속도 분석**: 페이스 및 속도 패턴 분석
+- **운동 패턴 분석**: 요일/시간대별 선호도 분석
+- **개인 기록 관리**: 최고 기록 및 개선 목표 설정
+
+### **🔧 Next Steps for HealthKit**
+
+#### **1. 달리기 전용 분석 페이지**
+```dart
+class RunningAnalysisPage extends StatelessWidget {
+  // 달리기 데이터 시각화
+  // - 거리/시간 그래프
+  // - 심박수 변화 추이
+  // - 속도 패턴 분석
+  // - 개인 기록 관리
+}
+```
+
+#### **2. AI 기반 달리기 코칭**
+```dart
+class RunningCoachingSystem {
+  // 심박수 기반 페이스 조절 가이드
+  String getHeartRateAdvice(int currentHR, int targetHR);
+  
+  // 보폭 최적화 가이드
+  String getStrideAdvice(double currentStride, double optimalStride);
+  
+  // 페이스 관리 코칭
+  String getPaceAdvice(double currentPace, double targetPace);
+}
+```
+
+#### **3. GPS 기반 실시간 달리기 추적**
+```dart
+class GPSTrackingService {
+  // 실시간 위치 추적
+  Future<void> startTracking();
+  
+  // 경로 기록 및 시각화
+  List<LatLng> getRoute();
+  
+  // 실시간 속도 및 거리 계산
+  double getCurrentSpeed();
+  double getTotalDistance();
+}
+```
 
 ## 🤖 AI Integration & Future Development
 
@@ -422,7 +524,9 @@ flutter: ⚠️ Low confidence: L(0.00,0.00,0.00) R(0.00,0.00,0.00)
 - **⚙️ 설정 시스템**: 설정 페이지 구현 중
 - **📝 습관 연동**: 습관 체크와 알림 시스템 연동 구현 중
 - **🔢 독립적인 카운터**: 스쿼트와 푸시업 각각의 카운터 시스템 구현 완료
-- **🏃‍♂️ 달리기 시스템**: GPS 기반 추적 및 HealthKit 연동 계획됨
+- **🏥 HealthKit 연동**: ✅ 완료 - iPhone 건강앱과의 데이터 연동 성공
+- **🏃‍♂️ 달리기 데이터**: ✅ 완료 - Apple Watch 달리기 데이터 수집 성공
+- **🏃‍♂️ 달리기 시스템**: GPS 기반 추적 및 AI 코칭 시스템 계획됨
 - **⌚️ Apple Watch**: 워치 전용 운동 앱 및 센서 활용 계획됨
 
 ### **기술적 개선 사항**

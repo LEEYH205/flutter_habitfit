@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../common/services/fcm_service.dart';
 import '../../common/services/local_notification_service.dart';
+import '../health/health_test_page.dart';
 
 class ReportPage extends ConsumerWidget {
   const ReportPage({super.key});
@@ -229,6 +230,39 @@ class ReportPage extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.blue,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // HealthKit 테스트 섹션
+                  const Text(
+                    '🏥 HealthKit 연동 테스트',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HealthTestPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.favorite),
+                    label: const Text('HealthKit 테스트'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '💡 iPhone 건강앱과 연동하여 운동 데이터를 가져옵니다',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red,
                       fontStyle: FontStyle.italic,
                     ),
                   ),

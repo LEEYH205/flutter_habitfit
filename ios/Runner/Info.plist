@@ -34,6 +34,10 @@
 	<string>This app needs microphone access for video recording during workouts.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to save and select workout images.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>This app needs access to your health data to provide personalized workout coaching and track your fitness progress.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>This app needs permission to update your health data to record workouts and achievements.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
