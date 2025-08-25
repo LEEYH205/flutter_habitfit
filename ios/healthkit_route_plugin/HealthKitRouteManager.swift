@@ -1,84 +1,7 @@
-import Flutter
-import UIKit
+import Foundation
 import HealthKit
+import Flutter
 
-@main
-@objc class AppDelegate: FlutterAppDelegate {
-  private var healthKitRouteManager: HealthKitRouteManager?
-  
-  override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-    
-    // HealthKit 경로 플러그인 등록
-    let controller = window?.rootViewController as! FlutterViewController
-    let healthKitRouteChannel = FlutterMethodChannel(name: "healthkit_route_channel", binaryMessenger: controller.binaryMessenger)
-    
-    // HealthKit 경로 매니저 초기화
-    healthKitRouteManager = HealthKitRouteManager()
-    
-    // 메서드 호출 처리
-    healthKitRouteChannel.setMethodCallHandler { [weak self] call, result in
-      self?.handleMethodCall(call: call, result: result)
-    }
-    
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
-  
-  private func handleMethodCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
-    switch call.method {
-    case "requestHealthKitPermissions":
-      healthKitRouteManager?.requestHealthKitPermissions { success in
-        result(success)
-      }
-      
-    case "getWorkoutRoute":
-      guard let args = call.arguments as? [String: Any],
-            let startTimestamp = args["startDate"] as? Double,
-            let endTimestamp = args["endDate"] as? Double else {
-        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
-        return
-      }
-      
-      let startDate = Date(timeIntervalSince1970: startTimestamp / 1000)
-      let endDate = Date(timeIntervalSince1970: endTimestamp / 1000)
-      
-      healthKitRouteManager?.getWorkoutRoute(startDate: startDate, endDate: endDate) { routeData in
-        if let routeData = routeData {
-          result(routeData)
-        } else {
-          result(nil)
-        }
-      }
-      
-    case "getWorkoutRoutes":
-      guard let args = call.arguments as? [String: Any],
-            let startTimestamp = args["startDate"] as? Double,
-            let endTimestamp = args["endDate"] as? Double else {
-        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
-        return
-      }
-      
-      let startDate = Date(timeIntervalSince1970: startTimestamp / 1000)
-      let endDate = Date(timeIntervalSince1970: endTimestamp / 1000)
-      
-      healthKitRouteManager?.getWorkoutRoutes(startDate: startDate, endDate: endDate) { routesData in
-        if let routesData = routesData {
-          result(routesData)
-        } else {
-          result(nil)
-        }
-      }
-      
-    default:
-      result(FlutterMethodNotImplemented)
-    }
-  }
-}
-
-// MARK: - HealthKit Route Manager
 @objc class HealthKitRouteManager: NSObject {
     private let healthStore = HKHealthStore()
     
@@ -90,7 +13,7 @@ import HealthKit
         
         let typesToRead: Set<HKObjectType> = [
             HKObjectType.workoutType(),
-            HKSeriesType.workoutRoute() // workoutRouteType 대신 workoutRoute() 사용
+            HKObjectType.workoutRouteType()
         ]
         
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in

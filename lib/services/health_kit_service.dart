@@ -2,6 +2,7 @@ import 'package:health/health.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math';
+import 'healthkit_route_service.dart';
 
 /// HealthKit 연동을 위한 서비스 클래스
 class HealthKitService {
@@ -797,26 +798,74 @@ class HealthKitService {
       print(
           '🗺️ GPS 경로 데이터 수집 시작: ${startTime.toLocal()} ~ ${endTime.toLocal()}');
 
-      // GPS 관련 데이터 타입들
-      final gpsTypes = [
-        HealthDataType.WORKOUT, // 운동 데이터
-      ];
+      // 새로운 HealthKitRouteService를 사용하여 실제 GPS 경로 데이터 수집 시도
+      try {
+        print('🔍 실제 GPS 경로 데이터 수집 시도...');
 
-      final gpsData = await _health.getHealthDataFromTypes(
-        startTime,
-        endTime,
-        gpsTypes,
-      );
+        // 1. HealthKit 권한 확인
+        final hasPermissions = await HealthKitRouteService.requestPermissions();
+        if (!hasPermissions) {
+          print('⚠️ HealthKit 경로 권한이 없습니다.');
+          return _createSampleRoute(startTime, endTime);
+        }
 
-      print('🗺️ GPS 데이터 ${gpsData.length}개 발견');
+        // 2. 실제 GPS 경로 데이터 가져오기
+        final routeData =
+            await HealthKitRouteService.getWorkoutRoute(startTime, endTime);
 
-      // HealthKit의 WORKOUT 데이터는 GPS 경로를 직접 포함하지 않음
-      // 현재는 샘플 경로를 생성하여 지도에 표시
-      print('⚠️ HealthKit WORKOUT 데이터는 GPS 경로를 포함하지 않습니다. 샘플 경로를 생성합니다.');
+        if (routeData != null && routeData.isNotEmpty) {
+          print('✅ 실제 GPS 경로 데이터 발견: ${routeData.length}개 포인트');
+
+          // 디버깅: 데이터 타입 확인
+          print('🔍 routeData 타입: ${routeData.runtimeType}');
+          print('🔍 첫 번째 포인트 타입: ${routeData.first.runtimeType}');
+          print('🔍 첫 번째 포인트 키들: ${routeData.first.keys.toList()}');
+          print(
+              '🔍 첫 번째 포인트 latitude 타입: ${routeData.first['latitude']?.runtimeType}');
+          print(
+              '🔍 첫 번째 포인트 longitude 타입: ${routeData.first['longitude']?.runtimeType}');
+          print('🔍 첫 번째 포인트 latitude 값: ${routeData.first['latitude']}');
+          print('🔍 첫 번째 포인트 longitude 값: ${routeData.first['longitude']}');
+
+          // GPS 데이터를 GPSPoint로 변환 (이미 타입이 변환됨)
+          final gpsPoints = _convertRouteDataToGPSPoints(routeData);
+
+          // 거리 계산
+          double totalDistance = 0;
+          for (int i = 1; i < gpsPoints.length; i++) {
+            final prev = gpsPoints[i - 1];
+            final curr = gpsPoints[i];
+
+            final latDiff = curr.latitude - prev.latitude;
+            final lngDiff = curr.longitude - prev.longitude;
+
+            final latDistance = latDiff * 111000; // 미터 단위
+            final lngDistance = lngDiff * 88900; // 미터 단위
+
+            totalDistance +=
+                sqrt(latDistance * latDistance + lngDistance * lngDistance);
+          }
+
+          final route = WorkoutRoute(
+            points: gpsPoints,
+            startTime: startTime,
+            endTime: endTime,
+            totalDistance: totalDistance,
+          );
+
+          print(
+              '✅ 실제 GPS 경로 생성 완료: ${gpsPoints.length}개 포인트, ${totalDistance.toStringAsFixed(0)}m');
+          return route;
+        } else {
+          print('⚠️ 실제 GPS 경로 데이터가 없습니다.');
+        }
+      } catch (e) {
+        print('⚠️ 실제 GPS 데이터 수집 실패: $e');
+      }
+
+      // 3. 실제 GPS 데이터가 없으면 샘플 경로 생성
+      print('⚠️ 실제 GPS 데이터가 없습니다. 샘플 경로를 생성합니다.');
       return _createSampleRoute(startTime, endTime);
-
-      // 샘플 경로는 이미 _createSampleRoute에서 생성됨
-      return null;
     } catch (e) {
       print('❌ GPS 경로 데이터 수집 오류: $e');
       return _createSampleRoute(startTime, endTime);
@@ -855,6 +904,77 @@ class HealthKitService {
       endTime: endTime,
       totalDistance: 600.0, // 약 600m
     );
+  }
+
+  /// GPS 경로 데이터를 GPSPoint 리스트로 변환
+  List<GPSPoint> _convertRouteDataToGPSPoints(
+      List<Map<String, dynamic>> routeData) {
+    final gpsPoints = <GPSPoint>[];
+
+    for (int i = 0; i < routeData.length; i++) {
+      try {
+        final point = routeData[i];
+
+        // 각 필드를 안전하게 변환
+        final latitude = _safeCastToDouble(point['latitude']);
+        final longitude = _safeCastToDouble(point['longitude']);
+        final timestamp = _safeCastToInt(point['timestamp']);
+
+        // 필수 필드 검증
+        if (latitude == null || longitude == null || timestamp == 0) {
+          print(
+              '⚠️ 포인트 $i: 필수 데이터 누락 (lat: $latitude, lng: $longitude, time: $timestamp)');
+          continue;
+        }
+
+        final gpsPoint = GPSPoint(
+          latitude: latitude,
+          longitude: longitude,
+          timestamp: DateTime.fromMillisecondsSinceEpoch(timestamp),
+          altitude: _safeCastToDouble(point['altitude']) ?? 0.0,
+          speed: _safeCastToDouble(point['speed']) ?? 0.0,
+          accuracy: _safeCastToDouble(point['horizontalAccuracy']) ?? 10.0,
+        );
+
+        gpsPoints.add(gpsPoint);
+      } catch (e) {
+        print('⚠️ 포인트 $i 변환 실패: $e');
+        continue;
+      }
+    }
+
+    print('✅ GPS 포인트 변환 완료: ${gpsPoints.length}/${routeData.length}개 성공');
+    return gpsPoints;
+  }
+
+  /// 안전한 double 타입 변환
+  double? _safeCastToDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      try {
+        return double.parse(value);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// 안전한 int 타입 변환
+  int _safeCastToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      try {
+        return int.parse(value);
+      } catch (e) {
+        return 0;
+      }
+    }
+    return 0;
   }
 }
 
