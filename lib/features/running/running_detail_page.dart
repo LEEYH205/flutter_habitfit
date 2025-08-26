@@ -85,12 +85,12 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       // GPS 경로 데이터
       print('🔍 GPS 경로 데이터 수집 시도...');
 
-      // 운동 시작부터 끝까지의 전체 GPS 데이터 수집 (시간 범위 확장)
+      // 운동 시작부터 끝까지의 전체 GPS 데이터 수집 (더 넓은 시간 범위)
       final gpsStartTime =
-          widget.workout.startTime.subtract(Duration(minutes: 10));
+          widget.workout.startTime.subtract(Duration(minutes: 30));
       final gpsEndTime = widget.workout.startTime
           .add(widget.workout.duration)
-          .add(Duration(minutes: 10));
+          .add(Duration(minutes: 30));
 
       print(
           '🗺️ GPS 데이터 수집 시간 범위: ${gpsStartTime.toLocal()} ~ ${gpsEndTime.toLocal()}');
@@ -106,6 +106,9 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       // 지도 요소 업데이트
       if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
         _updateMapElements();
+        print('✅ GPS 경로 데이터로 지도 업데이트 완료');
+      } else {
+        print('⚠️ GPS 경로 데이터가 없습니다. 지도를 업데이트하지 않습니다.');
       }
 
       setState(() {
@@ -558,6 +561,38 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
   /// 경로 탭
   Widget _buildRouteTab() {
+    // GPS 경로 데이터가 없는 경우 메시지 표시
+    if (_workoutRoute == null || _workoutRoute!.points.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.location_off, size: 64, color: Colors.orange),
+            SizedBox(height: 8),
+            Text(
+              'GPS 경로 데이터 없음',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '이 운동에 대한 GPS 경로 데이터가\nHealthKit에서 제공되지 않았습니다.\n\n실제 운동 경로를 보려면\nApple Watch나 iPhone에서\n운동을 기록할 때\n위치 권한을 허용해야 합니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '💡 팁: 다음 운동부터는\n위치 권한을 허용해보세요!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_splitData == null || _splitData!.isEmpty) {
       return const Center(
         child: Column(

@@ -820,7 +820,7 @@ class HealthKitService {
 
         if (!hasPermissions) {
           print('⚠️ HealthKit 경로 권한이 없습니다.');
-          return _createSampleRoute(startTime, endTime);
+          return null; // 권한이 없으면 null 반환
         }
 
         // 2. 실제 GPS 경로 데이터 가져오기
@@ -914,79 +914,21 @@ class HealthKitService {
           return route;
         } else {
           print('⚠️ 실제 GPS 경로 데이터가 없습니다.');
+          return null; // GPS 데이터가 없으면 null 반환
         }
       } catch (e) {
         print('⚠️ 실제 GPS 데이터 수집 실패: $e');
+        return null; // 오류 발생 시 null 반환
       }
 
-      // 3. 실제 GPS 데이터가 없으면 샘플 경로 생성
-      print('⚠️ 실제 GPS 데이터가 없습니다. 샘플 경로를 생성합니다.');
-      print('⚠️ 샘플 경로 생성 시작...');
-      print('⚠️ _createSampleRoute 메서드 호출 예정');
-      final sampleRoute = _createSampleRoute(startTime, endTime);
-      print(
-          '⚠️ 샘플 경로 생성 완료: ${sampleRoute.points.length}개 포인트, ${sampleRoute.totalDistance.toStringAsFixed(0)}m');
-      print('⚠️ 샘플 경로 반환 - 새로운 코드 실행됨');
-      return sampleRoute;
-    } catch (e) {
-      print('❌ GPS 경로 데이터 수집 오류: $e');
-      print('❌ 샘플 경로로 대체');
-      final fallbackRoute = _createSampleRoute(startTime, endTime);
-      print('❌ 대체 경로 생성 완료: ${fallbackRoute.points.length}개 포인트');
-      return fallbackRoute;
+      // GPS 데이터가 없으면 null 반환 (샘플 경로 생성 제거)
+      print('⚠️ 실제 GPS 데이터가 없습니다. 샘플 경로를 생성하지 않습니다.');
+      return null;
     } finally {
       print('🚀 ===== getWorkoutRoute 메서드 종료 =====');
       print('🚀 이 로그가 보이면 새로운 코드가 실행된 것입니다!');
       print('🚀 파일 경로: lib/services/health_kit_service.dart');
     }
-  }
-
-  /// 샘플 경로 생성 (GPS 데이터가 없을 때)
-  WorkoutRoute _createSampleRoute(DateTime startTime, DateTime endTime) {
-    print('🎭 ===== _createSampleRoute 메서드 시작 =====');
-    print('🎭 입력 시간: $startTime ~ $endTime');
-
-    final points = <GPSPoint>[];
-    final duration = endTime.difference(startTime).inMinutes;
-    final interval = duration / 6; // 6개 구간으로 나누기
-
-    print('🎭 운동 지속 시간: $duration분, 구간 간격: ${interval.toStringAsFixed(1)}분');
-
-    // 서울 시청에서 시작해서 동쪽으로 이동하는 경로
-    double baseLat = 37.5665;
-    double baseLng = 126.9780;
-
-    print('🎭 기본 좌표: lat=$baseLat, lng=$baseLng');
-
-    for (int i = 0; i <= 6; i++) {
-      final timestamp =
-          startTime.add(Duration(minutes: (i * interval).round()));
-      final lat = baseLat + (i * 0.001); // 약 100m씩 이동
-      final lng = baseLng + (i * 0.001);
-
-      points.add(GPSPoint(
-        latitude: lat,
-        longitude: lng,
-        timestamp: timestamp,
-        altitude: 50.0 + (i * 2.0), // 고도 변화
-        speed: 8.0 + (i * 0.5), // 속도 변화
-        accuracy: 10.0,
-      ));
-
-      print('🎭 포인트 $i: lat=$lat, lng=$lng, 시간=$timestamp');
-    }
-
-    final route = WorkoutRoute(
-      points: points,
-      startTime: startTime,
-      endTime: endTime,
-      totalDistance: 600.0, // 약 600m
-    );
-
-    print('🎭 샘플 경로 생성 완료: ${points.length}개 포인트, ${route.totalDistance}m');
-    print('🎭 ===== _createSampleRoute 메서드 종료 =====');
-
-    return route;
   }
 
   /// GPS 경로 데이터를 GPSPoint 리스트로 변환
