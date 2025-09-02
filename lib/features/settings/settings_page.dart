@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../common/services/fcm_service.dart';
+import '../health/health_test_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -378,6 +379,58 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 20),
+
+                  // HealthKit 테스트
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.favorite,
+                                color: Colors.red[600], size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'HealthKit 연동 테스트',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red[800],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'iPhone 건강앱과 연동하여 운동 데이터를 가져옵니다',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _testHealthKit(),
+                            icon: const Icon(Icons.favorite),
+                            label: const Text('HealthKit 테스트'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -461,6 +514,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             color: value < max ? Colors.green : Colors.grey,
           ),
         ],
+      ),
+    );
+  }
+
+  void _testHealthKit() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const HealthTestPage(),
       ),
     );
   }
