@@ -470,146 +470,578 @@ class _HealthTestPageState extends State<HealthTestPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 러닝 속도
+        // 요약 통계 카드
+        _buildSummaryCard(),
+        const SizedBox(height: 16),
+
+        // 개별 메트릭 섹션들 (컴팩트하게)
         if (_runningSpeedData.isNotEmpty)
-          _buildMetricSection('🚀 러닝 속도', _runningSpeedData, 'm/s'),
+          _buildCompactMetricSection(
+              '🚀 러닝 속도', _runningSpeedData, 'm/s', Colors.blue),
 
-        // 러닝 보폭
         if (_runningStrideLengthData.isNotEmpty)
-          _buildMetricSection('👟 러닝 보폭', _runningStrideLengthData, 'm'),
+          _buildCompactMetricSection(
+              '👟 러닝 보폭', _runningStrideLengthData, 'm', Colors.green),
 
-        // 러닝 파워
         if (_runningPowerData.isNotEmpty)
-          _buildMetricSection('⚡ 러닝 파워', _runningPowerData, 'W'),
+          _buildCompactMetricSection(
+              '⚡ 러닝 파워', _runningPowerData, 'W', Colors.orange),
 
-        // 수직 진폭
         if (_runningVerticalOscillationData.isNotEmpty)
-          _buildMetricSection(
-              '📈 수직 진폭', _runningVerticalOscillationData, 'cm'),
+          _buildCompactMetricSection(
+              '📈 수직 진폭', _runningVerticalOscillationData, 'cm', Colors.purple),
 
-        // 지면 접촉 시간
         if (_runningGroundContactTimeData.isNotEmpty)
-          _buildMetricSection(
-              '⏱️ 지면 접촉 시간', _runningGroundContactTimeData, 'ms'),
+          _buildCompactMetricSection(
+              '⏱️ 지면 접촉 시간', _runningGroundContactTimeData, 'ms', Colors.red),
 
-        // 운동 경로
-        if (_workoutRoutesData.isNotEmpty) _buildWorkoutRoutesSection(),
+        if (_workoutRoutesData.isNotEmpty) _buildCompactWorkoutRoutesSection(),
+      ],
+    );
+  }
+
+  /// 요약 통계 카드
+  Widget _buildSummaryCard() {
+    final totalData = _runningSpeedData.length +
+        _runningStrideLengthData.length +
+        _runningPowerData.length +
+        _runningVerticalOscillationData.length +
+        _runningGroundContactTimeData.length +
+        _workoutRoutesData.length;
+
+    if (totalData == 0) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade50, Colors.green.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.shade200, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics, color: Colors.blue.shade700, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                '📊 러닝 메트릭 요약',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child:
+                    _buildSummaryItem('총 데이터', '$totalData개', Icons.data_usage),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                    '속도', '${_runningSpeedData.length}개', Icons.speed),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                    '보폭',
+                    '${_runningStrideLengthData.length}개',
+                    Icons.directions_walk),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSummaryItem(
+                    '파워', '${_runningPowerData.length}개', Icons.flash_on),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                    '진폭',
+                    '${_runningVerticalOscillationData.length}개',
+                    Icons.trending_up),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                    '경로', '${_workoutRoutesData.length}개', Icons.map),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 요약 아이템
+  Widget _buildSummaryItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.blue.shade600, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue.shade700,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.blue.shade600,
+          ),
+        ),
       ],
     );
   }
 
   /// 개별 메트릭 섹션 표시
   Widget _buildMetricSection(
-      String title, List<Map<String, dynamic>> data, String unit) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$title (${data.length}개)',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 80,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: data.length,
-            itemBuilder: (context, index) {
-              final item = data[index];
-              return Container(
-                width: 120,
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.all(8),
+      String title, List<Map<String, dynamic>> data, String unit, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color.withOpacity(0.3)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item['value']} $unit',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item['start'].hour}:${item['start'].minute.toString().padLeft(2, '0')}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    Text(
-                      '${item['start'].month}/${item['start'].day}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                  ],
+                child: Text(
+                  '$title (${data.length}개)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-      ],
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: data.length > 10 ? 10 : data.length, // 최대 10개만 표시
+              itemBuilder: (context, index) {
+                final item = data[index];
+                return Container(
+                  width: 120,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withOpacity(0.2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${item['value'].toStringAsFixed(2)} $unit',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${item['start'].hour.toString().padLeft(2, '0')}:${item['start'].minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: color.withOpacity(0.8),
+                        ),
+                      ),
+                      Text(
+                        '${item['start'].month}/${item['start'].day}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: color.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          if (data.length > 10)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '... 외 ${data.length - 10}개 더',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color.withOpacity(0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   /// 운동 경로 섹션 표시
   Widget _buildWorkoutRoutesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '🗺️ 운동 경로 (${_workoutRoutesData.length}개)',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 80,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _workoutRoutesData.length,
-            itemBuilder: (context, index) {
-              final item = _workoutRoutesData[index];
-              return Container(
-                width: 140,
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.all(8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item['distance']?.toStringAsFixed(2) ?? 'N/A'} km',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item['duration']?.toStringAsFixed(0) ?? 'N/A'} min',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    Text(
-                      '${item['start'].month}/${item['start'].day}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                  ],
+                child: Text(
+                  '🗺️ 운동 경로 (${_workoutRoutesData.length}개)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-      ],
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _workoutRoutesData.length > 5
+                  ? 5
+                  : _workoutRoutesData.length, // 최대 5개만 표시
+              itemBuilder: (context, index) {
+                final item = _workoutRoutesData[index];
+                return Container(
+                  width: 140,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.withOpacity(0.2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.location_on,
+                              color: Colors.green, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${item['distance']?.toStringAsFixed(2) ?? 'N/A'} km',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.timer, color: Colors.green, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${item['duration']?.toStringAsFixed(0) ?? 'N/A'} min',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${item['start'].month}/${item['start'].day}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.green.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          if (_workoutRoutesData.length > 5)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '... 외 ${_workoutRoutesData.length - 5}개 더',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.green.withOpacity(0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 컴팩트한 메트릭 섹션 표시
+  Widget _buildCompactMetricSection(
+      String title, List<Map<String, dynamic>> data, String unit, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Text(
+                  '$title (${data.length}개)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 80, // 높이 줄임
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: data.length > 8 ? 8 : data.length, // 최대 8개만 표시
+              itemBuilder: (context, index) {
+                final item = data[index];
+                return Container(
+                  width: 100, // 너비 줄임
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${item['value'].toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                      Text(
+                        unit,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: color.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${item['start'].hour.toString().padLeft(2, '0')}:${item['start'].minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: color.withOpacity(0.6),
+                        ),
+                      ),
+                      Text(
+                        '${item['start'].month}/${item['start'].day}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: color.withOpacity(0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          if (data.length > 8)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '... 외 ${data.length - 8}개 더',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: color.withOpacity(0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 컴팩트한 운동 경로 섹션 표시
+  Widget _buildCompactWorkoutRoutesSection() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Text(
+                  '🗺️ 운동 경로 (${_workoutRoutesData.length}개)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 80, // 높이 줄임
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _workoutRoutesData.length > 4
+                  ? 4
+                  : _workoutRoutesData.length, // 최대 4개만 표시
+              itemBuilder: (context, index) {
+                final item = _workoutRoutesData[index];
+                return Container(
+                  width: 120, // 너비 줄임
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.location_on,
+                              color: Colors.green, size: 14),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              '${item['distance']?.toStringAsFixed(2) ?? 'N/A'} km',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.timer, color: Colors.green, size: 14),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              '${item['duration']?.toStringAsFixed(0) ?? 'N/A'} min',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.green,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${item['start'].month}/${item['start'].day}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.green.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          if (_workoutRoutesData.length > 4)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '... 외 ${_workoutRoutesData.length - 4}개 더',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.green.withOpacity(0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -742,7 +1174,7 @@ class _HealthTestPageState extends State<HealthTestPage> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,7 +1231,7 @@ class _HealthTestPageState extends State<HealthTestPage> {
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             // iOS 고급 러닝 메트릭 버튼들
             Card(
@@ -895,7 +1327,7 @@ class _HealthTestPageState extends State<HealthTestPage> {
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             // 권한 안내 텍스트
             if (!_hasPermissions)
@@ -949,7 +1381,7 @@ class _HealthTestPageState extends State<HealthTestPage> {
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       _buildRunningMetricsDisplay(),
                     ],
                   ),
@@ -958,9 +1390,9 @@ class _HealthTestPageState extends State<HealthTestPage> {
 
             const SizedBox(height: 16),
 
-            // 데이터 표시
-            Expanded(
-              child: Card(
+            // 건강 데이터 표시 (간소화)
+            if (_healthData.isNotEmpty)
+              Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -972,9 +1404,12 @@ class _HealthTestPageState extends State<HealthTestPage> {
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      Expanded(
+                      SizedBox(
+                        height: 200, // 고정 높이로 제한
                         child: ListView.builder(
-                          itemCount: _healthData.length,
+                          itemCount: _healthData.length > 20
+                              ? 20
+                              : _healthData.length, // 최대 20개만 표시
                           itemBuilder: (context, index) {
                             final data = _healthData[index];
                             return ListTile(
@@ -986,11 +1421,24 @@ class _HealthTestPageState extends State<HealthTestPage> {
                           },
                         ),
                       ),
+                      if (_healthData.length > 20)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '... 외 ${_healthData.length - 20}개 더',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
-            ),
+
+            const SizedBox(height: 32), // 하단 여백 추가
           ],
         ),
       ),
