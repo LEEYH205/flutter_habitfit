@@ -187,8 +187,13 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   // 목표 달성 감지 및 축하 메시지 표시
   void _checkGoalAchievement(int currentCount) {
     final goal = _exerciseSettings[_selectedExercise]?['goal'] as int? ?? 0;
+    
+    print('🎯 목표 달성 체크: 현재=$currentCount회, 목표=$goal회, 운동=${_exerciseSettings[_selectedExercise]?['name']}');
+    print('🎯 오버레이 상태: $_showGoalAchievement');
 
     if (currentCount >= goal && !_showGoalAchievement) {
+      print('🎉 목표 달성! 오버레이 표시 시작');
+      
       setState(() {
         _showGoalAchievement = true;
         _goalAchievementText =
@@ -201,11 +206,14 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
           setState(() {
             _showGoalAchievement = false;
           });
+          print('🎯 오버레이 3초 후 자동 숨김');
         }
       });
 
       // 목표 달성 알림 전송
       _showGoalAchievementNotification(currentCount);
+    } else {
+      print('🎯 목표 달성 조건 불충족: currentCount >= goal = ${currentCount >= goal}, !_showGoalAchievement = ${!_showGoalAchievement}');
     }
   }
 

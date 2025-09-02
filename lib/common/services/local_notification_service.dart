@@ -56,6 +56,38 @@ class LocalNotificationService {
     }
   }
 
+  // 1-1. 습관 체크 완료 알림
+  Future<void> showHabitCompletionNotification(
+      String title, String body) async {
+    try {
+      await _localNotifications.show(
+        3,
+        title,
+        body,
+        _getHabitNotificationDetails(),
+      );
+      print('✅ 습관 체크 완료 알림 전송 성공');
+    } catch (e) {
+      print('❌ 습관 체크 완료 알림 전송 실패: $e');
+    }
+  }
+
+  // 1-2. 연속 달성 축하 알림
+  Future<void> showStreakAchievementNotification(
+      String title, String body) async {
+    try {
+      await _localNotifications.show(
+        4,
+        title,
+        body,
+        _getHabitNotificationDetails(),
+      );
+      print('✅ 연속 달성 축하 알림 전송 성공');
+    } catch (e) {
+      print('❌ 연속 달성 축하 알림 전송 실패: $e');
+    }
+  }
+
   // 2. 습관 체크 리마인더 (매일 특정 시간)
   Future<void> scheduleHabitReminder(TimeOfDay reminderTime) async {
     try {
