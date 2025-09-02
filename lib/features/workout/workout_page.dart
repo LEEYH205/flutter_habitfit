@@ -40,6 +40,11 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   String _selectedExercise = 'squat';
   late PushUpDetector _pushUpDetector;
 
+  // FPS 제한을 위한 변수
+  DateTime? _lastProcessTime;
+  static const Duration minProcessInterval =
+      Duration(milliseconds: 100); // 10 FPS
+
   // 운동 타입별 설정
   final Map<String, Map<String, dynamic>> _exerciseSettings = {
     'squat': {
@@ -105,6 +110,14 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
 
     _isStreaming = true;
     _controller!.startImageStream((img) async {
+      // FPS 제한 적용 (10 FPS)
+      final now = DateTime.now();
+      if (_lastProcessTime != null &&
+          now.difference(_lastProcessTime!) < minProcessInterval) {
+        return; // 너무 빠른 처리 방지
+      }
+      _lastProcessTime = now;
+
       if (_busy) return;
       _busy = true;
       try {

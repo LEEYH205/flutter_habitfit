@@ -17,10 +17,11 @@ class PushUpDetector {
 
   // 각도 임계값 (조정 가능)
   static const double DOWN_THRESHOLD = 90.0; // 팔꿈치가 90도 이하로 내려가면 'down' 상태
-  static const double UP_THRESHOLD = 160.0; // 팔꿈치가 160도 이상으로 올라가면 'up' 상태
+  static const double UP_THRESHOLD =
+      60.0; // 팔꿈치가 60도 이상으로 올라가면 'up' 상태 (80에서 60으로 조정 - 적절한 수준)
 
   // 최소 신뢰도 임계값 (푸시업은 더 낮게 설정)
-  static const double MIN_CONFIDENCE = 0.2;
+  static const double MIN_CONFIDENCE = 0.05; // 0.2에서 0.05로 낮춤
 
   /// 푸시업 상태 가져오기
   String get pushUpPhase => _pushUpPhase;
@@ -33,7 +34,10 @@ class PushUpDetector {
 
   /// 푸시업 감지 및 상태 업데이트
   int detectPushUp(List<Map<String, double>> keypoints) {
-    if (keypoints.length < 17) return 0;
+    if (keypoints.length < 17) {
+      print('⚠️ 키포인트 부족: ${keypoints.length}/17');
+      return 0;
+    }
 
     // 왼쪽과 오른쪽 팔꿈치 각도 모두 계산 시도
     double? leftAngle = _calculateElbowAngle(
@@ -45,8 +49,14 @@ class PushUpDetector {
     // 더 신뢰할 수 있는 각도 선택 (null이 아닌 것)
     double? currentAngle = leftAngle ?? rightAngle;
 
+    // 디버깅 정보 출력
+    print(
+        '🔍 PushUp Debug: leftAngle=${leftAngle?.toStringAsFixed(1) ?? "null"}°, rightAngle=${rightAngle?.toStringAsFixed(1) ?? "null"}°');
+    print('🔍 PushUp Debug: currentPhase=$_pushUpPhase, repCount=$_repCount');
+
     if (currentAngle == null) {
       _lastAngle = null;
+      print('⚠️ 푸시업 각도 계산 실패: 신뢰도 부족');
       return 0;
     }
 
@@ -122,15 +132,14 @@ class PushUpDetector {
           print(
               '🔄 PushUp State: down → up (각도: ${angle.toStringAsFixed(1)}°)');
           print('💪 PushUp completed! Count: ${_repCount + 1}');
-          // idle로 돌아가지 않고 up 상태 유지
         }
         break;
 
       case 'up':
         if (angle < DOWN_THRESHOLD) {
-          _pushUpPhase = 'down';
+          _pushUpPhase = 'idle'; // up에서 idle로 돌아가도록 수정
           print(
-              '🔄 PushUp State: up → down (각도: ${angle.toStringAsFixed(1)}°)');
+              '🔄 PushUp State: up → idle (각도: ${angle.toStringAsFixed(1)}°)');
         }
         break;
     }

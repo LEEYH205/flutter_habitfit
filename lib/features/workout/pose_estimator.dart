@@ -456,15 +456,15 @@ class MoveNetPoseEstimator implements PoseEstimator {
       final rightKnee = keypoints[14];
       final rightAnkle = keypoints[16];
 
-      // 더 높은 신뢰도를 가진 쪽 사용 (임계값을 0.2로 낮춤)
+      // 더 높은 신뢰도를 가진 쪽 사용 (임계값을 0.2에서 0.05로 낮춤)
       double? angle;
-      if (leftHip['confidence']! > 0.2 &&
-          leftKnee['confidence']! > 0.2 &&
-          leftAnkle['confidence']! > 0.2) {
+      if (leftHip['confidence']! > 0.05 &&
+          leftKnee['confidence']! > 0.05 &&
+          leftAnkle['confidence']! > 0.05) {
         angle = _calculateAngle(leftHip, leftKnee, leftAnkle);
-      } else if (rightHip['confidence']! > 0.2 &&
-          rightKnee['confidence']! > 0.2 &&
-          rightAnkle['confidence']! > 0.2) {
+      } else if (rightHip['confidence']! > 0.05 &&
+          rightKnee['confidence']! > 0.05 &&
+          rightAnkle['confidence']! > 0.05) {
         angle = _calculateAngle(rightHip, rightKnee, rightAnkle);
       } else {
         // 신뢰도가 낮을 때는 가끔씩만 로그 출력
