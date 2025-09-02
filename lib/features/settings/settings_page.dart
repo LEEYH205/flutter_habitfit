@@ -28,6 +28,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // 목표 설정
   int _dailySquatGoal = 20;
+  int _dailyPushupGoal = 15;
   int _dailyHabitGoal = 1;
 
   @override
@@ -61,6 +62,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _weeklySummaryTime = TimeOfDay(hour: weeklyHour, minute: weeklyMinute);
 
       _dailySquatGoal = _prefs.getInt('dailySquatGoal') ?? 20;
+      _dailyPushupGoal = _prefs.getInt('dailyPushupGoal') ?? 15;
       _dailyHabitGoal = _prefs.getInt('dailyHabitGoal') ?? 1;
     });
   }
@@ -81,6 +83,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _prefs.setInt('weeklySummaryMinute', _weeklySummaryTime.minute);
 
     await _prefs.setInt('dailySquatGoal', _dailySquatGoal);
+    await _prefs.setInt('dailyPushupGoal', _dailyPushupGoal);
     await _prefs.setInt('dailyHabitGoal', _dailyHabitGoal);
 
     // 설정 저장 후 알림 스케줄 업데이트
@@ -211,6 +214,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               (value) => setState(() => _dailySquatGoal = value),
               min: 1,
               max: 100,
+            ),
+            _buildNumberTile(
+              '일일 푸시업 목표',
+              '하루에 목표로 하는 푸시업 횟수',
+              _dailyPushupGoal,
+              (value) => setState(() => _dailyPushupGoal = value),
+              min: 1,
+              max: 50,
             ),
             _buildNumberTile(
               '일일 습관 목표',
@@ -369,48 +380,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                 ],
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 기존 테스트 버튼들
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await LocalNotificationService.instance
-                          .showTestNotification();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('🧪 테스트 알림을 보냈습니다!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.notifications),
-                    label: const Text('테스트 알림'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _updateNotificationSchedules,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('알림 스케줄 새로고침'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

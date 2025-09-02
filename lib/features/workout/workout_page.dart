@@ -64,7 +64,16 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
     super.initState();
     _estimator = MoveNetPoseEstimator();
     _pushUpDetector = PushUpDetector();
+    
+    // 푸시업 완료 시 목표 달성 체크를 위한 콜백 설정
+    _pushUpDetector.onRepCompleted = (int repCount) {
+      if (mounted) {
+        _checkGoalAchievement(repCount);
+      }
+    };
+    
     _init();
+    _loadUserGoals(); // 사용자 목표 설정 로드
   }
 
   Future<void> _init() async {
@@ -164,7 +173,7 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
           print('💪 $exerciseName 카운트 증가: $newReps회');
 
           // 실시간으로 목표 달성 확인
-          _checkAndShowGoalAchievement(newReps);
+          _checkGoalAchievement(newReps);
         }
       } catch (e) {
         print('운동 감지 오류: $e');
@@ -175,48 +184,29 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
     });
   }
 
-  // 실시간 목표 달성 확인 및 알림
-  Future<void> _checkAndShowGoalAchievement(int reps) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final exerciseGoal = _exerciseSettings[_selectedExercise]!['goal'] as int;
-      final goalAchievementEnabled =
-          prefs.getBool('goalAchievementEnabled') ?? true;
+  // 목표 달성 감지 및 축하 메시지 표시
+  void _checkGoalAchievement(int currentCount) {
+    final goal = _exerciseSettings[_selectedExercise]?['goal'] as int? ?? 0;
 
-      if (reps >= exerciseGoal && goalAchievementEnabled) {
-        final exerciseName = _exerciseSettings[_selectedExercise]!['name'];
-        print('🎯 $exerciseName 목표 $exerciseGoal회 달성! 축하 알림 전송 시도...');
+    if (currentCount >= goal && !_showGoalAchievement) {
+      setState(() {
+        _showGoalAchievement = true;
+        _goalAchievementText =
+            '🎉 목표 달성! ${_exerciseSettings[_selectedExercise]?['name']} $goal회 완료! 🎉';
+      });
 
-        // 로컬 알림 전송
-        await LocalNotificationService.instance
-            .showGoalAchievementNotification(exerciseName, reps);
-        print('🎯 실시간 목표 달성 축하 알림 전송 성공: $reps/$exerciseGoal회');
-
-        // 화면에 축하 메시지 표시
+      // 3초 후 축하 메시지 숨기기
+      Timer(const Duration(seconds: 3), () {
         if (mounted) {
-          _showGoalAchievementOverlay(reps, exerciseGoal);
+          setState(() {
+            _showGoalAchievement = false;
+          });
         }
-      }
-    } catch (e) {
-      print('❌ 실시간 목표 달성 알림 전송 실패: $e');
+      });
+
+      // 목표 달성 알림 전송
+      _showGoalAchievementNotification(currentCount);
     }
-  }
-
-  // 화면에 축하 메시지 오버레이 표시
-  void _showGoalAchievementOverlay(int reps, int goal) {
-    setState(() {
-      _showGoalAchievement = true;
-      _goalAchievementText = '🎯 목표 달성!\n$reps/$goal회 완료!';
-    });
-
-    // 3초 후 자동으로 숨기기
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _showGoalAchievement = false;
-        });
-      }
-    });
   }
 
   // 실시간 목표 달성 알림
@@ -227,12 +217,12 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
           prefs.getBool('goalAchievementEnabled') ?? true;
 
       if (goalAchievementEnabled) {
-        await LocalNotificationService.instance
-            .showGoalAchievementNotification('스쿼트', reps);
+        await LocalNotificationService.instance.showGoalAchievementNotification(
+            _exerciseSettings[_selectedExercise]?['name'] ?? '운동', reps);
         print('🎯 실시간 목표 달성 축하 알림 전송 성공: $reps회');
       }
     } catch (e) {
-      print('❌ 실시간 목표 달성 알림 전송 실패: $e');
+      print('❌ 실시간 목표 달성 축하 알림 전송 실패: $e');
     }
   }
 
@@ -307,6 +297,24 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
         print('⚠️ 운동 횟수가 0회입니다. 알림을 보내지 않습니다.');
       }
     } catch (_) {}
+  }
+
+  // 사용자 설정에서 목표값 가져오기
+  Future<void> _loadUserGoals() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final squatGoal = prefs.getInt('dailySquatGoal') ?? 20;
+      final pushupGoal = prefs.getInt('dailyPushupGoal') ?? 15;
+
+      setState(() {
+        _exerciseSettings['squat']!['goal'] = squatGoal;
+        _exerciseSettings['pushup']!['goal'] = pushupGoal;
+      });
+
+      print('🎯 사용자 목표 설정 로드: 스쿼트 $squatGoal회, 푸시업 $pushupGoal회');
+    } catch (e) {
+      print('❌ 사용자 목표 설정 로드 실패: $e');
+    }
   }
 
   @override
@@ -407,6 +415,8 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
                   }
                   // 카운터는 독립적으로 유지됨 (초기화하지 않음)
                 });
+                // 운동 타입 변경 시 목표 재로드
+                _loadUserGoals();
               }
             },
           ),

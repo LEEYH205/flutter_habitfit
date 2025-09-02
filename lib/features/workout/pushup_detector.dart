@@ -15,6 +15,9 @@ class PushUpDetector {
   int _repCount = 0;
   double? _lastAngle;
 
+  // 목표 달성 체크를 위한 콜백 함수
+  Function(int)? onRepCompleted;
+
   // 각도 임계값 (조정 가능)
   static const double DOWN_THRESHOLD = 90.0; // 팔꿈치가 90도 이하로 내려가면 'down' 상태
   static const double UP_THRESHOLD =
@@ -69,6 +72,11 @@ class PushUpDetector {
       _repCount += repIncrement;
       print(
           '💪 푸시업 완료! Count: $_repCount (각도: ${currentAngle.toStringAsFixed(1)}°)');
+
+      // 목표 달성 체크를 위한 콜백 호출
+      if (onRepCompleted != null) {
+        onRepCompleted!(_repCount);
+      }
     }
 
     return repIncrement;
