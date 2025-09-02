@@ -85,12 +85,12 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       // GPS 경로 데이터
       print('🔍 GPS 경로 데이터 수집 시도...');
 
-      // 운동 시작부터 끝까지의 전체 GPS 데이터 수집 (더 넓은 시간 범위)
+      // GPS 데이터 수집을 위한 시간 범위 확장 (운동 전후 1시간)
       final gpsStartTime =
-          widget.workout.startTime.subtract(Duration(minutes: 30));
+          widget.workout.startTime.subtract(Duration(hours: 1));
       final gpsEndTime = widget.workout.startTime
           .add(widget.workout.duration)
-          .add(Duration(minutes: 30));
+          .add(Duration(hours: 1));
 
       print(
           '🗺️ GPS 데이터 수집 시간 범위: ${gpsStartTime.toLocal()} ~ ${gpsEndTime.toLocal()}');
@@ -100,6 +100,8 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       _workoutRoute = await healthKitService.getWorkoutRoute(
         gpsStartTime,
         gpsEndTime,
+        workoutId:
+            widget.workout.uuid ?? widget.workout.id, // UUID 우선, 없으면 ID 사용
       );
       print('✅ GPS 경로: ${_workoutRoute?.points.length ?? 0}개 포인트');
 

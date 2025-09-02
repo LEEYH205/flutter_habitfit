@@ -412,8 +412,13 @@ class HealthKitService {
           final distance = _extractDistanceFromWorkout(point);
           final calories = _extractCaloriesFromWorkout(point);
 
+          // 운동의 고유 식별자 생성 (시작시간 + 소스 + 타입)
+          final workoutUuid =
+              '${point.dateFrom.millisecondsSinceEpoch}_${point.sourceName ?? 'unknown'}_$workoutType';
+
           final workout = WorkoutData(
             id: point.dateFrom.millisecondsSinceEpoch.toString(),
+            uuid: workoutUuid,
             type: workoutType,
             startTime: point.dateFrom,
             endTime: endTime,
@@ -787,10 +792,11 @@ class HealthKitService {
   }
 
   /// 운동의 GPS 경로 데이터 가져오기
-  Future<WorkoutRoute?> getWorkoutRoute(
-      DateTime startTime, DateTime endTime) async {
+  Future<WorkoutRoute?> getWorkoutRoute(DateTime startTime, DateTime endTime,
+      {String? workoutId}) async {
     print('🚀 ===== getWorkoutRoute 메서드 시작 =====');
     print('🚀 입력 시간: $startTime ~ $endTime');
+    print('🚀 운동 ID: ${workoutId ?? "없음"}');
     print('🚀 현재 시간: ${DateTime.now()}');
     print('🚀 메서드 호출됨 - 새로운 코드 실행 중');
     print('🚀 이 로그가 보이면 새로운 코드가 실행된 것입니다!');
@@ -823,10 +829,11 @@ class HealthKitService {
           return null; // 권한이 없으면 null 반환
         }
 
-        // 2. 실제 GPS 경로 데이터 가져오기
+        // 2. 실제 GPS 경로 데이터 가져오기 (운동 ID 포함)
         print('🔍 HealthKitRouteService.getWorkoutRoute 호출 시작...');
-        final routeData =
-            await HealthKitRouteService.getWorkoutRoute(startTime, endTime);
+        final routeData = await HealthKitRouteService.getWorkoutRoute(
+            startTime, endTime,
+            workoutId: workoutId);
         print(
             '🔍 HealthKitRouteService.getWorkoutRoute 결과: ${routeData?.length ?? 0}개 포인트');
 
@@ -1006,6 +1013,7 @@ class HealthKitService {
 /// 운동 데이터 모델
 class WorkoutData {
   final String id;
+  final String? uuid; // HealthKit UUID (선택적)
   final String type;
   final DateTime startTime;
   final DateTime? endTime;
@@ -1016,6 +1024,7 @@ class WorkoutData {
 
   WorkoutData({
     required this.id,
+    this.uuid,
     required this.type,
     required this.startTime,
     this.endTime,
