@@ -32,6 +32,7 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **📝 습관 체크 시스템 고도화**: 연속 달성 기록, 성취 알림, 목표 기반 알림 시스템 완벽 구현
 - **🎉 습관 체크 축하 시스템 완성**: 습관 체크 완료 시 화면 오버레이로 축하 메시지 표시 및 연속 달성 기록 시각화
 - **📊 Report 탭 달력 시스템**: Firebase 데이터 기반 습관/운동 완료 현황을 달력에서 한눈에 확인 가능 (사용자 인증 제외)
+- **🍎 고급 러닝 메트릭 시스템**: iOS 네이티브 HealthKit 연동으로 러닝 속도, 보폭, 파워, 수직 진폭, 지면 접촉 시간, 운동 경로 데이터 수집 및 시각화
 
 **⚠️ PARTIALLY WORKING:**
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
@@ -82,6 +83,8 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **HealthKit**: iOS 건강앱 연동
 - **Apple Watch**: 웨어러블 데이터 수집
 - **실시간 생체 데이터**: 운동, 심박수, 거리, 칼로리
+- **고급 러닝 메트릭**: 러닝 속도, 보폭, 파워, 수직 진폭, 지면 접촉 시간, 운동 경로
+- **네이티브 iOS 연동**: MethodChannel을 통한 고성능 HealthKit 데이터 수집
 
 ### **Data Visualization**
 - **fl_chart**: 차트 및 그래프 라이브러리
@@ -98,6 +101,16 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **Exercise Counting**: 스쿼트, 푸시업 정확한 횟수 카운팅
 - **Form Analysis**: 자세 교정 및 피드백 제공
 - **Performance Metrics**: 운동 강도 및 지속 시간 측정
+
+### **🍎 Advanced Running Metrics** ✅ **완료**
+- **Native iOS HealthKit Integration**: MethodChannel을 통한 고성능 데이터 수집
+- **Running Speed**: 실시간 러닝 속도 측정 (m/s)
+- **Stride Length**: 러닝 보폭 길이 분석 (m)
+- **Running Power**: 러닝 파워 측정 (W)
+- **Vertical Oscillation**: 수직 진폭 분석 (cm)
+- **Ground Contact Time**: 지면 접촉 시간 측정 (ms)
+- **Workout Routes**: GPS 기반 운동 경로 데이터
+- **Real-time Visualization**: 카드 형태의 직관적인 데이터 표시
 
 ### **🏥 HealthKit Integration** ✅ **완료**
 - **iOS Health App Sync**: 건강앱과의 완벽한 데이터 동기화

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
+
+const _hkCh = MethodChannel('hk_running');
 
 /// HealthKit 연동 테스트 페이지
 class HealthTestPage extends StatefulWidget {
@@ -15,6 +18,14 @@ class _HealthTestPageState extends State<HealthTestPage> {
   bool _hasPermissions = false;
   List<HealthDataPoint> _healthData = [];
   String _status = '초기화 중...';
+
+  // 고급 러닝 메트릭 데이터 저장용
+  List<Map<String, dynamic>> _runningSpeedData = [];
+  List<Map<String, dynamic>> _runningStrideLengthData = [];
+  List<Map<String, dynamic>> _runningPowerData = [];
+  List<Map<String, dynamic>> _runningVerticalOscillationData = [];
+  List<Map<String, dynamic>> _runningGroundContactTimeData = [];
+  List<Map<String, dynamic>> _workoutRoutesData = [];
 
   @override
   void initState() {
@@ -63,8 +74,9 @@ class _HealthTestPageState extends State<HealthTestPage> {
         _status = '권한 요청 중...';
       });
 
-      // 더 포괄적인 건강 데이터 타입 요청
+      // 포괄적인 건강 데이터 타입 요청 (기본 + 고급 운동 데이터)
       final types = [
+        // 기본 건강 데이터
         HealthDataType.STEPS,
         HealthDataType.HEART_RATE,
         HealthDataType.DISTANCE_WALKING_RUNNING,
@@ -72,6 +84,22 @@ class _HealthTestPageState extends State<HealthTestPage> {
         HealthDataType.BASAL_ENERGY_BURNED,
         HealthDataType.EXERCISE_TIME,
         HealthDataType.FLIGHTS_CLIMBED,
+
+        // 고급 운동 데이터 (사용 가능한 타입들)
+        HealthDataType.WORKOUT,
+        HealthDataType.DISTANCE_WALKING_RUNNING,
+        HealthDataType.ACTIVE_ENERGY_BURNED,
+
+        // 추가 운동 데이터 (사용 가능한 타입들)
+        HealthDataType.EXERCISE_TIME,
+        HealthDataType.FLIGHTS_CLIMBED,
+
+        // 고급 달리기 메트릭 (iOS native에서 지원)
+        // HealthDataType.RUNNING_STRIDE_LENGTH, // 달리기 보폭 길이
+        // HealthDataType.RUNNING_SPEED, // 달리기 속도
+        // HealthDataType.RUNNING_POWER, // 달리기 파워
+        // HealthDataType.VERTICAL_OSCILLATION, // 수직 진폭
+        // HealthDataType.GROUND_CONTACT_TIME, // 지면 접촉 시간
       ];
 
       print('🏥 HealthKit 권한 요청 시작: ${types.length}개 타입');
@@ -105,6 +133,484 @@ class _HealthTestPageState extends State<HealthTestPage> {
         _status = '권한 요청에 실패했습니다. 다시 시도해주세요.';
       });
     }
+  }
+
+  /// iOS 고급 러닝 메트릭 권한 요청
+  Future<void> _requestIOSRunningPermissions() async {
+    setState(() => _status = 'iOS 러닝 고급 지표 권한 요청...');
+    try {
+      final ok = await _hkCh.invokeMethod<bool>('requestPermissions');
+      setState(() {
+        _status = (ok ?? false) ? '권한 승인됨(iOS 고급 지표)' : '권한 거부됨';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 권한 요청 오류: $e';
+      });
+      print('iOS 권한 요청 오류: $e');
+    }
+  }
+
+  /// iOS 러닝 속도 데이터 가져오기
+  Future<void> _fetchIOSRunningSpeed() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 7));
+      final rows = await _hkCh.invokeMethod<List<dynamic>>('getRunningSpeed', {
+        'from': start.millisecondsSinceEpoch,
+        'to': now.millisecondsSinceEpoch,
+      });
+
+      setState(() {
+        _runningSpeedData = [];
+        if (rows != null && rows.isNotEmpty) {
+          for (final row in rows) {
+            final map = row as Map;
+            try {
+              final startTime = map['start'];
+              final endTime = map['end'];
+              final value = map['value'];
+
+              if (startTime != null && endTime != null && value != null) {
+                _runningSpeedData.add({
+                  'start': DateTime.fromMillisecondsSinceEpoch(
+                      startTime is int ? startTime : startTime.toInt()),
+                  'end': DateTime.fromMillisecondsSinceEpoch(
+                      endTime is int ? endTime : endTime.toInt()),
+                  'value': value is double ? value : value.toDouble(),
+                  'unit': 'm/s',
+                });
+              }
+            } catch (e) {
+              print('데이터 변환 오류: $e, row: $row');
+            }
+          }
+        }
+        _status = 'iOS runningSpeed ${_runningSpeedData.length}개';
+        print('iOS 러닝 속도 데이터: ${_runningSpeedData.length}개');
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 속도 데이터 조회 오류: $e';
+      });
+      print('iOS 속도 데이터 조회 오류: $e');
+    }
+  }
+
+  /// iOS 러닝 보폭 데이터 가져오기
+  Future<void> _fetchIOSRunningStrideLength() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 7));
+      final rows =
+          await _hkCh.invokeMethod<List<dynamic>>('getRunningStrideLength', {
+        'from': start.millisecondsSinceEpoch,
+        'to': now.millisecondsSinceEpoch,
+      });
+
+      setState(() {
+        _runningStrideLengthData = [];
+        if (rows != null && rows.isNotEmpty) {
+          for (final row in rows) {
+            final map = row as Map;
+            try {
+              final startTime = map['start'];
+              final endTime = map['end'];
+              final value = map['value'];
+
+              if (startTime != null && endTime != null && value != null) {
+                _runningStrideLengthData.add({
+                  'start': DateTime.fromMillisecondsSinceEpoch(
+                      startTime is int ? startTime : startTime.toInt()),
+                  'end': DateTime.fromMillisecondsSinceEpoch(
+                      endTime is int ? endTime : endTime.toInt()),
+                  'value': value is double ? value : value.toDouble(),
+                  'unit': 'm',
+                });
+              }
+            } catch (e) {
+              print('데이터 변환 오류: $e, row: $row');
+            }
+          }
+        }
+        _status = 'iOS runningStrideLength ${_runningStrideLengthData.length}개';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 보폭 데이터 조회 오류: $e';
+      });
+      print('iOS 보폭 데이터 조회 오류: $e');
+    }
+  }
+
+  /// iOS 러닝 파워 데이터 가져오기
+  Future<void> _fetchIOSRunningPower() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 7));
+      final rows = await _hkCh.invokeMethod<List<dynamic>>('getRunningPower', {
+        'from': start.millisecondsSinceEpoch,
+        'to': now.millisecondsSinceEpoch,
+      });
+
+      setState(() {
+        _runningPowerData = [];
+        if (rows != null && rows.isNotEmpty) {
+          for (final row in rows) {
+            final map = row as Map;
+            try {
+              final startTime = map['start'];
+              final endTime = map['end'];
+              final value = map['value'];
+
+              if (startTime != null && endTime != null && value != null) {
+                _runningPowerData.add({
+                  'start': DateTime.fromMillisecondsSinceEpoch(
+                      startTime is int ? startTime : startTime.toInt()),
+                  'end': DateTime.fromMillisecondsSinceEpoch(
+                      endTime is int ? endTime : endTime.toInt()),
+                  'value': value is double ? value : value.toDouble(),
+                  'unit': 'W',
+                });
+              }
+            } catch (e) {
+              print('데이터 변환 오류: $e, row: $row');
+            }
+          }
+        }
+        _status = 'iOS runningPower ${_runningPowerData.length}개';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 파워 데이터 조회 오류: $e';
+      });
+      print('iOS 파워 데이터 조회 오류: $e');
+    }
+  }
+
+  /// iOS 러닝 수직 진폭 데이터 가져오기
+  Future<void> _fetchIOSRunningVerticalOscillation() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 7));
+      final rows = await _hkCh
+          .invokeMethod<List<dynamic>>('getRunningVerticalOscillation', {
+        'from': start.millisecondsSinceEpoch,
+        'to': now.millisecondsSinceEpoch,
+      });
+
+      setState(() {
+        _runningVerticalOscillationData = [];
+        if (rows != null && rows.isNotEmpty) {
+          for (final row in rows) {
+            final map = row as Map;
+            try {
+              final startTime = map['start'];
+              final endTime = map['end'];
+              final value = map['value'];
+
+              if (startTime != null && endTime != null && value != null) {
+                _runningVerticalOscillationData.add({
+                  'start': DateTime.fromMillisecondsSinceEpoch(
+                      startTime is int ? startTime : startTime.toInt()),
+                  'end': DateTime.fromMillisecondsSinceEpoch(
+                      endTime is int ? endTime : endTime.toInt()),
+                  'value': value is double ? value : value.toDouble(),
+                  'unit': 'cm',
+                });
+              }
+            } catch (e) {
+              print('데이터 변환 오류: $e, row: $row');
+            }
+          }
+        }
+        _status =
+            'iOS runningVerticalOscillation ${_runningVerticalOscillationData.length}개';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 수직 진폭 데이터 조회 오류: $e';
+      });
+      print('iOS 수직 진폭 데이터 조회 오류: $e');
+    }
+  }
+
+  /// iOS 러닝 지면 접촉 시간 데이터 가져오기
+  Future<void> _fetchIOSRunningGroundContactTime() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 7));
+      final rows = await _hkCh
+          .invokeMethod<List<dynamic>>('getRunningGroundContactTime', {
+        'from': start.millisecondsSinceEpoch,
+        'to': now.millisecondsSinceEpoch,
+      });
+
+      setState(() {
+        _runningGroundContactTimeData = [];
+        if (rows != null && rows.isNotEmpty) {
+          for (final row in rows) {
+            final map = row as Map;
+            try {
+              final startTime = map['start'];
+              final endTime = map['end'];
+              final value = map['value'];
+
+              if (startTime != null && endTime != null && value != null) {
+                _runningGroundContactTimeData.add({
+                  'start': DateTime.fromMillisecondsSinceEpoch(
+                      startTime is int ? startTime : startTime.toInt()),
+                  'end': DateTime.fromMillisecondsSinceEpoch(
+                      endTime is int ? endTime : endTime.toInt()),
+                  'value': value is double ? value : value.toDouble(),
+                  'unit': 'ms',
+                });
+              }
+            } catch (e) {
+              print('데이터 변환 오류: $e, row: $row');
+            }
+          }
+        }
+        _status =
+            'iOS runningGroundContactTime ${_runningGroundContactTimeData.length}개';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 지면 접촉 시간 데이터 조회 오류: $e';
+      });
+      print('iOS 지면 접촉 시간 데이터 조회 오류: $e');
+    }
+  }
+
+  /// iOS 운동 경로 데이터 가져오기
+  Future<void> _fetchIOSWorkoutRoutes() async {
+    try {
+      final now = DateTime.now();
+      final start = now.subtract(const Duration(days: 7));
+      final rows = await _hkCh.invokeMethod<List<dynamic>>('getWorkoutRoutes', {
+        'from': start.millisecondsSinceEpoch,
+        'to': now.millisecondsSinceEpoch,
+      });
+
+      setState(() {
+        _workoutRoutesData = [];
+        if (rows != null && rows.isNotEmpty) {
+          for (final row in rows) {
+            final map = row as Map;
+            try {
+              final startTime = map['start'];
+              final endTime = map['end'];
+              final route = map['route'];
+              final distance = map['distance'];
+              final duration = map['duration'];
+
+              if (startTime != null && endTime != null) {
+                _workoutRoutesData.add({
+                  'start': DateTime.fromMillisecondsSinceEpoch(
+                      startTime is int ? startTime : startTime.toInt()),
+                  'end': DateTime.fromMillisecondsSinceEpoch(
+                      endTime is int ? endTime : endTime.toInt()),
+                  'route': route,
+                  'distance': distance is double
+                      ? distance
+                      : (distance is int ? distance.toDouble() : 0.0),
+                  'duration': duration is double
+                      ? duration
+                      : (duration is int ? duration.toDouble() : 0.0),
+                });
+              }
+            } catch (e) {
+              print('데이터 변환 오류: $e, row: $row');
+            }
+          }
+        }
+        _status = 'iOS workoutRoutes ${_workoutRoutesData.length}개';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'iOS 운동 경로 데이터 조회 오류: $e';
+      });
+      print('iOS 운동 경로 데이터 조회 오류: $e');
+    }
+  }
+
+  /// 모든 iOS 러닝 메트릭 데이터 한번에 가져오기
+  Future<void> _fetchAllIOSRunningMetrics() async {
+    setState(() => _status = '모든 고급 러닝 메트릭 데이터 가져오는 중...');
+
+    try {
+      await Future.wait([
+        _fetchIOSRunningSpeed(),
+        _fetchIOSRunningStrideLength(),
+        _fetchIOSRunningPower(),
+        _fetchIOSRunningVerticalOscillation(),
+        _fetchIOSRunningGroundContactTime(),
+        _fetchIOSWorkoutRoutes(),
+      ]);
+
+      setState(() {
+        final totalData = _runningSpeedData.length +
+            _runningStrideLengthData.length +
+            _runningPowerData.length +
+            _runningVerticalOscillationData.length +
+            _runningGroundContactTimeData.length +
+            _workoutRoutesData.length;
+        _status = '모든 고급 러닝 메트릭 데이터 완료: 총 $totalData개';
+      });
+    } catch (e) {
+      setState(() {
+        _status = '전체 데이터 가져오기 오류: $e';
+      });
+      print('전체 데이터 가져오기 오류: $e');
+    }
+  }
+
+  /// 고급 러닝 메트릭 데이터 표시 위젯
+  Widget _buildRunningMetricsDisplay() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 러닝 속도
+        if (_runningSpeedData.isNotEmpty)
+          _buildMetricSection('🚀 러닝 속도', _runningSpeedData, 'm/s'),
+
+        // 러닝 보폭
+        if (_runningStrideLengthData.isNotEmpty)
+          _buildMetricSection('👟 러닝 보폭', _runningStrideLengthData, 'm'),
+
+        // 러닝 파워
+        if (_runningPowerData.isNotEmpty)
+          _buildMetricSection('⚡ 러닝 파워', _runningPowerData, 'W'),
+
+        // 수직 진폭
+        if (_runningVerticalOscillationData.isNotEmpty)
+          _buildMetricSection(
+              '📈 수직 진폭', _runningVerticalOscillationData, 'cm'),
+
+        // 지면 접촉 시간
+        if (_runningGroundContactTimeData.isNotEmpty)
+          _buildMetricSection(
+              '⏱️ 지면 접촉 시간', _runningGroundContactTimeData, 'ms'),
+
+        // 운동 경로
+        if (_workoutRoutesData.isNotEmpty) _buildWorkoutRoutesSection(),
+      ],
+    );
+  }
+
+  /// 개별 메트릭 섹션 표시
+  Widget _buildMetricSection(
+      String title, List<Map<String, dynamic>> data, String unit) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$title (${data.length}개)',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: data.length,
+            itemBuilder: (context, index) {
+              final item = data[index];
+              return Container(
+                width: 120,
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item['value']} $unit',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item['start'].hour}:${item['start'].minute.toString().padLeft(2, '0')}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    Text(
+                      '${item['start'].month}/${item['start'].day}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  /// 운동 경로 섹션 표시
+  Widget _buildWorkoutRoutesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '🗺️ 운동 경로 (${_workoutRoutesData.length}개)',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _workoutRoutesData.length,
+            itemBuilder: (context, index) {
+              final item = _workoutRoutesData[index];
+              return Container(
+                width: 140,
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item['distance']?.toStringAsFixed(2) ?? 'N/A'} km',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item['duration']?.toStringAsFixed(0) ?? 'N/A'} min',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    Text(
+                      '${item['start'].month}/${item['start'].day}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
   }
 
   /// 건강 데이터 가져오기
@@ -295,6 +801,102 @@ class _HealthTestPageState extends State<HealthTestPage> {
 
             const SizedBox(height: 8),
 
+            // iOS 고급 러닝 메트릭 버튼들
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🍎 iOS 고급 러닝 메트릭',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _requestIOSRunningPermissions,
+                            child: const Text('🍎 러닝 고급 권한'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _fetchIOSRunningSpeed,
+                            child: const Text('🚀 속도(m/s)'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _fetchIOSRunningStrideLength,
+                            child: const Text('👟 보폭(m)'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _fetchIOSRunningPower,
+                            child: const Text('⚡ 파워(W)'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _fetchIOSRunningVerticalOscillation,
+                            child: const Text('📈 수직 진폭(cm)'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _fetchIOSRunningGroundContactTime,
+                            child: const Text('⏱️ 지면 접촉(ms)'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _fetchIOSWorkoutRoutes,
+                            child: const Text('🗺️ 운동 경로'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              // 모든 고급 메트릭 데이터 한번에 가져오기
+                              _fetchAllIOSRunningMetrics();
+                            },
+                            child: const Text('🔄 전체 데이터'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
             // 권한 안내 텍스트
             if (!_hasPermissions)
               Container(
@@ -324,6 +926,33 @@ class _HealthTestPageState extends State<HealthTestPage> {
                       ),
                     ),
                   ],
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // 고급 러닝 메트릭 데이터 표시
+            if (_runningSpeedData.isNotEmpty ||
+                _runningStrideLengthData.isNotEmpty ||
+                _runningPowerData.isNotEmpty ||
+                _runningVerticalOscillationData.isNotEmpty ||
+                _runningGroundContactTimeData.isNotEmpty ||
+                _workoutRoutesData.isNotEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '🍎 고급 러닝 메트릭 데이터',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildRunningMetricsDisplay(),
+                    ],
+                  ),
                 ),
               ),
 

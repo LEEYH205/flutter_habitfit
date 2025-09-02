@@ -18,11 +18,19 @@ import CoreLocation
     let controller = window?.rootViewController as! FlutterViewController
     let healthKitRouteChannel = FlutterMethodChannel(name: "healthkit_route_channel", binaryMessenger: controller.binaryMessenger)
     
+    // 고급 러닝 메트릭을 위한 새로운 채널
+    let runningMetricsChannel = FlutterMethodChannel(name: "hk_running", binaryMessenger: controller.binaryMessenger)
+    
 
     
     // 메서드 호출 처리
     healthKitRouteChannel.setMethodCallHandler { [weak self] call, result in
       self?.handleMethodCall(call: call, result: result)
+    }
+    
+    // 고급 러닝 메트릭 메서드 호출 처리
+    runningMetricsChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleRunningMetricsCall(call: call, result: result)
     }
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -108,6 +116,86 @@ import CoreLocation
     }
   }
   
+  // MARK: - 고급 러닝 메트릭 처리
+  private func handleRunningMetricsCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "requestPermissions":
+      requestRunningPermissions(result: result)
+    case "getRunningSpeed":
+      guard let args = call.arguments as? [String: Any],
+            let fromMs = args["from"] as? Int64,
+            let toMs = args["to"] as? Int64 else {
+        result(FlutterError(code: "ARG", message: "bad args", details: nil))
+        return
+      }
+      queryQuantity(typeId: .runningSpeed,
+                   unit: HKUnit.meter().unitDivided(by: .second()),
+                   from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
+                   to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
+                   result: result)
+    case "getRunningStrideLength":
+      guard let args = call.arguments as? [String: Any],
+            let fromMs = args["from"] as? Int64,
+            let toMs = args["to"] as? Int64 else {
+        result(FlutterError(code: "ARG", message: "bad args", details: nil))
+        return
+      }
+      queryQuantity(typeId: .runningStrideLength,
+                   unit: .meter(),
+                   from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
+                   to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
+                   result: result)
+    case "getRunningPower":
+      guard let args = call.arguments as? [String: Any],
+            let fromMs = args["from"] as? Int64,
+            let toMs = args["to"] as? Int64 else {
+        result(FlutterError(code: "ARG", message: "bad args", details: nil))
+        return
+      }
+      queryQuantity(typeId: .runningPower,
+                   unit: .watt(),
+                   from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
+                   to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
+                   result: result)
+    case "getRunningVerticalOscillation":
+      guard let args = call.arguments as? [String: Any],
+            let fromMs = args["from"] as? Int64,
+            let toMs = args["to"] as? Int64 else {
+        result(FlutterError(code: "ARG", message: "bad args", details: nil))
+        return
+      }
+      queryQuantity(typeId: .runningVerticalOscillation,
+                   unit: HKUnit.meter(), // 기본 미터 단위 사용
+                   from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
+                   to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
+                   result: result)
+    case "getRunningGroundContactTime":
+      guard let args = call.arguments as? [String: Any],
+            let fromMs = args["from"] as? Int64,
+            let toMs = args["to"] as? Int64 else {
+        result(FlutterError(code: "ARG", message: "bad args", details: nil))
+        return
+      }
+      queryQuantity(typeId: .runningGroundContactTime,
+                   unit: HKUnit.second(), // 기본 초 단위 사용
+                   from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
+                   to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
+                   result: result)
+    case "getWorkoutRoutes":
+      guard let args = call.arguments as? [String: Any],
+            let fromMs = args["from"] as? Int64,
+            let toMs = args["to"] as? Int64 else {
+        result(FlutterError(code: "ARG", message: "bad args", details: nil))
+        return
+      }
+      queryRoutes(from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
+                 to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
+                 result: result)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+  
   // MARK: - GPS 데이터 처리 메서드들
   private func getLocationsForRoute(route: HKWorkoutRoute, completion: @escaping ([[String: Any]]?) -> Void) {
     print("iOS: 경로 위치 데이터 조회")
@@ -153,6 +241,110 @@ import CoreLocation
   
   private func removeDuplicateLocations(_ locations: [[String: Any]]) -> [[String: Any]] {
     return removeDuplicateGPSData(locations)
+  }
+  
+  // MARK: - 고급 러닝 메트릭 헬퍼 메서드들
+  private func requestRunningPermissions(result: @escaping FlutterResult) {
+    var readTypes = Set<HKObjectType>()
+    
+    // 러닝 고급 지표
+    let qtyIds: [HKQuantityTypeIdentifier] = [
+      .runningStrideLength, .runningSpeed, .runningPower,
+      .runningVerticalOscillation, .runningGroundContactTime
+    ]
+    
+    qtyIds.forEach { if let t = HKObjectType.quantityType(forIdentifier: $0) { readTypes.insert(t) } }
+    
+    let route = HKSeriesType.workoutRoute()
+    readTypes.insert(route)
+    readTypes.insert(HKObjectType.workoutType())
+    
+    healthStore.requestAuthorization(toShare: nil, read: readTypes) { ok, err in
+      if let err = err {
+        result(FlutterError(code: "AUTH", message: err.localizedDescription, details: nil))
+        return
+      }
+      result(ok)
+    }
+  }
+  
+  private func queryQuantity(typeId: HKQuantityTypeIdentifier, unit: HKUnit,
+                           from: Date, to: Date, result: @escaping FlutterResult) {
+    guard let type = HKObjectType.quantityType(forIdentifier: typeId) else {
+      result(FlutterError(code: "TYPE", message: "unsupported type", details: nil))
+      return
+    }
+    
+    let pred = HKQuery.predicateForSamples(withStart: from, end: to, options: .strictStartDate)
+    let q = HKSampleQuery(sampleType: type, predicate: pred, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+      if let error = error {
+        result(FlutterError(code: "QUERY", message: error.localizedDescription, details: nil))
+        return
+      }
+      
+      let rows: [[String: Any]] = (samples as? [HKQuantitySample] ?? []).map {
+        ["start": $0.startDate.timeIntervalSince1970 * 1000,
+         "end": $0.endDate.timeIntervalSince1970 * 1000,
+         "value": $0.quantity.doubleValue(for: unit)]
+      }
+      result(rows)
+    }
+    healthStore.execute(q)
+  }
+  
+  private func queryRoutes(from: Date, to: Date, result: @escaping FlutterResult) {
+    // 1) 해당 기간의 Workout 조회
+    let pred = HKQuery.predicateForSamples(withStart: from, end: to, options: .strictStartDate)
+    let wq = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: pred, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [weak self] _, samples, err in
+      if let err = err {
+        result(FlutterError(code: "WQUERY", message: err.localizedDescription, details: nil))
+        return
+      }
+      
+      guard let self = self else { return }
+      let workouts = (samples as? [HKWorkout] ?? [])
+      var allPoints: [[String: Any]] = []
+      
+      let group = DispatchGroup()
+      for w in workouts {
+        group.enter()
+        let routePred = HKQuery.predicateForObjects(from: w)
+        let rt = HKSeriesType.workoutRoute()
+        let rq = HKAnchoredObjectQuery(type: rt, predicate: routePred, anchor: nil, limit: HKObjectQueryNoLimit) { _, objects, _, _, e in
+          if let e = e {
+            print("route err:", e)
+            group.leave()
+            return
+          }
+          
+          guard let routes = objects as? [HKWorkoutRoute] else {
+            group.leave()
+            return
+          }
+          
+          let locGroup = DispatchGroup()
+          for r in routes {
+            locGroup.enter()
+            var acc: [[String: Any]] = []
+            let lq = HKWorkoutRouteQuery(route: r) { _, locsOrNil, done, err in
+              if let err = err { print("loc err:", err) }
+              if let locs = locsOrNil {
+                acc += locs.map { ["lat": $0.coordinate.latitude, "lng": $0.coordinate.longitude, "alt": $0.altitude, "ts": $0.timestamp.timeIntervalSince1970 * 1000] }
+              }
+              if done {
+                allPoints += acc
+                locGroup.leave()
+              }
+            }
+            self.healthStore.execute(lq)
+          }
+          locGroup.notify(queue: .main) { group.leave() }
+        }
+        self.healthStore.execute(rq)
+      }
+      group.notify(queue: .main) { result(allPoints) }
+    }
+    healthStore.execute(wq)
   }
   
   // MARK: - GPS 데이터 수집 메서드들
