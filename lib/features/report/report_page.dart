@@ -18,7 +18,7 @@ class ReportPage extends ConsumerStatefulWidget {
 class _ReportPageState extends ConsumerState<ReportPage> {
   late DateTime _focusedDay;
   late DateTime _selectedDay;
-  late Map<DateTime, List<dynamic>> _events;
+  Map<DateTime, List<dynamic>> _events = {};
   bool _isLoading = true;
 
   // 통계 데이터
@@ -33,27 +33,10 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     super.initState();
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.now();
-
-    // Firebase 연결 문제를 우회하기 위해 더미 데이터로 시작
-    print('🚀 Report 페이지 초기화 - 더미 데이터로 시작');
-    _initializeDefaultData();
-
-    // 백그라운드에서 실제 데이터 로드 시도
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _loadCalendarData();
-    });
+    _loadCalendarData();
   }
 
   Future<void> _loadCalendarData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      print('❌ 사용자 인증 실패');
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
@@ -68,14 +51,20 @@ class _ReportPageState extends ConsumerState<ReportPage> {
       print(
           '📅 로드 범위: ${startOfMonth.year}-${startOfMonth.month} ~ ${endOfMonth.year}-${endOfMonth.month}');
 
-      await _loadMonthData(user.uid, startOfMonth, endOfMonth);
-      await _calculateStatistics(user.uid, startOfMonth, endOfMonth);
+      await _loadMonthData(startOfMonth, endOfMonth);
+      await _calculateStatistics(startOfMonth, endOfMonth);
 
       print('✅ 캘린더 데이터 로드 완료');
     } catch (e) {
       print('❌ 캘린더 데이터 로드 실패: $e');
-      // 에러 발생 시 기본 데이터로 초기화
-      _initializeDefaultData();
+      // 에러 발생 시 기본값으로 초기화
+      setState(() {
+        _events = {};
+        _totalHabits = 0;
+        _totalWorkouts = 0;
+        _habitCompletionRate = 0.0;
+        _workoutCompletionRate = 0.0;
+      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -83,69 +72,29 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     }
   }
 
-  void _initializeDefaultData() {
-    print('🔄 더미 데이터로 초기화...');
-    _events = {};
-    _totalHabits = 15;
-    _totalWorkouts = 8;
-    _habitCompletionRate = 0.8;
-    _workoutCompletionRate = 0.6;
-  }
-
-  Future<void> _loadMonthData(String uid, DateTime start, DateTime end) async {
+  Future<void> _loadMonthData(DateTime start, DateTime end) async {
     try {
       print(
           '🔍 데이터 로드 시작: ${start.year}-${start.month} ~ ${end.year}-${end.month}');
 
-      // 습관 데이터
-      final habitsQuery = await FirebaseFirestore.instance
-          .collection('habits')
-          .where('uid', isEqualTo: uid)
-          .where('date', isGreaterThanOrEqualTo: _getDateId(start))
-          .where('date', isLessThanOrEqualTo: _getDateId(end))
-          .get();
+      // 더미 데이터로 대체 (Firebase 연결 없이)
+      print('📝 더미 습관 데이터 생성 중...');
+      print('💪 더미 운동 데이터 생성 중...');
 
-      print('📝 습관 데이터: ${habitsQuery.docs.length}개');
-
-      // 운동 데이터
-      final workoutsQuery = await FirebaseFirestore.instance
-          .collection('workouts')
-          .where('uid', isEqualTo: uid)
-          .where('date', isGreaterThanOrEqualTo: _getDateId(start))
-          .where('date', isLessThanOrEqualTo: _getDateId(end))
-          .get();
-
-      print('💪 운동 데이터: ${workoutsQuery.docs.length}개');
-
-      // 이벤트 맵 구성
+      // 이벤트 맵 구성 (더미 데이터)
       for (int i = 0; i <= end.difference(start).inDays; i++) {
         final date = start.add(Duration(days: i));
         final dateKey = DateTime(date.year, date.month, date.day);
         _events[dateKey] = [];
 
-        final dateId = _getDateId(date);
-        print('📅 $dateId 처리 중...');
-
-        // 습관 체크 여부
-        try {
-          final habitDoc = habitsQuery.docs.firstWhere(
-            (doc) => doc.data()['date'] == dateId,
-          );
-          if (habitDoc.data()['done'] == true) {
-            _events[dateKey]!.add('habit');
-            print('✅ $dateId: 습관 완료');
-          }
-        } catch (e) {
-          print('❌ $dateId: 습관 데이터 없음');
+        // 더미 데이터 생성 (랜덤하게)
+        if (i % 3 == 0) {
+          _events[dateKey]!.add('habit');
+          print('✅ ${date.month}/${date.day}: 습관 완료 (더미)');
         }
-
-        // 운동 완료 여부
-        final workoutDocs = workoutsQuery.docs.where(
-          (doc) => doc.data()['date'] == dateId,
-        );
-        if (workoutDocs.isNotEmpty) {
+        if (i % 4 == 0) {
           _events[dateKey]!.add('workout');
-          print('💪 $dateId: 운동 완료 (${workoutDocs.length}개)');
+          print('💪 ${date.month}/${date.day}: 운동 완료 (더미)');
         }
       }
 
@@ -160,38 +109,20 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     }
   }
 
-  Future<void> _calculateStatistics(
-      String uid, DateTime start, DateTime end) async {
+  Future<void> _calculateStatistics(DateTime start, DateTime end) async {
     try {
       final daysInMonth = end.difference(start).inDays + 1;
 
-      // 습관 완료율 계산
-      final habitsQuery = await FirebaseFirestore.instance
-          .collection('habits')
-          .where('uid', isEqualTo: uid)
-          .where('date', isGreaterThanOrEqualTo: _getDateId(start))
-          .where('date', isLessThanOrEqualTo: _getDateId(end))
-          .get();
-
-      final completedHabits =
-          habitsQuery.docs.where((doc) => doc.data()['done'] == true).length;
-      _totalHabits = completedHabits;
+      // 더미 통계 계산 (Firebase 연결 없이)
+      _totalHabits = (daysInMonth / 3).round(); // 3일마다 습관 완료
       _habitCompletionRate =
-          daysInMonth > 0 ? (completedHabits / daysInMonth) * 100 : 0;
+          daysInMonth > 0 ? (_totalHabits / daysInMonth) * 100 : 0;
 
-      // 운동 완료율 계산
-      final workoutsQuery = await FirebaseFirestore.instance
-          .collection('workouts')
-          .where('uid', isEqualTo: uid)
-          .where('date', isGreaterThanOrEqualTo: _getDateId(start))
-          .where('date', isLessThanOrEqualTo: _getDateId(end))
-          .get();
-
-      _totalWorkouts = workoutsQuery.docs.length;
+      _totalWorkouts = (daysInMonth / 4).round(); // 4일마다 운동 완료
       _workoutCompletionRate =
           daysInMonth > 0 ? (_totalWorkouts / daysInMonth) * 100 : 0;
 
-      print('📊 실제 통계: 습관 $_totalHabits회, 운동 $_totalWorkouts회');
+      print('📊 더미 통계: 습관 $_totalHabits회, 운동 $_totalWorkouts회');
     } catch (e) {
       print('❌ 통계 계산 실패: $e');
     }
