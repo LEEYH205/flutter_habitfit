@@ -531,23 +531,28 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                   if (hasHabit && hasWorkout) {
                     // 습관 + 운동: 초록색 계열, 활동 강도에 따라 진해짐
                     backgroundColor = Colors.green;
-                    opacity = 0.05 + (activityLevel * 0.08); // 0.05~0.37
+                    opacity =
+                        0.01 + (activityLevel * 0.02); // 0.01~0.09 (매우 낮은 투명도)
                   } else if (hasHabit) {
                     // 습관만: 초록색
                     backgroundColor = Colors.green;
-                    opacity = 0.08 + (activityLevel * 0.05); // 0.08~0.18
+                    opacity = 0.015 +
+                        (activityLevel * 0.015); // 0.015~0.06 (매우 낮은 투명도)
                   } else if (hasWorkout) {
                     // 운동만: 파란색
                     backgroundColor = Colors.blue;
-                    opacity = 0.08 + (activityLevel * 0.05); // 0.08~0.18
+                    opacity = 0.015 +
+                        (activityLevel * 0.015); // 0.015~0.06 (매우 낮은 투명도)
                   } else if (hasMeal) {
                     // 식사만: 주황색
                     backgroundColor = Colors.orange;
-                    opacity = 0.08 + (activityLevel * 0.05); // 0.08~0.18
+                    opacity = 0.015 +
+                        (activityLevel * 0.015); // 0.015~0.06 (매우 낮은 투명도)
                   } else {
                     // 기타: 회색
                     backgroundColor = Colors.grey;
-                    opacity = 0.05 + (activityLevel * 0.03); // 0.05~0.14
+                    opacity =
+                        0.01 + (activityLevel * 0.01); // 0.01~0.04 (매우 낮은 투명도)
                   }
 
                   return Container(
