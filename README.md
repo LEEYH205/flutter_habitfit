@@ -38,7 +38,7 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - Remote Config: 기본값으로 작동 중 (Firebase Console 설정 필요)
 
 **🔧 NEXT STEPS:**
-- **🗓️ Report 탭 달력 시스템 완성**: Firebase 데이터 연결 완료, 사용자 인증 시스템 구현 필요 (우선순위 1)
+- **🗓️ Report 탭 달력 시스템 완성**: Firebase 데이터 연결 완료, 사용자 인증 시스템 구현 필요 (우선순위 1)달력
 - **🎯 목표 달성 화면 오버레이 구현**: 운동 중 목표 달성 시 화면에 축하 메시지 표시 (우선순위 2)
 - **💪 운동 완료 시 자동 알림**: Stop 버튼 누를 때 자동으로 운동 완료 알림 전송 (우선순위 3)
 - **🔍 키포인트 감지 개선**: 낮은 신뢰도 상황에서의 감지 정확도 향상 (우선순위 4)

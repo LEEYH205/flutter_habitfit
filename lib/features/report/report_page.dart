@@ -175,7 +175,18 @@ class _ReportPageState extends ConsumerState<ReportPage> {
   }
 
   List<dynamic> _getEventsForDay(DateTime day) {
-    return _events[day] ?? [];
+    // 시간 정보를 제거하고 날짜만으로 키 생성
+    final dateKey = DateTime(day.year, day.month, day.day);
+    final events = _events[dateKey] ?? [];
+
+    // 디버그 로그 추가
+    print('🔍 _getEventsForDay 호출: ${day.year}-${day.month}-${day.day}');
+    print('🔑 찾는 키: ${dateKey.year}-${dateKey.month}-${dateKey.day}');
+    print('📊 찾은 이벤트: $events');
+    print(
+        '🗺️ 전체 _events 키들: ${_events.keys.map((k) => '${k.year}-${k.month}-${k.day}').toList()}');
+
+    return events;
   }
 
   Color _getEventColor(String eventType) {
@@ -416,78 +427,143 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                   final hasWorkout = events.contains('workout');
                   final hasMeal = events.contains('meal');
 
-                  // 이벤트 개수와 색상 결정
+                  // 활동 강도 계산 (이벤트 개수 기반)
+                  final activityLevel = events.length;
+
+                  // 활동 강도에 따른 색상과 크기 결정
                   Color markerColor;
                   String markerText;
+                  double markerSize;
+                  double opacity;
 
                   if (hasHabit && hasWorkout) {
+                    // 습관 + 운동: 초록색 계열, 활동 강도에 따라 진해짐
                     markerColor = Colors.green;
-                    markerText = '${events.length}';
+                    markerText = '$activityLevel';
+                    markerSize = 8.0 + (activityLevel * 2.0); // 8~16
+                    opacity = 0.6 + (activityLevel * 0.2); // 0.6~1.0
                   } else if (hasHabit) {
+                    // 습관만: 초록색
                     markerColor = Colors.green;
                     markerText = '습';
+                    markerSize = 8.0;
+                    opacity = 0.8;
                   } else if (hasWorkout) {
+                    // 운동만: 파란색
                     markerColor = Colors.blue;
                     markerText = '운';
+                    markerSize = 8.0;
+                    opacity = 0.8;
                   } else if (hasMeal) {
+                    // 식사만: 주황색
                     markerColor = Colors.orange;
                     markerText = '식';
+                    markerSize = 8.0;
+                    opacity = 0.8;
                   } else {
+                    // 기타: 회색
                     markerColor = Colors.grey;
-                    markerText = '${events.length}';
+                    markerText = '$activityLevel';
+                    markerSize = 6.0;
+                    opacity = 0.6;
                   }
 
                   return Positioned(
                     right: 1,
                     bottom: 1,
                     child: Container(
-                      padding: const EdgeInsets.all(2),
+                      width: markerSize,
+                      height: markerSize,
                       decoration: BoxDecoration(
-                        color: markerColor,
-                        borderRadius: BorderRadius.circular(8),
+                        color: markerColor.withOpacity(opacity),
+                        borderRadius: BorderRadius.circular(markerSize / 2),
                         boxShadow: [
                           BoxShadow(
-                            color: markerColor.withOpacity(0.3),
-                            blurRadius: 2,
+                            color: markerColor.withOpacity(opacity * 0.5),
+                            blurRadius: 3,
                             offset: const Offset(0, 1),
                           ),
                         ],
+                        // 히트맵 효과를 위한 그라데이션
+                        gradient: activityLevel > 1
+                            ? LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  markerColor.withOpacity(opacity),
+                                  markerColor.withOpacity(opacity * 0.7),
+                                ],
+                              )
+                            : null,
                       ),
-                      child: Text(
-                        markerText,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: activityLevel > 1
+                          ? Center(
+                              child: Text(
+                                markerText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
                   );
                 }
                 return null;
               },
-              // 날짜 셀 배경색 개선
+              // 날짜 셀 배경색 개선 (히트맵 효과)
               defaultBuilder: (context, date, focusedDay) {
                 final events = _getEventsForDay(date);
                 final hasHabit = events.contains('habit');
                 final hasWorkout = events.contains('workout');
+                final hasMeal = events.contains('meal');
 
-                // 활동이 있는 날짜는 연한 배경색 적용
-                if (hasHabit || hasWorkout) {
+                // 활동이 있는 날짜는 히트맵처럼 배경색 적용
+                if (hasHabit || hasWorkout || hasMeal) {
+                  final activityLevel = events.length;
+
+                  // 활동 강도에 따른 배경색 투명도
+                  double opacity;
                   Color backgroundColor;
+
                   if (hasHabit && hasWorkout) {
-                    backgroundColor = Colors.green.withOpacity(0.1);
+                    // 습관 + 운동: 초록색 계열, 활동 강도에 따라 진해짐
+                    backgroundColor = Colors.green;
+                    opacity = 0.05 + (activityLevel * 0.08); // 0.05~0.37
                   } else if (hasHabit) {
-                    backgroundColor = Colors.green.withOpacity(0.08);
+                    // 습관만: 초록색
+                    backgroundColor = Colors.green;
+                    opacity = 0.08 + (activityLevel * 0.05); // 0.08~0.18
+                  } else if (hasWorkout) {
+                    // 운동만: 파란색
+                    backgroundColor = Colors.blue;
+                    opacity = 0.08 + (activityLevel * 0.05); // 0.08~0.18
+                  } else if (hasMeal) {
+                    // 식사만: 주황색
+                    backgroundColor = Colors.orange;
+                    opacity = 0.08 + (activityLevel * 0.05); // 0.08~0.18
                   } else {
-                    backgroundColor = Colors.blue.withOpacity(0.08);
+                    // 기타: 회색
+                    backgroundColor = Colors.grey;
+                    opacity = 0.05 + (activityLevel * 0.03); // 0.05~0.14
                   }
 
                   return Container(
                     margin: const EdgeInsets.all(1),
                     decoration: BoxDecoration(
-                      color: backgroundColor,
+                      color: backgroundColor.withOpacity(opacity),
                       borderRadius: BorderRadius.circular(4),
+                      // 히트맵 효과를 위한 그라데이션
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          backgroundColor.withOpacity(opacity * 0.7),
+                          backgroundColor.withOpacity(opacity),
+                        ],
+                      ),
                     ),
                   );
                 }
