@@ -1,4 +1,3 @@
-import 'package:health/health.dart';
 import 'dart:math';
 import 'health_kit_service.dart';
 
@@ -35,7 +34,7 @@ class RunningCoachingService {
     final distance = workout.distance ?? 0;
     final duration = workout.duration.inMinutes;
     final pace = distance > 0 ? duration / distance : 0.0; // 분/km
-    final speed = distance > 0 ? distance / (duration / 60) : 0.0; // km/h
+    final speed = distance > 0 ? distance / (duration / 60.0) : 0.0; // km/h
 
     // 심박수 분석
     final heartRateAnalysis = _analyzeHeartRate(heartRateData);
@@ -64,6 +63,7 @@ class RunningCoachingService {
       return HeartRateAnalysis(
         averageHR: 0,
         maxHR: 0,
+        minHR: 0,
         zones: {},
         zoneDistribution: {},
         intensity: '알 수 없음',
@@ -73,6 +73,7 @@ class RunningCoachingService {
     final values = heartRateData.map((hr) => hr.value).toList();
     final averageHR = values.reduce((a, b) => a + b) / values.length;
     final maxHR = values.reduce((a, b) => a > b ? a : b);
+    final minHR = values.reduce((a, b) => a < b ? a : b);
 
     // 심박수 구간 분석 (220-나이 기준)
     final maxHRTheoretical = 220 - 30; // 임시로 30세 기준
@@ -132,6 +133,7 @@ class RunningCoachingService {
     return HeartRateAnalysis(
       averageHR: averageHR,
       maxHR: maxHR,
+      minHR: minHR,
       zones: zones,
       zoneDistribution: zoneDistribution,
       intensity: intensity,
@@ -188,21 +190,19 @@ class RunningCoachingService {
     // 최근 5개 운동으로 트렌딩 분석
     final recent = recentWorkouts.take(5).toList();
     final distances = recent.map((w) => w.distance ?? 0).toList();
-    final paces = recent
-        .map((w) => w.distance != null && w.distance! > 0
-            ? w.duration.inMinutes / w.distance!
-            : 0)
-        .toList();
 
     // 거리 개선도
     String improvement;
     if (distances.length >= 2) {
-      final firstHalf =
-          distances.take(distances.length ~/ 2).reduce((a, b) => a + b) /
-              (distances.length ~/ 2);
-      final secondHalf =
-          distances.skip(distances.length ~/ 2).reduce((a, b) => a + b) /
-              (distances.length - (distances.length ~/ 2));
+      final firstHalfList = distances.take(distances.length ~/ 2).toList();
+      final secondHalfList = distances.skip(distances.length ~/ 2).toList();
+
+      final firstHalf = firstHalfList.isNotEmpty
+          ? firstHalfList.reduce((a, b) => a + b) / firstHalfList.length
+          : 0.0;
+      final secondHalf = secondHalfList.isNotEmpty
+          ? secondHalfList.reduce((a, b) => a + b) / secondHalfList.length
+          : 0.0;
 
       if (secondHalf > firstHalf * 1.1) {
         improvement = '거리 증가';
@@ -217,19 +217,23 @@ class RunningCoachingService {
 
     // 일관성 평가
     String consistency;
-    final avgDistance = distances.reduce((a, b) => a + b) / distances.length;
-    final variance = distances
-            .map((d) => (d - avgDistance) * (d - avgDistance))
-            .reduce((a, b) => a + b) /
-        distances.length;
-    final stdDev = sqrt(variance);
-
-    if (stdDev / avgDistance < 0.1) {
-      consistency = '매우 일관적';
-    } else if (stdDev / avgDistance < 0.2) {
-      consistency = '일관적';
+    if (distances.isEmpty) {
+      consistency = '데이터 부족';
     } else {
-      consistency = '불규칙';
+      final avgDistance = distances.reduce((a, b) => a + b) / distances.length;
+      final variance = distances
+              .map((d) => (d - avgDistance) * (d - avgDistance))
+              .reduce((a, b) => a + b) /
+          distances.length;
+      final stdDev = sqrt(variance);
+
+      if (stdDev / avgDistance < 0.1) {
+        consistency = '매우 일관적';
+      } else if (stdDev / avgDistance < 0.2) {
+        consistency = '일관적';
+      } else {
+        consistency = '불규칙';
+      }
     }
 
     // 추천사항
@@ -404,10 +408,24 @@ class RunningAnalysis {
   });
 }
 
+/// 심박수 데이터 클래스
+class HeartRateData {
+  final DateTime timestamp;
+  final double value;
+  final String unit;
+
+  HeartRateData({
+    required this.timestamp,
+    required this.value,
+    required this.unit,
+  });
+}
+
 /// 심박수 분석 데이터 클래스
 class HeartRateAnalysis {
   final double averageHR;
   final double maxHR;
+  final double minHR;
   final Map<String, Map<String, dynamic>> zones;
   final Map<String, int> zoneDistribution;
   final String intensity;
@@ -415,6 +433,7 @@ class HeartRateAnalysis {
   HeartRateAnalysis({
     required this.averageHR,
     required this.maxHR,
+    required this.minHR,
     required this.zones,
     required this.zoneDistribution,
     required this.intensity,

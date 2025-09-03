@@ -1,8 +1,8 @@
 import 'package:health/health.dart';
-import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math';
 import 'healthkit_route_service.dart';
+import 'running_coaching_service.dart' as coaching;
 
 /// HealthKit 연동을 위한 서비스 클래스
 class HealthKitService {
@@ -639,6 +639,50 @@ class HealthKitService {
     } catch (e) {
       print('❌ 러닝 다이내믹스 데이터 수집 오류: $e');
       return null;
+    }
+  }
+
+  /// 심박수 데이터 가져오기
+  Future<List<coaching.HeartRateData>> getHeartRateData(
+      DateTime start, DateTime end) async {
+    try {
+      print('❤️ 심박수 데이터 수집 시작: $start ~ $end');
+
+      if (!_isInitialized) {
+        final initialized = await initialize();
+        if (!initialized) return [];
+      }
+
+      final heartRateData = await _health.getHealthDataFromTypes(
+        start,
+        end,
+        [HealthDataType.HEART_RATE],
+      );
+
+      if (heartRateData.isEmpty) {
+        print('⚠️ 심박수 데이터가 없습니다');
+        return [];
+      }
+
+      print('✅ 심박수 데이터 ${heartRateData.length}개 발견');
+
+      // HealthDataPoint를 HeartRateData로 변환
+      final hrDataList = heartRateData.map((point) {
+        return coaching.HeartRateData(
+          timestamp: point.dateFrom,
+          value: point.value is num ? (point.value as num).toDouble() : 0.0,
+          unit: 'BPM',
+        );
+      }).toList();
+
+      // 시간순으로 정렬
+      hrDataList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+      print('✅ 심박수 데이터 변환 완료: ${hrDataList.length}개');
+      return hrDataList;
+    } catch (e) {
+      print('❌ 심박수 데이터 수집 오류: $e');
+      return [];
     }
   }
 

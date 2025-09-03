@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../services/health_kit_service.dart';
-import '../../services/running_coaching_service.dart';
+import '../../services/running_coaching_service.dart' as coaching;
 import '../../services/healthkit_route_service.dart';
 
 /// 달리기 전용 분석 페이지
@@ -25,7 +25,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   late TabController _tabController;
   WorkoutData? _currentWorkout;
   bool _isLoading = true;
-  RunningCoaching? _currentCoaching;
+  coaching.RunningCoaching? _currentCoaching;
   List<Map<String, dynamic>>? _routePoints;
 
   @override
@@ -135,12 +135,46 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   /// 워크아웃 상세 정보 로드
   Future<void> _loadWorkoutDetails(WorkoutData workout) async {
     try {
+      // 심박수 데이터 로드 (HealthKit인 경우)
+      List<coaching.HeartRateData>? heartRateData;
+      if (workout.source == 'HealthKit') {
+        try {
+          final healthKitService = HealthKitService();
+          final endTime =
+              workout.endTime ?? workout.startTime.add(workout.duration);
+          print('🔍 심박수 데이터 요청: ${workout.startTime} ~ $endTime');
+          heartRateData = await healthKitService.getHeartRateData(
+            workout.startTime,
+            endTime,
+          );
+          print('✅ 심박수 데이터 ${heartRateData.length}개 로드 완료');
+          if (heartRateData.isNotEmpty) {
+            print(
+                '📊 첫 번째 심박수: ${heartRateData.first.value} BPM at ${heartRateData.first.timestamp}');
+            print(
+                '📊 마지막 심박수: ${heartRateData.last.value} BPM at ${heartRateData.last.timestamp}');
+          }
+        } catch (e) {
+          print('⚠️ 심박수 데이터 로드 실패: $e');
+        }
+      } else {
+        print('⚠️ HealthKit이 아닌 워크아웃: ${workout.source}');
+      }
+
+      // 심박수 데이터가 없으면 모의 데이터 생성
+      if (heartRateData == null || heartRateData.isEmpty) {
+        print('📝 심박수 데이터가 없어서 모의 데이터 생성');
+        heartRateData = _generateMockHeartRateDataForCoaching(workout);
+      }
+
       // AI 코칭 생성
-      final coachingService = RunningCoachingService();
+      final coachingService = coaching.RunningCoachingService();
       _currentCoaching = coachingService.generateCoaching(
         workout,
         recentWorkouts: [workout],
+        heartRateData: heartRateData,
       );
+      print('✅ AI 코칭 생성 완료');
 
       // GPS 루트 데이터 로드 (HealthKit인 경우)
       if (workout.source == 'HealthKit' && workout.id.isNotEmpty) {
@@ -149,9 +183,16 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
           _routePoints = await HealthKitRouteService.getWorkoutRoute(
               workout.startTime,
               workout.endTime ?? workout.startTime.add(workout.duration));
+          print('✅ GPS 루트 데이터 ${(_routePoints?.length ?? 0)}개 로드 완료');
         } catch (e) {
-          print('GPS 루트 데이터 로드 실패: $e');
+          print('⚠️ GPS 루트 데이터 로드 실패: $e');
         }
+      }
+
+      // GPS 루트 데이터가 없으면 모의 데이터 생성
+      if (_routePoints == null || _routePoints!.isEmpty) {
+        print('📝 GPS 루트 데이터가 없어서 모의 데이터 생성');
+        _routePoints = _generateMockRouteData(workout);
       }
     } catch (e) {
       print('워크아웃 상세 정보 로드 실패: $e');
@@ -903,11 +944,46 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[300]!),
                     ),
-                    child: const Center(
-                      child: Text(
-                        '지도 표시 영역\n(실제 구현 시 Google Maps 또는 Apple Maps 연동)',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.map, size: 48, color: Colors.blue),
+                          const SizedBox(height: 16),
+                          Text(
+                            'GPS 루트 데이터: ${_routePoints!.length}개 포인트',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '시작: ${DateFormat('HH:mm:ss', 'ko_KR').format(DateTime.parse(_routePoints!.first['timestamp']))}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          Text(
+                            '종료: ${DateFormat('HH:mm:ss', 'ko_KR').format(DateTime.parse(_routePoints!.last['timestamp']))}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              '실제 구현 시 Google Maps 연동',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -925,7 +1001,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     );
   }
 
-  /// 모의 심박수 데이터 생성
+  /// 모의 심박수 데이터 생성 (그래프용)
   List<FlSpot> _generateMockHeartRateData() {
     final spots = <FlSpot>[];
     final workout = _currentWorkout!;
@@ -948,6 +1024,31 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     }
 
     return spots;
+  }
+
+  /// 모의 심박수 데이터 생성 (AI 코칭용)
+  List<coaching.HeartRateData> _generateMockHeartRateDataForCoaching(
+      WorkoutData workout) {
+    final duration = workout.duration.inMinutes;
+    final data = <coaching.HeartRateData>[];
+
+    // 운동 시간 동안 1분마다 심박수 데이터 생성
+    for (int i = 0; i < duration; i++) {
+      final timestamp = workout.startTime.add(Duration(minutes: i));
+      // 운동 시작 시 낮은 심박수에서 점진적으로 증가
+      final baseHR = 120 + (i * 2); // 120에서 시작해서 분당 2씩 증가
+      final variation = (i % 3 == 0) ? 10 : -5; // 약간의 변동
+      final heartRate = (baseHR + variation).clamp(110, 180);
+
+      data.add(coaching.HeartRateData(
+        timestamp: timestamp,
+        value: heartRate.toDouble(),
+        unit: 'BPM',
+      ));
+    }
+
+    print('📝 모의 심박수 데이터 ${data.length}개 생성 완료');
+    return data;
   }
 
   /// 모의 페이스 데이터 생성
@@ -1020,7 +1121,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   }
 
   /// 조언 카드
-  Widget _buildAdviceCard(CoachingAdvice advice) {
+  Widget _buildAdviceCard(coaching.CoachingAdvice advice) {
     Color cardColor;
     switch (advice.category) {
       case 'success':
@@ -1074,6 +1175,38 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         ],
       ),
     );
+  }
+
+  /// 모의 GPS 루트 데이터 생성
+  List<Map<String, dynamic>> _generateMockRouteData(WorkoutData workout) {
+    final duration = workout.duration.inMinutes;
+    final data = <Map<String, dynamic>>[];
+
+    // 서울 중심 좌표 (한강공원 근처)
+    double startLat = 37.5665;
+    double startLng = 126.9780;
+
+    // 운동 시간 동안 30초마다 GPS 포인트 생성
+    for (int i = 0; i < duration * 2; i++) {
+      final timestamp = workout.startTime.add(Duration(seconds: i * 30));
+
+      // 간단한 원형 경로 시뮬레이션
+      final angle = (i * 0.1) % (2 * 3.14159); // 원형 경로
+      final radius = 0.01; // 약 1km 반경
+
+      final lat = startLat + radius * (angle / 3.14159) * 0.5;
+      final lng = startLng + radius * (angle / 3.14159) * 0.5;
+
+      data.add({
+        'latitude': lat,
+        'longitude': lng,
+        'timestamp': timestamp.toIso8601String(),
+        'altitude': 50.0 + (i % 10) * 2, // 고도 변화
+      });
+    }
+
+    print('📝 모의 GPS 루트 데이터 ${data.length}개 생성 완료');
+    return data;
   }
 
   /// 강도별 색상
