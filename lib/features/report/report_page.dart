@@ -433,32 +433,6 @@ class _ReportPageState extends ConsumerState<ReportPage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Today 버튼 추가
-          Center(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _focusedDay = DateTime.now();
-                  _selectedDay = DateTime.now();
-                });
-                _loadCalendarData();
-              },
-              icon: const Icon(Icons.today, size: 18),
-              label: const Text('Today'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                elevation: 2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
           TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
@@ -469,7 +443,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
             startingDayOfWeek: StartingDayOfWeek.sunday,
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
-              titleCentered: true,
+              titleCentered: false,
               leftChevronIcon: IconButton(
                 icon: const Icon(Icons.chevron_left, color: Colors.blue),
                 onPressed: () {
@@ -481,16 +455,47 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                   _loadCalendarData();
                 },
               ),
-              rightChevronIcon: IconButton(
-                icon: const Icon(Icons.chevron_right, color: Colors.blue),
-                onPressed: () {
-                  final nextMonth =
-                      DateTime(_focusedDay.year, _focusedDay.month + 1);
-                  setState(() {
-                    _focusedDay = nextMonth;
-                  });
-                  _loadCalendarData();
-                },
+              rightChevronIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Today 버튼을 헤더에 통합
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _focusedDay = DateTime.now();
+                          _selectedDay = DateTime.now();
+                        });
+                        _loadCalendarData();
+                      },
+                      icon: const Icon(Icons.today, size: 16),
+                      label:
+                          const Text('Today', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 1,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: Colors.blue),
+                    onPressed: () {
+                      final nextMonth =
+                          DateTime(_focusedDay.year, _focusedDay.month + 1);
+                      setState(() {
+                        _focusedDay = nextMonth;
+                      });
+                      _loadCalendarData();
+                    },
+                  ),
+                ],
               ),
               titleTextFormatter: (date, locale) {
                 return '${date.month}월 ${date.year}';
@@ -550,19 +555,19 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                     final habitCount = events.where((e) => e == 'habit').length;
                     markers.add(
                       Positioned(
-                        right: 2,
-                        bottom: 2,
+                        right: 1,
+                        bottom: 1,
                         child: Container(
-                          width: 18,
-                          height: 18,
+                          width: 14,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(color: Colors.white, width: 1.5),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(color: Colors.white, width: 1),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.green.withOpacity(0.3),
-                                blurRadius: 3,
+                                blurRadius: 2,
                                 offset: const Offset(0, 1),
                               ),
                             ],
@@ -572,7 +577,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                               habitCount.toString(),
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: 8,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -587,19 +592,19 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                         events.where((e) => e == 'workout').length;
                     markers.add(
                       Positioned(
-                        right: hasHabit ? 24 : 2,
-                        bottom: 2,
+                        right: hasHabit ? 18 : 1,
+                        bottom: 1,
                         child: Container(
-                          width: 18,
-                          height: 18,
+                          width: 14,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: Colors.blue.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(color: Colors.white, width: 1.5),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(color: Colors.white, width: 1),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.blue.withOpacity(0.3),
-                                blurRadius: 3,
+                                blurRadius: 2,
                                 offset: const Offset(0, 1),
                               ),
                             ],
@@ -609,7 +614,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                               workoutCount.toString(),
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: 8,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -623,19 +628,19 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                     final mealCount = events.where((e) => e == 'meal').length;
                     markers.add(
                       Positioned(
-                        right: (hasHabit ? 24 : 0) + (hasWorkout ? 24 : 0) + 2,
-                        bottom: 2,
+                        right: (hasHabit ? 18 : 0) + (hasWorkout ? 18 : 0) + 1,
+                        bottom: 1,
                         child: Container(
-                          width: 18,
-                          height: 18,
+                          width: 14,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: Colors.orange.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(color: Colors.white, width: 1.5),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(color: Colors.white, width: 1),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.orange.withOpacity(0.3),
-                                blurRadius: 3,
+                                blurRadius: 2,
                                 offset: const Offset(0, 1),
                               ),
                             ],
@@ -645,7 +650,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                               mealCount.toString(),
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: 8,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
