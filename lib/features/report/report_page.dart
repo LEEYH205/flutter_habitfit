@@ -537,9 +537,25 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                 _loadCalendarData(); // 새로운 월 데이터 로드
               }
             },
-            calendarStyle: const CalendarStyle(
+            calendarStyle: CalendarStyle(
               outsideDaysVisible: false,
-              weekendTextStyle: TextStyle(color: Colors.red),
+              // 히트맵 배경에 대비되는 날짜 텍스트 색상 - 더 진한 검은색
+              defaultTextStyle: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+              todayTextStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              selectedTextStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              weekendTextStyle: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
@@ -682,32 +698,38 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                   if (hasHabit && hasWorkout) {
                     // 습관 + 운동: 초록색 계열, 활동 강도에 따라 진해짐
                     backgroundColor = Colors.green;
-                    opacity =
-                        0.01 + (activityLevel * 0.02); // 0.01~0.09 (매우 낮은 투명도)
+                    opacity = 0.08 +
+                        (activityLevel *
+                            0.07); // 0.08~0.22 (약한 히트맵 효과로 텍스트 가독성 높임)
                   } else if (hasHabit) {
                     // 습관만: 초록색
                     backgroundColor = Colors.green;
-                    opacity = 0.015 +
-                        (activityLevel * 0.015); // 0.015~0.06 (매우 낮은 투명도)
+                    opacity = 0.06 +
+                        (activityLevel *
+                            0.06); // 0.06~0.18 (약한 투명도로 텍스트 가독성 높임)
                   } else if (hasWorkout) {
                     // 운동만: 파란색
                     backgroundColor = Colors.blue;
-                    opacity = 0.015 +
-                        (activityLevel * 0.015); // 0.015~0.06 (매우 낮은 투명도)
+                    opacity = 0.06 +
+                        (activityLevel *
+                            0.06); // 0.06~0.18 (약한 투명도로 텍스트 가독성 높임)
                   } else if (hasMeal) {
                     // 식사만: 주황색
                     backgroundColor = Colors.orange;
-                    opacity = 0.015 +
-                        (activityLevel * 0.015); // 0.015~0.06 (매우 낮은 투명도)
+                    opacity = 0.06 +
+                        (activityLevel *
+                            0.06); // 0.06~0.18 (약한 투명도로 텍스트 가독성 높임)
                   } else {
                     // 기타: 회색
                     backgroundColor = Colors.grey;
-                    opacity =
-                        0.01 + (activityLevel * 0.01); // 0.01~0.04 (매우 낮은 투명도)
+                    opacity = 0.05 +
+                        (activityLevel *
+                            0.04); // 0.05~0.13 (약한 투명도로 텍스트 가독성 높임)
                   }
 
                   return Container(
                     margin: const EdgeInsets.all(1),
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: backgroundColor.withOpacity(opacity),
                       borderRadius: BorderRadius.circular(4),
@@ -721,9 +743,30 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                         ],
                       ),
                     ),
+                    child: Text(
+                      date.day.toString(),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  );
+                } else {
+                  // 활동이 없는 날짜도 검은색 텍스트로 표시
+                  return Container(
+                    margin: const EdgeInsets.all(1),
+                    alignment: Alignment.center,
+                    child: Text(
+                      date.day.toString(),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
+                    ),
                   );
                 }
-                return null;
               },
             ),
           ),
