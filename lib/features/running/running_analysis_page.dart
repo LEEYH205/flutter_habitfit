@@ -7,7 +7,12 @@ import 'running_detail_page.dart'; // Added import for RunningDetailPage
 
 /// 달리기 전용 분석 페이지
 class RunningAnalysisPage extends ConsumerStatefulWidget {
-  const RunningAnalysisPage({super.key});
+  final Map<String, dynamic>? runningData;
+
+  const RunningAnalysisPage({
+    super.key,
+    this.runningData,
+  });
 
   @override
   ConsumerState<RunningAnalysisPage> createState() =>

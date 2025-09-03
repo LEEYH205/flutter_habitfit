@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:health/health.dart';
 import '../running/running_analysis_page.dart';
+import 'day_details_page.dart';
 
 /// 리포트 페이지 - 달력 중심의 통합 시스템
 class ReportPage extends ConsumerStatefulWidget {
@@ -526,6 +527,14 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
               });
+              // 날짜 클릭 시 상세 정보 페이지로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      DayDetailsPage(selectedDay: selectedDay),
+                ),
+              );
             },
             onPageChanged: (focusedDay) {
               // 같은 월이면 데이터 로드하지 않음
