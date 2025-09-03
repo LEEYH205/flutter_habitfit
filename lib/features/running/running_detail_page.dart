@@ -638,6 +638,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                     initialZoom: _calculateOptimalZoom(),
                     minZoom: 10.0,
                     maxZoom: 18.0,
+                    keepAlive: true,
                     onMapReady: () {
                       print('🗺️ 지도가 준비되었습니다');
                       print('🗺️ 지도 중심점: ${_getMapCenter()}');
@@ -667,7 +668,10 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                       final bounds = _calculateMapBounds();
                       if (bounds != null) {
                         print('🗺️ 지도 바운드로 이동 시도...');
-                        // 바운드의 중심점 계산
+                        print(
+                            '🗺️ 바운드: ${bounds.southWest} ~ ${bounds.northEast}');
+
+                        // 경계의 중심점 계산
                         final centerLat = (bounds.northEast.latitude +
                                 bounds.southWest.latitude) /
                             2;
@@ -676,8 +680,55 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                             2;
                         final center = LatLng(centerLat, centerLng);
 
-                        _mapController.move(center, _calculateOptimalZoom());
-                        print('✅ 지도 바운드 이동 완료: $center');
+                        // 경로에 맞는 줌 레벨 계산
+                        final latDiff = bounds.northEast.latitude -
+                            bounds.southWest.latitude;
+                        final lngDiff = bounds.northEast.longitude -
+                            bounds.southWest.longitude;
+                        final maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
+
+                        double zoomLevel = 15.0;
+                        if (maxDiff > 0.1)
+                          zoomLevel = 10.0;
+                        else if (maxDiff > 0.05)
+                          zoomLevel = 12.0;
+                        else if (maxDiff > 0.02)
+                          zoomLevel = 13.0;
+                        else if (maxDiff > 0.01) zoomLevel = 14.0;
+
+                        _mapController.move(center, zoomLevel);
+                        print('✅ 지도 자동 줌 조정 완료: $center (줌: $zoomLevel)');
+
+                        // 약간의 지연 후 다시 조정 (애니메이션 효과를 위해)
+                        Future.delayed(const Duration(milliseconds: 300), () {
+                          if (mounted) {
+                            _mapController.move(center, zoomLevel);
+                            print('✅ 최종 지도 조정 완료');
+
+                            // 지도 타일 로딩 강제 트리거
+                            Future.delayed(const Duration(milliseconds: 200),
+                                () {
+                              if (mounted) {
+                                // 약간의 줌 레벨 변경으로 타일 로딩 강제
+                                final currentZoom = _mapController.camera.zoom;
+                                _mapController.move(
+                                    _mapController.camera.center,
+                                    currentZoom + 0.01);
+                                Future.delayed(
+                                    const Duration(milliseconds: 100), () {
+                                  if (mounted) {
+                                    _mapController.move(
+                                        _mapController.camera.center,
+                                        currentZoom);
+                                    print('✅ 지도 타일 로딩 강제 완료');
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        });
+                      } else {
+                        print('🗺️ 지도 바운드를 계산할 수 없음');
                       }
                     },
                   ),
@@ -688,6 +739,8 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                       userAgentPackageName: 'com.example.habitfit_mvp',
                       maxZoom: 19,
                       tileProvider: NetworkTileProvider(),
+                      minZoom: 1,
+                      keepBuffer: 4, // 주변 타일들을 미리 로딩
                     ),
                     // 실제 GPS 경로 데이터가 있는 경우에만 마커와 폴리라인 표시
                     if (_workoutRoute != null &&

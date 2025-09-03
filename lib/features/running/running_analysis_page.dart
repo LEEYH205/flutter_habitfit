@@ -27,17 +27,20 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   bool _isLoading = true;
   coaching.RunningCoaching? _currentCoaching;
   List<Map<String, dynamic>>? _routePoints;
+  late MapController _mapController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _mapController = MapController();
     _loadRunningData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -418,6 +421,19 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     } catch (e) {
       print('❌ 워크아웃 상세 정보 로드 실패: $e');
       print('📋 오류 상세 정보: ${e.toString()}');
+    }
+
+    // 경로 데이터가 로드되었으면 지도를 자동으로 조정
+    if (_routePoints != null && _routePoints!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final routePoints = _routePoints!.map((point) {
+            return LatLng(
+                point['latitude'] as double, point['longitude'] as double);
+          }).toList();
+          _fitMapToRoute(routePoints);
+        }
+      });
     }
   }
 
@@ -1442,6 +1458,58 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     );
   }
 
+  /// 경로 포인트들을 이용해서 자동 줌 레벨 계산
+  void _fitMapToRoute(List<LatLng> routePoints) {
+    if (routePoints.isEmpty) return;
+
+    // 경로의 경계 계산
+    double minLat = routePoints.map((p) => p.latitude).reduce(math.min);
+    double maxLat = routePoints.map((p) => p.latitude).reduce(math.max);
+    double minLng = routePoints.map((p) => p.longitude).reduce(math.min);
+    double maxLng = routePoints.map((p) => p.longitude).reduce(math.max);
+
+    // 경계에 약간의 패딩 추가
+    double latPadding = (maxLat - minLat) * 0.1;
+    double lngPadding = (maxLng - minLng) * 0.1;
+
+    LatLngBounds bounds = LatLngBounds(
+      LatLng(minLat - latPadding, minLng - lngPadding),
+      LatLng(maxLat + latPadding, maxLng + lngPadding),
+    );
+
+    // 경계의 중심점 계산
+    final centerLat =
+        (bounds.northEast.latitude + bounds.southWest.latitude) / 2;
+    final centerLng =
+        (bounds.northEast.longitude + bounds.southWest.longitude) / 2;
+    final center = LatLng(centerLat, centerLng);
+
+    // 경로에 맞는 줌 레벨 계산
+    final latDiff = bounds.northEast.latitude - bounds.southWest.latitude;
+    final lngDiff = bounds.northEast.longitude - bounds.southWest.longitude;
+    final maxDiff = math.max(latDiff, lngDiff);
+
+    // 줌 레벨 계산 (경로 크기에 따라 자동 조정)
+    double zoomLevel = 15.0;
+    if (maxDiff > 0.1)
+      zoomLevel = 10.0;
+    else if (maxDiff > 0.05)
+      zoomLevel = 12.0;
+    else if (maxDiff > 0.02)
+      zoomLevel = 13.0;
+    else if (maxDiff > 0.01) zoomLevel = 14.0;
+
+    // 카메라를 경계에 맞게 이동 및 줌 조정
+    _mapController.move(center, zoomLevel);
+
+    // 약간의 지연 후 다시 조정 (애니메이션 효과를 위해)
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _mapController.move(center, zoomLevel);
+      }
+    });
+  }
+
   /// 지도 위젯 생성
   Widget _buildMapWidget() {
     if (_routePoints == null || _routePoints!.isEmpty) {
@@ -1463,17 +1531,43 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     final center = LatLng(centerLat, centerLng);
 
     return FlutterMap(
+      mapController: _mapController,
       options: MapOptions(
         initialCenter: center,
         initialZoom: 15.0,
         minZoom: 10.0,
         maxZoom: 18.0,
+        keepAlive: true,
+        onMapReady: () {
+          // 지도가 준비되면 경로에 맞게 자동 줌 조정
+          _fitMapToRoute(routePoints);
+
+          // 지도 타일 로딩 강제 트리거
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              // 약간의 줌 레벨 변경으로 타일 로딩 강제
+              final currentZoom = _mapController.camera.zoom;
+              _mapController.move(
+                  _mapController.camera.center, currentZoom + 0.01);
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (mounted) {
+                  _mapController.move(
+                      _mapController.camera.center, currentZoom);
+                }
+              });
+            }
+          });
+        },
       ),
       children: [
         // OpenStreetMap 타일 레이어
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.lyh205.habitfit',
+          tileProvider: NetworkTileProvider(),
+          maxZoom: 19,
+          minZoom: 1,
+          keepBuffer: 4, // 주변 타일들을 미리 로딩
         ),
         // GPS 루트 폴리라인
         PolylineLayer(
