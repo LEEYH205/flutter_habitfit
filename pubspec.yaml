@@ -1,5 +1,5 @@
-name: habitfit_mvp
-description: MVP template for Habit + Fit + NutriSnap (Flutter + Firebase + Camera)
+name: routinex
+description: RoutineX - Habit tracking and fitness app with HealthKit integration (Flutter + Firebase + Camera)
 publish_to: "none"
 version: 0.1.0+1
 

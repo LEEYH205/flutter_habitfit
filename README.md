@@ -1,6 +1,6 @@
-# HabitFit MVP
+# RoutineX
 
-A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
+A Flutter-based habit tracking and fitness app with HealthKit integration and AI-powered features.
 
 ## 📊 **현재 상태**
 
