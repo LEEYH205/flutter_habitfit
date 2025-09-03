@@ -15,12 +15,13 @@ class Fs {
     }, SetOptions(merge: true));
   }
 
-  Future<void> addWorkout(String uid, DateTime day, int reps) async {
+  Future<void> addWorkout(
+      String uid, DateTime day, int reps, String exerciseType) async {
     final id = _dateId(day);
     await _db.collection('workouts').add({
       'uid': uid,
       'date': id,
-      'type': 'squat',
+      'type': exerciseType,
       'reps': reps,
       'ts': FieldValue.serverTimestamp(),
     });

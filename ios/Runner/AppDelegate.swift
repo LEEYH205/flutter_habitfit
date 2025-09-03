@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import HealthKit
 import CoreLocation
+import GoogleSignIn
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -14,6 +15,15 @@ import CoreLocation
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+
+    // Google Sign-In 초기화
+    GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+      if error != nil || user == nil {
+        // Show the app's signed-out state.
+      } else {
+        // Show the app's signed-in state.
+      }
+    }
     
     // HealthKit 경로 플러그인 등록
     let controller = window?.rootViewController as! FlutterViewController
@@ -36,6 +46,16 @@ import CoreLocation
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+
+  // Google Sign-In URL 핸들링
+  override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    return GIDSignIn.sharedInstance.handle(url)
+  }
+
+  // iOS 8 이하 지원을 위한 URL 핸들링
+  override func application(_ application: UIApplication, open url: URL, sourceApplication: String?, annotation: Any) -> Bool {
+    return GIDSignIn.sharedInstance.handle(url)
+  }
   
   private func handleMethodCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
@@ -57,8 +77,83 @@ import CoreLocation
       }
       
       let typesToRead: Set<HKObjectType> = [
-        HKObjectType.workoutType(),
-        HKSeriesType.workoutRoute()
+        // 필수 운동 데이터
+        HKObjectType.workoutType(),                    // 운동
+        HKSeriesType.workoutRoute(),                   // 운동 경로
+
+        // 필수 심박수 및 심장 건강 (Apple Watch 지원)
+        HKObjectType.quantityType(forIdentifier: .heartRate)!,  // 심박수
+        HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,  // 안정 심박수
+        HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,  // 걷기 평균 심박수
+        HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,  // 심박수 변이도
+
+        // 필수 운동 및 활동 데이터
+        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,     // 활동 에너지
+        HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,      // 휴식 에너지
+        HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!, // 걷기+달리기 거리
+        HKObjectType.quantityType(forIdentifier: .stepCount)!,              // 걸음
+        HKObjectType.quantityType(forIdentifier: .flightsClimbed)!,          // 오른 층수
+        HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,       // 운동하기 시간
+        HKObjectType.quantityType(forIdentifier: .appleStandTime)!,            // 서 있는 시간
+
+        // Apple Watch 특화 데이터 (고급 센서 데이터)
+        HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,       // 달리기 보폭 길이 (Apple Watch)
+        HKObjectType.quantityType(forIdentifier: .runningSpeed)!,              // 달리기 속도 (Apple Watch)
+        HKObjectType.quantityType(forIdentifier: .runningPower)!,              // 달리기 파워 (Apple Watch)
+        HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation)!, // 수직 진폭 (Apple Watch)
+        HKObjectType.quantityType(forIdentifier: .runningGroundContactTime)!,  // 지면 접촉 시간 (Apple Watch)
+
+        // 추가 심장 건강 데이터 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
+        // HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,
+        // HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+
+        // 추가 활동 데이터 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .appleStandTime)!,
+
+        // 신체 측정 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+        // HKObjectType.quantityType(forIdentifier: .height)!,
+        // HKObjectType.quantityType(forIdentifier: .bodyFatPercentage)!,
+        // HKObjectType.quantityType(forIdentifier: .leanBodyMass)!,
+
+        // 영양 및 수분 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
+        // HKObjectType.quantityType(forIdentifier: .dietaryProtein)!,
+        // HKObjectType.quantityType(forIdentifier: .dietaryCarbohydrates)!,
+        // HKObjectType.quantityType(forIdentifier: .dietaryFatTotal)!,
+        // HKObjectType.quantityType(forIdentifier: .dietaryWater)!,
+
+        // 수면 (주석 처리)
+        // HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
+
+        // 혈압 및 혈당 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
+        // HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
+        // HKObjectType.quantityType(forIdentifier: .bloodGlucose)!,
+
+        // 체온 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .bodyTemperature)!,
+
+        // 산소 포화도 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
+        // HKObjectType.quantityType(forIdentifier: .peripheralPerfusionIndex)!,
+
+        // 호흡 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
+
+        // 여성 건강 (주석 처리)
+        // HKObjectType.categoryType(forIdentifier: .menstrualFlow)!,
+        // HKObjectType.quantityType(forIdentifier: .basalBodyTemperature)!,
+
+        // 건강 기록 (주석 처리)
+        // HKObjectType.clinicalType(forIdentifier: .allergyRecord)!,
+        // HKObjectType.clinicalType(forIdentifier: .conditionRecord)!,
+        // HKObjectType.clinicalType(forIdentifier: .medicationRecord)!,
+        // HKObjectType.clinicalType(forIdentifier: .procedureRecord)!,
+
+        // 정신 건강 (주석 처리)
+        // HKObjectType.quantityType(forIdentifier: .mindfulSession)!,
       ]
       
       self.healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
@@ -277,14 +372,83 @@ import CoreLocation
         }
 
         let typesToRead: Set<HKObjectType> = [
-            HKObjectType.workoutType(),
-            HKSeriesType.workoutRoute(),
-            HKObjectType.quantityType(forIdentifier: .heartRate)!,
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKObjectType.quantityType(forIdentifier: .stepCount)!,
-            HKObjectType.quantityType(forIdentifier: .flightsClimbed)!,
-            HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,
+            // 필수 운동 데이터
+            HKObjectType.workoutType(),                    // 운동
+            HKSeriesType.workoutRoute(),                   // 운동 경로
+
+            // 필수 심박수 및 심장 건강 (Apple Watch 지원)
+            HKObjectType.quantityType(forIdentifier: .heartRate)!,  // 심박수
+            HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,  // 안정 심박수
+            HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,  // 걷기 평균 심박수
+            HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,  // 심박수 변이도
+
+            // 필수 운동 및 활동 데이터
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,     // 활동 에너지
+            HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,      // 휴식 에너지
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!, // 걷기+달리기 거리
+            HKObjectType.quantityType(forIdentifier: .stepCount)!,              // 걸음
+            HKObjectType.quantityType(forIdentifier: .flightsClimbed)!,          // 오른 층수
+            HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,       // 운동하기 시간
+            HKObjectType.quantityType(forIdentifier: .appleStandTime)!,            // 서 있는 시간
+
+            // Apple Watch 특화 데이터 (고급 센서 데이터)
+            HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,       // 달리기 보폭 길이 (Apple Watch)
+            HKObjectType.quantityType(forIdentifier: .runningSpeed)!,              // 달리기 속도 (Apple Watch)
+            HKObjectType.quantityType(forIdentifier: .runningPower)!,              // 달리기 파워 (Apple Watch)
+            HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation)!, // 수직 진폭 (Apple Watch)
+            HKObjectType.quantityType(forIdentifier: .runningGroundContactTime)!,  // 지면 접촉 시간 (Apple Watch)
+
+            // 추가 심장 건강 데이터 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
+            // HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,
+            // HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+
+            // 추가 활동 데이터 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .appleStandTime)!,
+
+            // 신체 측정 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+            // HKObjectType.quantityType(forIdentifier: .height)!,
+            // HKObjectType.quantityType(forIdentifier: .bodyFatPercentage)!,
+            // HKObjectType.quantityType(forIdentifier: .leanBodyMass)!,
+
+            // 영양 및 수분 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
+            // HKObjectType.quantityType(forIdentifier: .dietaryProtein)!,
+            // HKObjectType.quantityType(forIdentifier: .dietaryCarbohydrates)!,
+            // HKObjectType.quantityType(forIdentifier: .dietaryFatTotal)!,
+            // HKObjectType.quantityType(forIdentifier: .dietaryWater)!,
+
+            // 수면 (주석 처리)
+            // HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
+
+            // 혈압 및 혈당 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
+            // HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
+            // HKObjectType.quantityType(forIdentifier: .bloodGlucose)!,
+
+            // 체온 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .bodyTemperature)!,
+
+            // 산소 포화도 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
+            // HKObjectType.quantityType(forIdentifier: .peripheralPerfusionIndex)!,
+
+            // 호흡 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
+
+            // 여성 건강 (주석 처리)
+            // HKObjectType.categoryType(forIdentifier: .menstrualFlow)!,
+            // HKObjectType.quantityType(forIdentifier: .basalBodyTemperature)!,
+
+            // 건강 기록 (주석 처리)
+            // HKObjectType.clinicalType(forIdentifier: .allergyRecord)!,
+            // HKObjectType.clinicalType(forIdentifier: .conditionRecord)!,
+            // HKObjectType.clinicalType(forIdentifier: .medicationRecord)!,
+            // HKObjectType.clinicalType(forIdentifier: .procedureRecord)!,
+
+            // 정신 건강 (주석 처리)
+            // HKObjectType.quantityType(forIdentifier: .mindfulSession)!,
         ]
 
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in

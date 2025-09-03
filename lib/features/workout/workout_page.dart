@@ -64,14 +64,14 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
     super.initState();
     _estimator = MoveNetPoseEstimator();
     _pushUpDetector = PushUpDetector();
-    
+
     // 푸시업 완료 시 목표 달성 체크를 위한 콜백 설정
     _pushUpDetector.onRepCompleted = (int repCount) {
       if (mounted) {
         _checkGoalAchievement(repCount);
       }
     };
-    
+
     _init();
     _loadUserGoals(); // 사용자 목표 설정 로드
   }
@@ -187,13 +187,14 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   // 목표 달성 감지 및 축하 메시지 표시
   void _checkGoalAchievement(int currentCount) {
     final goal = _exerciseSettings[_selectedExercise]?['goal'] as int? ?? 0;
-    
-    print('🎯 목표 달성 체크: 현재=$currentCount회, 목표=$goal회, 운동=${_exerciseSettings[_selectedExercise]?['name']}');
+
+    print(
+        '🎯 목표 달성 체크: 현재=$currentCount회, 목표=$goal회, 운동=${_exerciseSettings[_selectedExercise]?['name']}');
     print('🎯 오버레이 상태: $_showGoalAchievement');
 
     if (currentCount >= goal && !_showGoalAchievement) {
       print('🎉 목표 달성! 오버레이 표시 시작');
-      
+
       setState(() {
         _showGoalAchievement = true;
         _goalAchievementText =
@@ -213,7 +214,8 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
       // 목표 달성 알림 전송
       _showGoalAchievementNotification(currentCount);
     } else {
-      print('🎯 목표 달성 조건 불충족: currentCount >= goal = ${currentCount >= goal}, !_showGoalAchievement = ${!_showGoalAchievement}');
+      print(
+          '🎯 목표 달성 조건 불충족: currentCount >= goal = ${currentCount >= goal}, !_showGoalAchievement = ${!_showGoalAchievement}');
     }
   }
 
@@ -255,8 +257,13 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
           final dateId =
               '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
-          print('💾 Firestore에 저장 중: $dateId, $reps회, $exerciseName');
+          // 현재 사용자 UID 가져오기
+          final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
+
+          print(
+              '💾 Firestore에 저장 중: $dateId, $reps회, $exerciseName, uid: $uid');
           await FirebaseFirestore.instance.collection('workouts').add({
+            'uid': uid,
             'date': dateId,
             'reps': reps,
             'exerciseType': exerciseName,

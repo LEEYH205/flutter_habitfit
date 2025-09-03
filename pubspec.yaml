@@ -16,6 +16,8 @@ dependencies:
   firebase_messaging: any
   firebase_auth: any
   firebase_remote_config: any
+  google_sign_in: ^6.2.1
+  provider: ^6.1.1
   camera: any
   image_picker: any
   path_provider: any

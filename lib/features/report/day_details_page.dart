@@ -38,7 +38,7 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
     try {
       final dateKey = DateTime(widget.selectedDay.year,
           widget.selectedDay.month, widget.selectedDay.day);
-      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
+      final uid = FirebaseAuth.instance.currentUser!.uid;
       Map<String, dynamic> dayData = {
         'habits': [],
         'workouts': [],
@@ -46,17 +46,15 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
         'meals': [],
       };
 
-      //if (user != null) {
-      if (1 == 1) {
+      // 사용자 인증 확인
+      if (FirebaseAuth.instance.currentUser != null) {
         // 실제 사용자 인증이 된 경우 Firebase 데이터 로드
         try {
-          // 습관 데이터 로드
+          // 습관 데이터 로드 (전역 컬렉션에서 uid로 필터링)
           final habitSnapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
               .collection('habits')
-              .where('date', isGreaterThanOrEqualTo: dateKey)
-              .where('date', isLessThan: dateKey.add(const Duration(days: 1)))
+              .where('uid', isEqualTo: uid)
+              .where('date', isEqualTo: _getDateId(widget.selectedDay))
               .get();
 
           if (habitSnapshot.docs.isNotEmpty) {
@@ -64,13 +62,11 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
                 habitSnapshot.docs.map((doc) => doc.data()).toList();
           }
 
-          // 운동 데이터 로드
+          // 운동 데이터 로드 (전역 컬렉션에서 uid로 필터링)
           final workoutSnapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
               .collection('workouts')
-              .where('date', isGreaterThanOrEqualTo: dateKey)
-              .where('date', isLessThan: dateKey.add(const Duration(days: 1)))
+              .where('uid', isEqualTo: uid)
+              .where('date', isEqualTo: _getDateId(widget.selectedDay))
               .get();
 
           if (workoutSnapshot.docs.isNotEmpty) {
@@ -136,8 +132,13 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
           print('Firebase 데이터 로드 실패, Mock 데이터 사용: $e');
         }
       } else {
-        // 개발 중 사용자가 인증되지 않은 경우 Mock 데이터 사용
-        print('🔧 개발 모드: Mock 데이터로 UI 테스트 중...');
+        // 사용자가 인증되지 않은 경우 로그인 유도
+        print('⚠️ 사용자 인증이 필요합니다.');
+        setState(() {
+          _error = '로그인이 필요한 서비스입니다.';
+          _isLoading = false;
+        });
+        return;
       }
 
       setState(() {
@@ -186,9 +187,9 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.error_outline,
+                Icons.login,
                 size: 64,
-                color: Colors.red,
+                color: Colors.blue,
               ),
               const SizedBox(height: 16),
               Text(
@@ -196,13 +197,16 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.red,
+                  color: Colors.blue,
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _loadDayDetails,
-                child: const Text('다시 시도'),
+                onPressed: () {
+                  // 로그인 화면으로 이동
+                  Navigator.of(context).pushReplacementNamed('/');
+                },
+                child: const Text('로그인하기'),
               ),
             ],
           ),
@@ -566,5 +570,9 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
         ),
       ),
     );
+  }
+
+  String _getDateId(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

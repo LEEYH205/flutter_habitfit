@@ -2,12 +2,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as provider;
 import 'dart:io';
 import 'package:health/health.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart';
 import 'app.dart';
+import 'providers/auth_provider.dart';
 import 'common/services/fcm_service.dart';
 import 'common/services/local_notification_service.dart';
 import 'common/services/remote_config_service.dart';
@@ -63,7 +65,14 @@ Future<void> main() async {
     }
   }
 
-  runApp(const ProviderScope(child: HabitFitApp()));
+  runApp(
+    provider.MultiProvider(
+      providers: [
+        provider.ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const ProviderScope(child: HabitFitApp()),
+    ),
+  );
 }
 
 /// HealthKit 초기화 및 기본 권한 체크

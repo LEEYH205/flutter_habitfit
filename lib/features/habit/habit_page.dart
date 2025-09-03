@@ -49,6 +49,7 @@ class _HabitPageState extends ConsumerState<HabitPage> {
 
       // 오늘 습관 체크 여부 확인
       final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
+      print('🔐 현재 사용자 UID: $uid');
       final today = DateTime.now();
       final todayId = _getDateId(today);
 
@@ -147,6 +148,7 @@ class _HabitPageState extends ConsumerState<HabitPage> {
   Future<void> _saveHabitAndShowAchievement(bool done) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
+      print('🔐 습관 체크 사용자 UID: $uid');
       final today = DateTime.now();
 
       // Firestore에 저장
