@@ -153,6 +153,9 @@ A Flutter-based habit tracking and fitness app with AI-powered pose estimation.
 - **💪 Squat Detection**: 무릎 각도 계산으로 정확한 운동 횟수 측정
 - **📱 Real-time Processing**: iPhone에서 30fps 안정적 동작
 - **🔔 Local Notification System**: 완벽한 로컬 알림 시스템 구현 완료
+- **🏃‍♂️ Complete GPS Route Tracking**: GPS 경로 데이터가 전체 운동 기간을 커버
+- **🛠️ HealthKit API Optimization**: iOS HealthKit API 호환성 문제 해결
+- **📍 HealthKit Route Integration**: HealthKitRouteManager 클래스 통합으로 경로 데이터 수집 최적화
 
 ### ✅ Completed Features
 - **🎨 Pose Overlay UI**: 실시간 키포인트 시각화 및 스켈레톤 연결선 표시
@@ -648,6 +651,8 @@ flutter: ⚠️ Low confidence: L(0.00,0.00,0.00) R(0.00,0.00,0.00)
 - **🔢 독립적인 카운터**: 스쿼트와 푸시업 각각의 카운터 시스템 구현 완료
 - **🏥 HealthKit 연동**: ✅ 완료 - iPhone 건강앱과의 데이터 연동 성공
 - **🏃‍♂️ 달리기 데이터**: ✅ 완료 - Apple Watch 달리기 데이터 수집 성공
+- **🏃‍♂️ GPS 경로 추적**: ✅ 완료 - 전체 운동 기간 커버
+- **🛠️ HealthKit API**: ✅ 완료 - iOS API 호환성 문제 해결
 - **🏃‍♂️ 달리기 시스템**: GPS 기반 추적 및 AI 코칭 시스템 계획됨
 - **⌚️ Apple Watch**: 워치 전용 운동 앱 및 센서 활용 계획됨
 
