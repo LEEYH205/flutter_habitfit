@@ -690,7 +690,11 @@ class HealthKitService {
 
         // 값 변환 디버깅
         double hrValue = 0.0;
-        if (point.value is num) {
+        if (point.value is NumericHealthValue) {
+          final numericValue = point.value as NumericHealthValue;
+          hrValue = numericValue.numericValue.toDouble();
+          print('   ✅ NumericHealthValue 변환 성공: $hrValue BPM');
+        } else if (point.value is num) {
           hrValue = (point.value as num).toDouble();
           print('   ✅ 숫자 타입 변환 성공: $hrValue BPM');
         } else if (point.value is String) {
@@ -1025,7 +1029,6 @@ class HealthKitService {
       }
 
       // GPS 데이터가 없으면 null 반환 (샘플 경로 생성 제거)
-      print('⚠️ 실제 GPS 데이터가 없습니다. 샘플 경로를 생성하지 않습니다.');
       return null;
     } finally {
       print('🚀 ===== getWorkoutRoute 메서드 종료 =====');
