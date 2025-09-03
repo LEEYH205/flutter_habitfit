@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../services/health_kit_service.dart';
 import '../../services/running_coaching_service.dart' as coaching;
 import '../../services/healthkit_route_service.dart';
@@ -177,22 +179,42 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
       print('✅ AI 코칭 생성 완료');
 
       // GPS 루트 데이터 로드 (HealthKit인 경우)
-      if (workout.source == 'HealthKit' && workout.id.isNotEmpty) {
+      if (workout.source == 'HealthKit') {
         try {
+          print('🔍 HealthKit에서 실제 GPS 루트 데이터 로드 시작');
           await HealthKitRouteService.requestPermissions();
+
+          // 운동 ID가 있으면 사용, 없으면 시간 범위로 검색
           _routePoints = await HealthKitRouteService.getWorkoutRoute(
               workout.startTime,
-              workout.endTime ?? workout.startTime.add(workout.duration));
-          print('✅ GPS 루트 데이터 ${(_routePoints?.length ?? 0)}개 로드 완료');
-        } catch (e) {
-          print('⚠️ GPS 루트 데이터 로드 실패: $e');
-        }
-      }
+              workout.endTime ?? workout.startTime.add(workout.duration),
+              workoutId: workout.id.isNotEmpty ? workout.id : null);
 
-      // GPS 루트 데이터가 없으면 모의 데이터 생성
-      if (_routePoints == null || _routePoints!.isEmpty) {
-        print('📝 GPS 루트 데이터가 없어서 모의 데이터 생성');
-        _routePoints = _generateMockRouteData(workout);
+          if (_routePoints != null && _routePoints!.isNotEmpty) {
+            print('✅ 실제 GPS 루트 데이터 ${_routePoints!.length}개 로드 완료');
+            print('📍 첫 번째 포인트: ${_routePoints!.first}');
+            print('📍 마지막 포인트: ${_routePoints!.last}');
+          } else {
+            print('⚠️ HealthKit에서 GPS 루트 데이터를 찾을 수 없습니다');
+            print('🔍 다른 방법으로 시도해보겠습니다...');
+
+            // 특정 기간의 모든 운동 경로 데이터 시도
+            final allRoutes = await HealthKitRouteService.getWorkoutRoutes(
+                workout.startTime,
+                workout.endTime ?? workout.startTime.add(workout.duration));
+
+            if (allRoutes != null && allRoutes.isNotEmpty) {
+              _routePoints = allRoutes;
+              print('✅ 대체 방법으로 GPS 루트 데이터 ${_routePoints!.length}개 로드 완료');
+            } else {
+              print('❌ 모든 방법으로 GPS 루트 데이터를 찾을 수 없습니다');
+            }
+          }
+        } catch (e) {
+          print('❌ GPS 루트 데이터 로드 실패: $e');
+        }
+      } else {
+        print('⚠️ HealthKit이 아닌 워크아웃: ${workout.source}');
       }
     } catch (e) {
       print('워크아웃 상세 정보 로드 실패: $e');
@@ -907,14 +929,28 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
             Icon(Icons.map_outlined, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             const Text(
-              'GPS 루트 데이터가 없습니다',
+              '실제 GPS 루트 데이터가 없습니다',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Apple Watch로 기록된 운동의\nGPS 데이터를 확인하려면\nHealthKit 권한이 필요합니다',
+              'Apple Watch나 iPhone으로 기록된\n운동의 GPS 데이터를 불러오지 못했습니다.\n\nHealthKit 권한을 확인하고\n실제 운동 데이터가 있는지 확인해주세요.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: const Text(
+                '💡 팁: Apple Watch에서 운동을 시작할 때\n"위치 서비스"가 활성화되어 있는지 확인하세요.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.orange),
+              ),
             ),
           ],
         ),
@@ -944,53 +980,89 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[300]!),
                     ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.map, size: 48, color: Colors.blue),
-                          const SizedBox(height: 16),
-                          Text(
-                            'GPS 루트 데이터: ${_routePoints!.length}개 포인트',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '시작: ${DateFormat('HH:mm:ss', 'ko_KR').format(DateTime.parse(_routePoints!.first['timestamp']))}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            '종료: ${DateFormat('HH:mm:ss', 'ko_KR').format(DateTime.parse(_routePoints!.last['timestamp']))}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              '실제 구현 시 Google Maps 연동',
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildMapWidget(),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    '총 포인트: ${_routePoints!.length}개',
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  // GPS 루트 정보
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'GPS 루트 정보',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${_routePoints!.length}개 포인트',
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.play_circle_filled,
+                                color: Colors.green, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              '시작: ${_formatTimestamp(_routePoints!.first['timestamp'])}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.stop_circle,
+                                color: Colors.red, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              '종료: ${_formatTimestamp(_routePoints!.last['timestamp'])}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                color: Colors.blue, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              '위치: 한강공원 (여의도)',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1177,36 +1249,113 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     );
   }
 
-  /// 모의 GPS 루트 데이터 생성
-  List<Map<String, dynamic>> _generateMockRouteData(WorkoutData workout) {
-    final duration = workout.duration.inMinutes;
-    final data = <Map<String, dynamic>>[];
-
-    // 서울 중심 좌표 (한강공원 근처)
-    double startLat = 37.5665;
-    double startLng = 126.9780;
-
-    // 운동 시간 동안 30초마다 GPS 포인트 생성
-    for (int i = 0; i < duration * 2; i++) {
-      final timestamp = workout.startTime.add(Duration(seconds: i * 30));
-
-      // 간단한 원형 경로 시뮬레이션
-      final angle = (i * 0.1) % (2 * 3.14159); // 원형 경로
-      final radius = 0.01; // 약 1km 반경
-
-      final lat = startLat + radius * (angle / 3.14159) * 0.5;
-      final lng = startLng + radius * (angle / 3.14159) * 0.5;
-
-      data.add({
-        'latitude': lat,
-        'longitude': lng,
-        'timestamp': timestamp.toIso8601String(),
-        'altitude': 50.0 + (i % 10) * 2, // 고도 변화
-      });
+  /// 지도 위젯 생성
+  Widget _buildMapWidget() {
+    if (_routePoints == null || _routePoints!.isEmpty) {
+      return const Center(
+        child: Text('GPS 데이터가 없습니다'),
+      );
     }
 
-    print('📝 모의 GPS 루트 데이터 ${data.length}개 생성 완료');
-    return data;
+    // GPS 포인트들을 LatLng 리스트로 변환
+    final routePoints = _routePoints!.map((point) {
+      return LatLng(
+        point['latitude'] as double,
+        point['longitude'] as double,
+      );
+    }).toList();
+
+    // 경로의 중심점 계산
+    final centerLat =
+        routePoints.map((p) => p.latitude).reduce((a, b) => a + b) /
+            routePoints.length;
+    final centerLng =
+        routePoints.map((p) => p.longitude).reduce((a, b) => a + b) /
+            routePoints.length;
+    final center = LatLng(centerLat, centerLng);
+
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: center,
+        initialZoom: 15.0,
+        minZoom: 10.0,
+        maxZoom: 18.0,
+      ),
+      children: [
+        // OpenStreetMap 타일 레이어
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.lyh205.habitfit',
+        ),
+        // GPS 루트 폴리라인
+        PolylineLayer(
+          polylines: [
+            Polyline(
+              points: routePoints,
+              strokeWidth: 4.0,
+              color: Colors.blue,
+            ),
+          ],
+        ),
+        // 시작점 마커
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: routePoints.first,
+              width: 20,
+              height: 20,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.play_arrow,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+            ),
+            // 종료점 마커
+            Marker(
+              point: routePoints.last,
+              width: 20,
+              height: 20,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.stop,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 타임스탬프 포맷팅
+  String _formatTimestamp(dynamic timestamp) {
+    try {
+      DateTime dateTime;
+      if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else if (timestamp is num) {
+        // iOS에서 밀리초 단위로 전달되는 경우
+        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
+      } else {
+        return '알 수 없음';
+      }
+      return DateFormat('HH:mm:ss', 'ko_KR').format(dateTime);
+    } catch (e) {
+      print('⚠️ 타임스탬프 포맷팅 오류: $e, 값: $timestamp');
+      return '알 수 없음';
+    }
   }
 
   /// 강도별 색상
