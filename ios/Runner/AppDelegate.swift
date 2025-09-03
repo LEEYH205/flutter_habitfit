@@ -77,17 +77,17 @@ import GoogleSignIn
       }
       
       let typesToRead: Set<HKObjectType> = [
-        // 필수 운동 데이터
+        // 기본 운동 데이터
         HKObjectType.workoutType(),                    // 운동
         HKSeriesType.workoutRoute(),                   // 운동 경로
 
-        // 필수 심박수 및 심장 건강 (Apple Watch 지원)
+        // 심박수 및 심장 건강 데이터
         HKObjectType.quantityType(forIdentifier: .heartRate)!,  // 심박수
         HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,  // 안정 심박수
         HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,  // 걷기 평균 심박수
         HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,  // 심박수 변이도
 
-        // 필수 운동 및 활동 데이터
+        // 운동 및 활동 데이터
         HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,     // 활동 에너지
         HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,      // 휴식 에너지
         HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!, // 걷기+달리기 거리
@@ -96,7 +96,10 @@ import GoogleSignIn
         HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,       // 운동하기 시간
         HKObjectType.quantityType(forIdentifier: .appleStandTime)!,            // 서 있는 시간
 
-        // Apple Watch 특화 데이터 (고급 센서 데이터)
+        // 신체 데이터
+        HKObjectType.quantityType(forIdentifier: .height)!,                 // 신장
+
+        // Apple Watch 특화 러닝 다이내믹스 데이터
         HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,       // 달리기 보폭 길이 (Apple Watch)
         HKObjectType.quantityType(forIdentifier: .runningSpeed)!,              // 달리기 속도 (Apple Watch)
         HKObjectType.quantityType(forIdentifier: .runningPower)!,              // 달리기 파워 (Apple Watch)
