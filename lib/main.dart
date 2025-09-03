@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:health/health.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'firebase_options.dart';
 import 'app.dart';
@@ -19,6 +20,16 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize date formatting for Korean locale
+  try {
+    await initializeDateFormatting('ko_KR', null);
+  } catch (e) {
+    // Fallback to default locale if Korean fails
+    await initializeDateFormatting();
+    print('⚠️ Korean locale initialization failed, using default: $e');
+  }
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

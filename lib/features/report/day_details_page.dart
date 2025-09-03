@@ -38,7 +38,6 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
     try {
       final dateKey = DateTime(widget.selectedDay.year,
           widget.selectedDay.month, widget.selectedDay.day);
-      final user = FirebaseAuth.instance.currentUser;
       final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anon';
       Map<String, dynamic> dayData = {
         'habits': [],
@@ -158,7 +157,7 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          DateFormat('yyyy년 MM월 dd일').format(widget.selectedDay),
+          DateFormat('yyyy년 MM월 dd일', 'ko_KR').format(widget.selectedDay),
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
