@@ -685,10 +685,26 @@ class HealthKitService {
 
       // HealthDataPoint를 HeartRateData로 변환
       final hrDataList = heartRateData.map((point) {
-        print('   📍 심박수 포인트 처리: ${point.dateFrom} - 값: ${point.value}');
+        print(
+            '   📍 심박수 포인트 처리: ${point.dateFrom} - 값: ${point.value} (타입: ${point.value.runtimeType})');
+
+        // 값 변환 디버깅
+        double hrValue = 0.0;
+        if (point.value is num) {
+          hrValue = (point.value as num).toDouble();
+          print('   ✅ 숫자 타입 변환 성공: $hrValue BPM');
+        } else if (point.value is String) {
+          final strValue = point.value as String;
+          hrValue = double.tryParse(strValue) ?? 0.0;
+          print('   🔄 문자열에서 변환 시도: "$strValue" → $hrValue BPM');
+        } else {
+          print('   ❌ 알 수 없는 값 타입: ${point.value.runtimeType}');
+          hrValue = 0.0;
+        }
+
         return coaching.HeartRateData(
           timestamp: point.dateFrom,
-          value: point.value is num ? (point.value as num).toDouble() : 0.0,
+          value: hrValue,
           unit: 'BPM',
         );
       }).toList();

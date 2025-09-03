@@ -284,7 +284,7 @@ import CoreLocation
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKObjectType.quantityType(forIdentifier: .stepCount)!,
             HKObjectType.quantityType(forIdentifier: .flightsClimbed)!,
-            HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!
+            HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,
         ]
 
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
