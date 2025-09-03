@@ -38,6 +38,10 @@
 	<string>러닝 보폭, 속도, 파워, 수직 진폭, 지면 접촉 시간, 경로를 분석하기 위해 건강 데이터를 읽습니다.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>운동 기록과 성취를 위해 건강 데이터를 업데이트합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>운동 경로와 위치 정보를 분석하기 위해 위치 서비스에 접근합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>운동 경로와 위치 정보를 분석하기 위해 위치 서비스에 접근합니다.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

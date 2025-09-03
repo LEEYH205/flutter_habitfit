@@ -43,6 +43,8 @@ class HealthKitService {
         HealthDataType.BASAL_ENERGY_BURNED, // 기초 대사 칼로리
         HealthDataType.EXERCISE_TIME, // 운동 시간
         HealthDataType.FLIGHTS_CLIMBED, // 계단 오르기
+        // HealthDataType.WORKOUT_ROUTE와 HealthDataType.LOCATION은 health 패키지에서 지원하지 않음
+        // GPS 경로 데이터는 iOS 네이티브 코드에서 직접 처리
       ];
 
       final granted = await _health.requestAuthorization(types);
@@ -425,7 +427,7 @@ class HealthKitService {
             duration: duration,
             distance: distance,
             calories: calories,
-            source: 'HealthKit (WORKOUT) - ${point.sourceName ?? '알 수 없음'}',
+            source: 'HealthKit', // 달리기는 무조건 HealthKit 소스로 설정
           );
 
           print('    ✅ 파싱 완료: $workout');
@@ -646,28 +648,44 @@ class HealthKitService {
   Future<List<coaching.HeartRateData>> getHeartRateData(
       DateTime start, DateTime end) async {
     try {
-      print('❤️ 심박수 데이터 수집 시작: $start ~ $end');
+      print('🔍 HealthKit 심박수 데이터 조회 시작');
+      print('📅 시간 범위: $start ~ $end');
+      print('⏱️ 조회 기간: ${(end.difference(start).inMinutes)}분');
 
       if (!_isInitialized) {
+        print('🔄 HealthKit 초기화 확인 중...');
         final initialized = await initialize();
-        if (!initialized) return [];
+        if (!initialized) {
+          print('❌ HealthKit 초기화 실패');
+          return [];
+        }
+        print('✅ HealthKit 초기화 성공');
       }
 
+      print('🔄 HealthKit에서 HEART_RATE 타입 데이터 요청 중...');
       final heartRateData = await _health.getHealthDataFromTypes(
         start,
         end,
         [HealthDataType.HEART_RATE],
       );
 
+      print('📊 HealthKit에서 받은 원본 데이터 개수: ${heartRateData.length}');
+
       if (heartRateData.isEmpty) {
-        print('⚠️ 심박수 데이터가 없습니다');
+        print('⚠️ HealthKit에서 심박수 데이터가 없음');
+        print('💡 가능한 원인:');
+        print('   - 해당 시간에 운동을 하지 않았을 수 있음');
+        print('   - Apple Watch가 연결되지 않았을 수 있음');
+        print('   - 심박수 측정이 꺼져 있었을 수 있음');
+        print('   - HealthKit 권한이 부족할 수 있음');
         return [];
       }
 
-      print('✅ 심박수 데이터 ${heartRateData.length}개 발견');
+      print('🔄 심박수 데이터 변환 시작...');
 
       // HealthDataPoint를 HeartRateData로 변환
       final hrDataList = heartRateData.map((point) {
+        print('   📍 심박수 포인트 처리: ${point.dateFrom} - 값: ${point.value}');
         return coaching.HeartRateData(
           timestamp: point.dateFrom,
           value: point.value is num ? (point.value as num).toDouble() : 0.0,
@@ -679,6 +697,24 @@ class HealthKitService {
       hrDataList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
       print('✅ 심박수 데이터 변환 완료: ${hrDataList.length}개');
+      print('📈 심박수 통계:');
+      if (hrDataList.isNotEmpty) {
+        final values = hrDataList.map((e) => e.value);
+        final avgHR = values.reduce((a, b) => a + b) / values.length;
+        final maxHR = values.reduce((a, b) => a > b ? a : b);
+        final minHR = values.reduce((a, b) => a < b ? a : b);
+
+        print('   - 평균: ${avgHR.round()} BPM');
+        print('   - 최고: ${maxHR.round()} BPM');
+        print('   - 최저: ${minHR.round()} BPM');
+        print(
+            '   - 첫 번째: ${hrDataList.first.value.round()} BPM at ${hrDataList.first.timestamp}');
+        print(
+            '   - 마지막: ${hrDataList.last.value.round()} BPM at ${hrDataList.last.timestamp}');
+        print(
+            '   - 데이터 간격: ${(hrDataList.last.timestamp.difference(hrDataList.first.timestamp).inSeconds / hrDataList.length).round()}초');
+      }
+
       return hrDataList;
     } catch (e) {
       print('❌ 심박수 데이터 수집 오류: $e');

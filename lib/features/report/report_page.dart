@@ -8,6 +8,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:health/health.dart';
 import '../running/running_analysis_page.dart';
 import 'day_details_page.dart';
+import '../healthkit_test_page.dart';
 
 /// 리포트 페이지 - 달력 중심의 통합 시스템
 class ReportPage extends ConsumerStatefulWidget {
@@ -318,6 +319,11 @@ class _ReportPageState extends ConsumerState<ReportPage> {
 
                   // 이벤트 범례
                   _buildEventLegend(),
+
+                  const SizedBox(height: 24),
+
+                  // HealthKit 테스트 버튼
+                  _buildHealthKitTestButton(),
                 ],
               ),
             ),
@@ -1362,6 +1368,70 @@ class _ReportPageState extends ConsumerState<ReportPage> {
             style: TextStyle(
               fontSize: 12,
               color: color.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthKitTestButton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.health_and_safety,
+                  color: Colors.orange[600], size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'HealthKit 테스트',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'HealthKit에서 실제 데이터를 가져올 수 있는지 테스트해보세요.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.orange[700],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HealthKitTestPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('HealthKit 테스트 시작'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[600],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
           ),
         ],

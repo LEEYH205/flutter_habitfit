@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -12,10 +13,7 @@ import '../../services/healthkit_route_service.dart';
 class RunningAnalysisPage extends ConsumerStatefulWidget {
   final Map<String, dynamic>? runningData;
 
-  const RunningAnalysisPage({
-    super.key,
-    this.runningData,
-  });
+  const RunningAnalysisPage({super.key, this.runningData});
 
   @override
   ConsumerState<RunningAnalysisPage> createState() =>
@@ -58,13 +56,32 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         final healthKitService = HealthKitService();
         final allWorkouts = await healthKitService.getRecentWorkouts(days: 30);
 
-        // 달리기 운동만 필터링
+        // 달리기 운동만 필터링 (달리기는 무조건 HealthKit 소스로 설정)
         final runningWorkouts = allWorkouts
-            .where((workout) =>
-                workout.type.toLowerCase().contains('달리기') ||
-                workout.type.toLowerCase().contains('running') ||
-                workout.source?.toLowerCase().contains('workout') == true)
-            .toList();
+            .where(
+          (workout) =>
+              workout.type.toLowerCase().contains('달리기') ||
+              workout.type.toLowerCase().contains('running') ||
+              workout.source?.toLowerCase().contains('workout') == true,
+        )
+            .map((workout) {
+          // 달리기 타입인 경우 source를 HealthKit으로 강제 설정
+          if (workout.type.toLowerCase().contains('달리기') ||
+              workout.type.toLowerCase().contains('running')) {
+            return WorkoutData(
+              id: workout.id,
+              uuid: workout.uuid,
+              type: workout.type,
+              startTime: workout.startTime,
+              endTime: workout.endTime,
+              duration: workout.duration,
+              distance: workout.distance,
+              calories: workout.calories,
+              source: 'HealthKit', // 달리기는 무조건 HealthKit 소스로 설정
+            );
+          }
+          return workout;
+        }).toList();
 
         if (runningWorkouts.isNotEmpty) {
           _currentWorkout = runningWorkouts.first;
@@ -118,13 +135,21 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
           uuid: data['uuid'] ?? '',
           type: data['type'] ?? 'Running',
           startTime: data['date'] ?? DateTime.now(),
-          endTime: (data['date'] as DateTime?)
-                  ?.add(Duration(seconds: data['duration'] ?? 0)) ??
+          endTime: (data['date'] as DateTime?)?.add(
+                Duration(seconds: data['duration'] ?? 0),
+              ) ??
               DateTime.now(),
           duration: Duration(seconds: data['duration'] ?? 0),
           distance: data['distance'] ?? 0.0,
           calories: data['calories'] ?? 0.0,
-          source: 'Firebase',
+          source: (data['type'] as String?)?.toLowerCase().contains('달리기') ==
+                      true ||
+                  (data['type'] as String?)
+                          ?.toLowerCase()
+                          .contains('running') ==
+                      true
+              ? 'HealthKit'
+              : 'Firebase', // 달리기는 HealthKit, 다른 운동은 Firebase
         );
 
         await _loadWorkoutDetails(_currentWorkout!);
@@ -134,39 +159,98 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     }
   }
 
+  /// 두 지점 간 거리 계산 (단순 Haversine 공식)
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371000; // 미터 단위
+    final double dLat = (lat2 - lat1) * (math.pi / 180);
+    final double dLon = (lon2 - lon1) * (math.pi / 180);
+    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180) *
+            math.cos(lat2 * math.pi / 180) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
   /// 워크아웃 상세 정보 로드
   Future<void> _loadWorkoutDetails(WorkoutData workout) async {
     try {
       // 심박수 데이터 로드 (HealthKit인 경우)
       List<coaching.HeartRateData>? heartRateData;
-      if (workout.source == 'HealthKit') {
+      print('🔍 심박수 데이터 로딩 시작...');
+      print('📊 워크아웃 정보:');
+      print('   - 타입: ${workout.type}');
+      print('   - 소스: ${workout.source}');
+      print('   - 시작 시간: ${workout.startTime}');
+      print('   - 종료 시간: ${workout.endTime ?? "알 수 없음"}');
+      print('   - 지속 시간: ${workout.duration}');
+
+      // 달리기 운동의 경우 무조건 HealthKit에서 심박수 데이터 시도
+      if (workout.source == 'HealthKit' ||
+          workout.type.toLowerCase().contains('달리기') ||
+          workout.type.toLowerCase().contains('running')) {
+        print('✅ HealthKit 소스 또는 달리기 운동 확인됨 - 심박수 데이터 요청 시작');
+
         try {
           final healthKitService = HealthKitService();
           final endTime =
               workout.endTime ?? workout.startTime.add(workout.duration);
-          print('🔍 심박수 데이터 요청: ${workout.startTime} ~ $endTime');
-          heartRateData = await healthKitService.getHeartRateData(
-            workout.startTime,
-            endTime,
-          );
-          print('✅ 심박수 데이터 ${heartRateData.length}개 로드 완료');
-          if (heartRateData.isNotEmpty) {
-            print(
-                '📊 첫 번째 심박수: ${heartRateData.first.value} BPM at ${heartRateData.first.timestamp}');
-            print(
-                '📊 마지막 심박수: ${heartRateData.last.value} BPM at ${heartRateData.last.timestamp}');
+
+          print('🔍 심박수 데이터 요청 범위:');
+          print('   - 시작: ${workout.startTime}');
+          print('   - 종료: $endTime');
+          print(
+              '   - 시간 범위: ${(endTime.difference(workout.startTime).inMinutes)}분');
+
+          // HealthKit 권한 상태 확인
+          print('🔐 HealthKit 권한 상태 확인 중...');
+          final hasPermissions = await healthKitService.initialize();
+          print('🔐 HealthKit 권한 상태: $hasPermissions');
+
+          if (hasPermissions) {
+            print('✅ HealthKit 권한 승인됨 - 심박수 데이터 조회 시작');
+            heartRateData = await healthKitService.getHeartRateData(
+              workout.startTime,
+              endTime,
+            );
+
+            print('📊 심박수 데이터 조회 결과:');
+            print('   - 데이터 개수: ${heartRateData.length ?? 0}');
+
+            if (heartRateData.isNotEmpty) {
+              print('✅ 심박수 데이터 로드 성공!');
+              print('📈 심박수 통계:');
+              print(
+                  '   - 첫 번째: ${heartRateData.first.value} BPM at ${heartRateData.first.timestamp}');
+              print(
+                  '   - 마지막: ${heartRateData.last.value} BPM at ${heartRateData.last.timestamp}');
+              print(
+                  '   - 평균: ${(heartRateData.map((e) => e.value).reduce((a, b) => a + b) / heartRateData.length).round()} BPM');
+              print(
+                  '   - 최고: ${heartRateData.map((e) => e.value).reduce((a, b) => a > b ? a : b).round()} BPM');
+              print(
+                  '   - 최저: ${heartRateData.map((e) => e.value).reduce((a, b) => a < b ? a : b).round()} BPM');
+            } else {
+              print('⚠️ 심박수 데이터가 비어있음 - HealthKit에 심박수 데이터가 없을 수 있음');
+            }
+          } else {
+            print('❌ HealthKit 권한이 거부됨 - 심박수 데이터 조회 불가');
           }
-        } catch (e) {
-          print('⚠️ 심박수 데이터 로드 실패: $e');
+        } catch (e, stackTrace) {
+          print('❌ 심박수 데이터 로드 실패: $e');
+          print('📋 스택 트레이스: $stackTrace');
         }
       } else {
         print('⚠️ HealthKit이 아닌 워크아웃: ${workout.source}');
+        print('💡 심박수 데이터는 HealthKit에서만 가져올 수 있습니다');
       }
 
-      // 심박수 데이터가 없으면 모의 데이터 생성
+      // 심박수 데이터가 없으면 빈 리스트로 처리
       if (heartRateData == null || heartRateData.isEmpty) {
-        print('📝 심박수 데이터가 없어서 모의 데이터 생성');
-        heartRateData = _generateMockHeartRateDataForCoaching(workout);
+        print('⚠️ 심박수 데이터가 없습니다. AI 코칭에서 심박수 분석을 제외합니다.');
+        heartRateData = [];
       }
 
       // AI 코칭 생성
@@ -179,45 +263,161 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
       print('✅ AI 코칭 생성 완료');
 
       // GPS 루트 데이터 로드 (HealthKit인 경우)
-      if (workout.source == 'HealthKit') {
+      print('🗺️ GPS 경로 데이터 로딩 시작...');
+      print('📍 워크아웃 GPS 정보:');
+      print('   - ID: ${workout.id}');
+      print('   - UUID: ${workout.uuid}');
+      print('   - 시작 시간: ${workout.startTime}');
+      print('   - 종료 시간: ${workout.endTime ?? "알 수 없음"}');
+      print('   - 거리: ${workout.distance ?? "알 수 없음"}km');
+      print('   - 소스: ${workout.source}');
+
+      // 달리기 운동의 경우 무조건 HealthKit에서 GPS 경로 데이터 시도
+      if (workout.source == 'HealthKit' ||
+          workout.type.toLowerCase().contains('달리기') ||
+          workout.type.toLowerCase().contains('running')) {
+        print('✅ HealthKit 소스 또는 달리기 운동 확인됨 - GPS 경로 데이터 요청 시작');
+
         try {
-          print('🔍 HealthKit에서 실제 GPS 루트 데이터 로드 시작');
-          await HealthKitRouteService.requestPermissions();
+          print('🔐 HealthKit GPS 권한 상태 확인 중...');
+          final permissionResult =
+              await HealthKitRouteService.requestPermissions();
+          print('🔐 HealthKit GPS 권한 상태: $permissionResult');
 
-          // 운동 ID가 있으면 사용, 없으면 시간 범위로 검색
-          _routePoints = await HealthKitRouteService.getWorkoutRoute(
-              workout.startTime,
-              workout.endTime ?? workout.startTime.add(workout.duration),
-              workoutId: workout.id.isNotEmpty ? workout.id : null);
+          if (permissionResult) {
+            print('✅ HealthKit GPS 권한 승인됨 - 경로 데이터 조회 시작');
 
-          if (_routePoints != null && _routePoints!.isNotEmpty) {
-            print('✅ 실제 GPS 루트 데이터 ${_routePoints!.length}개 로드 완료');
-            print('📍 첫 번째 포인트: ${_routePoints!.first}');
-            print('📍 마지막 포인트: ${_routePoints!.last}');
-          } else {
-            print('⚠️ HealthKit에서 GPS 루트 데이터를 찾을 수 없습니다');
-            print('🔍 다른 방법으로 시도해보겠습니다...');
-
-            // 특정 기간의 모든 운동 경로 데이터 시도
-            final allRoutes = await HealthKitRouteService.getWorkoutRoutes(
+            // 운동 UUID로 먼저 시도
+            if (workout.uuid != null && workout.uuid!.isNotEmpty) {
+              print('🎯 운동 UUID로 GPS 경로 조회 시도: ${workout.uuid}');
+              _routePoints = await HealthKitRouteService.getWorkoutRoute(
                 workout.startTime,
-                workout.endTime ?? workout.startTime.add(workout.duration));
+                workout.endTime ?? workout.startTime.add(workout.duration),
+                workoutId: workout.uuid,
+              );
 
-            if (allRoutes != null && allRoutes.isNotEmpty) {
-              _routePoints = allRoutes;
-              print('✅ 대체 방법으로 GPS 루트 데이터 ${_routePoints!.length}개 로드 완료');
+              if (_routePoints != null && _routePoints!.isNotEmpty) {
+                print('✅ UUID로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
+              } else {
+                print('⚠️ UUID로 GPS 경로를 찾을 수 없음 - 시간 범위로 재시도');
+                // 시간 범위로 재시도
+                print('🔄 시간 범위로 GPS 경로 조회 시도');
+                _routePoints = await HealthKitRouteService.getWorkoutRoute(
+                  workout.startTime
+                      .subtract(const Duration(minutes: 5)), // 5분 전부터
+                  (workout.endTime ?? workout.startTime.add(workout.duration))
+                      .add(const Duration(minutes: 5)), // 5분 후까지
+                  workoutId: null, // 시간 범위로 검색할 때는 ID를 null로
+                );
+
+                if (_routePoints != null && _routePoints!.isNotEmpty) {
+                  print('✅ 시간 범위로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
+                } else {
+                  print('❌ 시간 범위로도 GPS 경로를 찾을 수 없음');
+                }
+              }
             } else {
-              print('❌ 모든 방법으로 GPS 루트 데이터를 찾을 수 없습니다');
+              print('⚠️ 운동 UUID가 없음 - 시간 범위로 GPS 경로 조회');
+              _routePoints = await HealthKitRouteService.getWorkoutRoute(
+                workout.startTime.subtract(const Duration(minutes: 5)),
+                (workout.endTime ?? workout.startTime.add(workout.duration))
+                    .add(const Duration(minutes: 5)),
+                workoutId: null,
+              );
+
+              if (_routePoints != null && _routePoints!.isNotEmpty) {
+                print('✅ 시간 범위로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
+              } else {
+                print('❌ GPS 경로 데이터를 찾을 수 없음');
+              }
             }
+
+            // GPS 데이터 상세 정보 출력
+            if (_routePoints != null && _routePoints!.isNotEmpty) {
+              print('📊 GPS 경로 데이터 상세 정보:');
+              print('   - 총 포인트 수: ${_routePoints!.length}');
+              print(
+                  '   - 첫 번째 포인트: 위도 ${_routePoints!.first['latitude']}, 경도 ${_routePoints!.first['longitude']}');
+              print(
+                  '   - 마지막 포인트: 위도 ${_routePoints!.last['latitude']}, 경도 ${_routePoints!.last['longitude']}');
+
+              // 거리 계산 시도
+              if (_routePoints!.length > 1) {
+                try {
+                  double totalDistance = 0;
+                  for (int i = 1; i < _routePoints!.length; i++) {
+                    final prev = _routePoints![i - 1];
+                    final curr = _routePoints![i];
+                    // 간단한 거리 계산 (실제로는 더 정확한 공식을 사용해야 함)
+                    final distance = _calculateDistance(
+                      prev['latitude'] as double,
+                      prev['longitude'] as double,
+                      curr['latitude'] as double,
+                      curr['longitude'] as double,
+                    );
+                    totalDistance += distance;
+                  }
+                  print('   - 계산된 경로 길이: ${totalDistance.round()}m');
+                } catch (e) {
+                  print('⚠️ 경로 길이 계산 실패: $e');
+                }
+              }
+
+              print(
+                  '   - 시간 범위: ${_routePoints!.first['timestamp']} ~ ${_routePoints!.last['timestamp']}');
+            } else {
+              print('⚠️ GPS 경로 데이터가 비어있음 - 지도에 표시할 경로가 없습니다');
+              print('💡 가능한 원인:');
+              print('   - 운동 중 GPS가 꺼져 있었을 수 있음');
+              print('   - 위치 권한이 없었을 수 있음');
+              print('   - Apple Watch가 연결되지 않았을 수 있음');
+              print('   - HealthKit에 경로 데이터가 저장되지 않았을 수 있음');
+            }
+          } else {
+            print('❌ HealthKit GPS 권한이 거부됨 - 경로 데이터 조회 불가');
+            print('💡 GPS 경로 데이터를 가져오려면 iPhone 설정에서 위치 권한을 허용해주세요');
           }
-        } catch (e) {
-          print('❌ GPS 루트 데이터 로드 실패: $e');
+        } catch (e, stackTrace) {
+          print('❌ GPS 경로 데이터 로드 실패: $e');
+          print('📋 스택 트레이스: $stackTrace');
         }
       } else {
         print('⚠️ HealthKit이 아닌 워크아웃: ${workout.source}');
+        print('💡 GPS 경로 데이터는 HealthKit에서만 가져올 수 있습니다');
+      }
+
+      print('🔍 GPS 루트 데이터 요청 완료 - 결과: ${_routePoints?.length ?? 0}개 포인트');
+
+      if (_routePoints != null && _routePoints!.isNotEmpty) {
+        print('✅ 실제 GPS 루트 데이터 ${_routePoints!.length}개 로드 완료');
+        print('📍 첫 번째 포인트: ${_routePoints!.first}');
+        print('📍 마지막 포인트: ${_routePoints!.last}');
+      } else {
+        print('⚠️ HealthKit에서 GPS 루트 데이터를 찾을 수 없습니다');
+        print('🔍 다른 방법으로 시도해보겠습니다...');
+
+        // 특정 기간의 모든 운동 경로 데이터 시도
+        final allRoutes = await HealthKitRouteService.getWorkoutRoutes(
+          workout.startTime,
+          workout.endTime ?? workout.startTime.add(workout.duration),
+        );
+
+        if (allRoutes != null && allRoutes.isNotEmpty) {
+          _routePoints = allRoutes;
+          print('✅ 대체 방법으로 GPS 루트 데이터 ${_routePoints!.length}개 로드 완료');
+        } else {
+          print('❌ 모든 방법으로 GPS 루트 데이터를 찾을 수 없습니다');
+          print('💡 확인사항:');
+          print('   1. Apple Watch에서 운동을 시작할 때 위치 서비스가 활성화되어 있었나요?');
+          print('   2. iPhone 설정 > 개인정보 보호 및 보안 > 위치 서비스가 활성화되어 있나요?');
+          print(
+              '   3. iPhone 설정 > 개인정보 보호 및 보안 > 위치 서비스 > Apple Watch에서 위치 서비스가 허용되어 있나요?');
+          print('   4. HealthKit 앱에서 해당 운동에 경로 데이터가 있는지 확인해보세요.');
+        }
       }
     } catch (e) {
-      print('워크아웃 상세 정보 로드 실패: $e');
+      print('❌ 워크아웃 상세 정보 로드 실패: $e');
+      print('📋 오류 상세 정보: ${e.toString()}');
     }
   }
 
@@ -299,8 +499,10 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   Widget _buildSessionSummaryCard() {
     final workout = _currentWorkout!;
     final startTime = DateFormat('a h:mm', 'ko_KR').format(workout.startTime);
-    final endTime = DateFormat('a h:mm', 'ko_KR')
-        .format(workout.endTime ?? workout.startTime);
+    final endTime = DateFormat(
+      'a h:mm',
+      'ko_KR',
+    ).format(workout.endTime ?? workout.startTime);
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -333,10 +535,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
           const SizedBox(height: 8),
           Text(
             DateFormat('yyyy년 MM월 dd일 (E)', 'ko_KR').format(workout.startTime),
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white70,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.white70),
           ),
           const SizedBox(height: 20),
           Row(
@@ -410,10 +609,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.white70,
-          ),
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
         ),
       ],
     );
@@ -443,21 +639,35 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   const SizedBox(height: 16),
                   _buildDetailRow('운동 유형', workout.type),
                   _buildDetailRow(
-                      '시작 시간',
-                      DateFormat('yyyy-MM-dd HH:mm:ss', 'ko_KR')
-                          .format(workout.startTime)),
+                    '시작 시간',
+                    DateFormat(
+                      'yyyy-MM-dd HH:mm:ss',
+                      'ko_KR',
+                    ).format(workout.startTime),
+                  ),
                   _buildDetailRow(
-                      '종료 시간',
-                      DateFormat('yyyy-MM-dd HH:mm:ss', 'ko_KR')
-                          .format(workout.endTime ?? workout.startTime)),
-                  _buildDetailRow('총 시간',
-                      '${workout.duration.inHours}:${(workout.duration.inMinutes % 60).toString().padLeft(2, '0')}:${(workout.duration.inSeconds % 60).toString().padLeft(2, '0')}'),
-                  _buildDetailRow('총 거리',
-                      '${workout.distance?.toStringAsFixed(2) ?? 0} km'),
+                    '종료 시간',
+                    DateFormat(
+                      'yyyy-MM-dd HH:mm:ss',
+                      'ko_KR',
+                    ).format(workout.endTime ?? workout.startTime),
+                  ),
                   _buildDetailRow(
-                      '활동 칼로리', '${workout.calories?.toInt() ?? 0} kcal'),
-                  _buildDetailRow('총 칼로리',
-                      '${(workout.calories ?? 0) + 50} kcal'), // 대략적인 계산
+                    '총 시간',
+                    '${workout.duration.inHours}:${(workout.duration.inMinutes % 60).toString().padLeft(2, '0')}:${(workout.duration.inSeconds % 60).toString().padLeft(2, '0')}',
+                  ),
+                  _buildDetailRow(
+                    '총 거리',
+                    '${workout.distance?.toStringAsFixed(2) ?? 0} km',
+                  ),
+                  _buildDetailRow(
+                    '활동 칼로리',
+                    '${workout.calories?.toInt() ?? 0} kcal',
+                  ),
+                  _buildDetailRow(
+                    '총 칼로리',
+                    '${(workout.calories ?? 0) + 50} kcal',
+                  ), // 대략적인 계산
                 ],
               ),
             ),
@@ -475,8 +685,10 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   children: [
                     const Text(
                       '🏃‍♂️ 스플릿',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     ...splits.map((split) => _buildSplitRow(split)),
@@ -497,12 +709,15 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   children: [
                     const Text(
                       '🤖 AI 코칭',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    ..._currentCoaching!.advice
-                        .map((advice) => _buildAdviceCard(advice)),
+                    ..._currentCoaching!.advice.map(
+                      (advice) => _buildAdviceCard(advice),
+                    ),
                   ],
                 ),
               ),
@@ -565,8 +780,10 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('${split['km']}km',
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            '${split['km']}km',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           Text(split['time']),
           Text(split['pace'], style: const TextStyle(color: Colors.blue)),
         ],
@@ -577,9 +794,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   /// 심박수 탭
   Widget _buildHeartRateTab() {
     if (_currentCoaching == null) {
-      return const Center(
-        child: Text('심박수 데이터가 없습니다'),
-      );
+      return const Center(child: Text('심박수 데이터가 없습니다'));
     }
 
     final hrAnalysis = _currentCoaching!.analysis.heartRateAnalysis;
@@ -605,11 +820,15 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildHRMetric(
-                          '평균 심박수',
-                          '${hrAnalysis.averageHR.toInt()} BPM',
-                          Icons.favorite),
-                      _buildHRMetric('최대 심박수',
-                          '${hrAnalysis.maxHR.toInt()} BPM', Icons.trending_up),
+                        '평균 심박수',
+                        '${hrAnalysis.averageHR.toInt()} BPM',
+                        Icons.favorite,
+                      ),
+                      _buildHRMetric(
+                        '최대 심박수',
+                        '${hrAnalysis.maxHR.toInt()} BPM',
+                        Icons.trending_up,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -652,20 +871,24 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   children: [
                     const Text(
                       '심박수 구간 분포',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 200,
                       child: PieChart(
                         PieChartData(
-                          sections:
-                              hrAnalysis.zoneDistribution.entries.map((entry) {
+                          sections: hrAnalysis.zoneDistribution.entries.map((
+                            entry,
+                          ) {
                             final color = _getZoneColor(entry.key);
                             final percentage = (entry.value /
-                                    hrAnalysis.zoneDistribution.values
-                                        .reduce((a, b) => a + b)) *
+                                    hrAnalysis.zoneDistribution.values.reduce(
+                                      (a, b) => a + b,
+                                    )) *
                                 100;
                             return PieChartSectionData(
                               value: entry.value.toDouble(),
@@ -751,9 +974,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   /// 페이스 탭
   Widget _buildPaceTab() {
     if (_currentCoaching == null) {
-      return const Center(
-        child: Text('페이스 데이터가 없습니다'),
-      );
+      return const Center(child: Text('페이스 데이터가 없습니다'));
     }
 
     final workout = _currentWorkout!;
@@ -780,13 +1001,15 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildPaceMetric(
-                          '평균 페이스',
-                          '${paceAnalysis.pace.toStringAsFixed(1)}분/km',
-                          Icons.speed),
+                        '평균 페이스',
+                        '${paceAnalysis.pace.toStringAsFixed(1)}분/km',
+                        Icons.speed,
+                      ),
                       _buildPaceMetric(
-                          '평균 속도',
-                          '${paceAnalysis.speed.toStringAsFixed(1)}km/h',
-                          Icons.trending_up),
+                        '평균 속도',
+                        '${paceAnalysis.speed.toStringAsFixed(1)}km/h',
+                        Icons.trending_up,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -794,13 +1017,15 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildPaceMetric(
-                          '케이던스',
-                          '180 spm', // 모의 데이터
-                          Icons.repeat),
+                        '케이던스',
+                        '180 spm', // 모의 데이터
+                        Icons.repeat,
+                      ),
                       _buildPaceMetric(
-                          '파워',
-                          '250 W', // 모의 데이터
-                          Icons.flash_on),
+                        '파워',
+                        '250 W', // 모의 데이터
+                        Icons.flash_on,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -903,12 +1128,15 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   children: [
                     const Text(
                       '🤖 AI 코칭 조언',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    ..._currentCoaching!.advice
-                        .map((advice) => _buildAdviceCard(advice)),
+                    ..._currentCoaching!.advice.map(
+                      (advice) => _buildAdviceCard(advice),
+                    ),
                   ],
                 ),
               ),
@@ -1009,7 +1237,9 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
@@ -1028,8 +1258,11 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.play_circle_filled,
-                                color: Colors.green, size: 16),
+                            Icon(
+                              Icons.play_circle_filled,
+                              color: Colors.green,
+                              size: 16,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               '시작: ${_formatTimestamp(_routePoints!.first['timestamp'])}',
@@ -1040,8 +1273,11 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.stop_circle,
-                                color: Colors.red, size: 16),
+                            Icon(
+                              Icons.stop_circle,
+                              color: Colors.red,
+                              size: 16,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               '종료: ${_formatTimestamp(_routePoints!.last['timestamp'])}',
@@ -1052,8 +1288,11 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.location_on,
-                                color: Colors.blue, size: 16),
+                            Icon(
+                              Icons.location_on,
+                              color: Colors.blue,
+                              size: 16,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               '위치: 한강공원 (여의도)',
@@ -1098,31 +1337,6 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
     return spots;
   }
 
-  /// 모의 심박수 데이터 생성 (AI 코칭용)
-  List<coaching.HeartRateData> _generateMockHeartRateDataForCoaching(
-      WorkoutData workout) {
-    final duration = workout.duration.inMinutes;
-    final data = <coaching.HeartRateData>[];
-
-    // 운동 시간 동안 1분마다 심박수 데이터 생성
-    for (int i = 0; i < duration; i++) {
-      final timestamp = workout.startTime.add(Duration(minutes: i));
-      // 운동 시작 시 낮은 심박수에서 점진적으로 증가
-      final baseHR = 120 + (i * 2); // 120에서 시작해서 분당 2씩 증가
-      final variation = (i % 3 == 0) ? 10 : -5; // 약간의 변동
-      final heartRate = (baseHR + variation).clamp(110, 180);
-
-      data.add(coaching.HeartRateData(
-        timestamp: timestamp,
-        value: heartRate.toDouble(),
-        unit: 'BPM',
-      ));
-    }
-
-    print('📝 모의 심박수 데이터 ${data.length}개 생성 완료');
-    return data;
-  }
-
   /// 모의 페이스 데이터 생성
   List<FlSpot> _generateMockPaceData(double totalDistance) {
     final spots = <FlSpot>[];
@@ -1150,19 +1364,10 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
@@ -1175,19 +1380,10 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
@@ -1237,10 +1433,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  advice.content,
-                  style: const TextStyle(fontSize: 14),
-                ),
+                Text(advice.content, style: const TextStyle(fontSize: 14)),
               ],
             ),
           ),
@@ -1252,17 +1445,12 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
   /// 지도 위젯 생성
   Widget _buildMapWidget() {
     if (_routePoints == null || _routePoints!.isEmpty) {
-      return const Center(
-        child: Text('GPS 데이터가 없습니다'),
-      );
+      return const Center(child: Text('GPS 데이터가 없습니다'));
     }
 
     // GPS 포인트들을 LatLng 리스트로 변환
     final routePoints = _routePoints!.map((point) {
-      return LatLng(
-        point['latitude'] as double,
-        point['longitude'] as double,
-      );
+      return LatLng(point['latitude'] as double, point['longitude'] as double);
     }).toList();
 
     // 경로의 중심점 계산
@@ -1290,11 +1478,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         // GPS 루트 폴리라인
         PolylineLayer(
           polylines: [
-            Polyline(
-              points: routePoints,
-              strokeWidth: 4.0,
-              color: Colors.blue,
-            ),
+            Polyline(points: routePoints, strokeWidth: 4.0, color: Colors.blue),
           ],
         ),
         // 시작점 마커
@@ -1326,11 +1510,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
                   color: Colors.red,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.stop,
-                  color: Colors.white,
-                  size: 12,
-                ),
+                child: const Icon(Icons.stop, color: Colors.white, size: 12),
               ),
             ),
           ],

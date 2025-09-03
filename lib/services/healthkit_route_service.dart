@@ -24,32 +24,40 @@ class HealthKitRouteService {
     DateTime endTime, {
     String? workoutId,
   }) async {
-    print('🔍 HealthKitRouteService: getWorkoutRoute 호출');
-    print('🔍 시작 시간: $startTime');
-    print('🔍 종료 시간: $endTime');
-    print('🔍 운동 ID: ${workoutId ?? "없음"}');
+    print('🗺️ HealthKitRouteService: GPS 경로 데이터 조회 시작');
+    print('📅 시간 범위: $startTime ~ $endTime');
+    print('⏱️ 조회 기간: ${(endTime.difference(startTime).inMinutes)}분');
+    print('🎯 운동 ID: ${workoutId ?? "없음 (시간 범위로 검색)"}');
+
+    print('🔍 Flutter → iOS 요청 파라미터:');
+    print('   - startDate: ${startTime.millisecondsSinceEpoch} ($startTime)');
+    print('   - endDate: ${endTime.millisecondsSinceEpoch} ($endTime)');
+    print('   - workoutId: ${workoutId ?? "null"}');
 
     try {
+      print('🔄 iOS 네이티브 메서드 호출 중...');
       final result = await _channel.invokeMethod('getWorkoutRoute', {
         'startDate': startTime.millisecondsSinceEpoch,
         'endDate': endTime.millisecondsSinceEpoch,
-        'workoutId': workoutId, // 운동 ID 추가
+        'workoutId': workoutId,
       });
 
-      print('🔍 iOS 네이티브 응답: $result');
-      
+      print('✅ iOS 네이티브 메서드 호출 완료');
+      print('📨 iOS 네이티브 응답 타입: ${result.runtimeType}');
+      print('📨 iOS 네이티브 응답 내용: $result');
+
       // 타입 안전하게 변환
       if (result == null) {
         print('🔍 iOS 네이티브 응답이 null입니다');
         return null;
       }
-      
+
       if (result is List) {
         print('🔍 iOS 네이티브 응답이 List 타입입니다: ${result.length}개 항목');
-        
+
         // 각 항목을 Map<String, dynamic>으로 안전하게 변환
         final convertedResult = <Map<String, dynamic>>[];
-        
+
         for (int i = 0; i < result.length; i++) {
           final item = result[i];
           if (item is Map) {
@@ -67,7 +75,7 @@ class HealthKitRouteService {
             print('🔍 항목 $i이 Map이 아닙니다: ${item.runtimeType}');
           }
         }
-        
+
         print('🔍 변환 완료: ${convertedResult.length}개 GPS 포인트');
         return convertedResult;
       } else {

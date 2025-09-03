@@ -105,11 +105,22 @@ import CoreLocation
         result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
         return
       }
-      
+
       let startDate = Date(timeIntervalSince1970: startTimestamp / 1000)
       let endDate = Date(timeIntervalSince1970: endTimestamp / 1000)
-      
-      result(FlutterMethodNotImplemented)
+
+      print("iOS: getWorkoutRoutes 호출됨 - \(startDate) ~ \(endDate)")
+
+      // 직접 HealthKit에서 경로 데이터 수집
+      self.getWorkoutRoutesDirect(startDate: startDate, endDate: endDate) { routes in
+        if let routes = routes {
+          print("iOS: getWorkoutRoutes 완료: \(routes.count)개 경로")
+          result(routes)
+        } else {
+          print("iOS: getWorkoutRoutes 실패")
+          result(nil)
+        }
+      }
       
     default:
       result(FlutterMethodNotImplemented)
@@ -188,9 +199,22 @@ import CoreLocation
         result(FlutterError(code: "ARG", message: "bad args", details: nil))
         return
       }
-      queryRoutes(from: Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000),
-                 to: Date(timeIntervalSince1970: TimeInterval(toMs) / 1000),
-                 result: result)
+
+      let startDate = Date(timeIntervalSince1970: TimeInterval(fromMs) / 1000)
+      let endDate = Date(timeIntervalSince1970: TimeInterval(toMs) / 1000)
+
+      print("iOS: runningMetrics getWorkoutRoutes 호출됨 - \(startDate) ~ \(endDate)")
+
+      // 직접 HealthKit에서 경로 데이터 수집
+      self.getWorkoutRoutesDirect(startDate: startDate, endDate: endDate) { routes in
+        if let routes = routes {
+          print("iOS: runningMetrics getWorkoutRoutes 완료: \(routes.count)개 경로")
+          result(routes)
+        } else {
+          print("iOS: runningMetrics getWorkoutRoutes 실패")
+          result(nil)
+        }
+      }
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -348,7 +372,120 @@ import CoreLocation
   }
   
   // MARK: - GPS 데이터 수집 메서드들
-  
+
+  private func getWorkoutRoutesDirect(startDate: Date, endDate: Date, completion: @escaping ([[String: Any]]?) -> Void) {
+    print("iOS: ===== getWorkoutRoutesDirect 시작 =====")
+    print("iOS: 기간: \(startDate) ~ \(endDate)")
+
+    // 1. 해당 기간의 운동 데이터 조회
+    let workoutPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+    let workoutQuery = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: workoutPredicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [weak self] _, samples, error in
+      if let error = error {
+        print("iOS: 운동 조회 오류: \(error)")
+        completion(nil)
+        return
+      }
+
+      guard let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
+        print("iOS: 해당 기간에 운동 데이터 없음")
+        completion(nil)
+        return
+      }
+
+      print("iOS: \(workouts.count)개의 운동 발견")
+
+      var allRoutes: [[String: Any]] = []
+      let group = DispatchGroup()
+
+      for workout in workouts {
+        group.enter()
+        self?.getRouteForWorkoutDirect(workout: workout) { routeData in
+          if let routeData = routeData {
+            let workoutRoute = [
+              "workoutId": workout.uuid.uuidString,
+              "startDate": workout.startDate.timeIntervalSince1970 * 1000,
+              "endDate": workout.endDate.timeIntervalSince1970 * 1000,
+              "workoutType": workout.workoutActivityType.rawValue,
+              "totalDistance": workout.totalDistance?.doubleValue(for: .meter()) ?? 0,
+              "totalEnergyBurned": workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0,
+              "duration": workout.duration,
+              "routePoints": routeData
+            ]
+            allRoutes.append(workoutRoute)
+          }
+          group.leave()
+        }
+      }
+
+      group.notify(queue: .main) {
+        print("iOS: getWorkoutRoutesDirect 완료: \(allRoutes.count)개 경로")
+        completion(allRoutes)
+      }
+    }
+
+    healthStore.execute(workoutQuery)
+  }
+
+  private func getRouteForWorkoutDirect(workout: HKWorkout, completion: @escaping ([[String: Any]]?) -> Void) {
+    print("iOS: 운동 경로 조회 - \(workout.uuid)")
+
+    let routeQuery = HKAnchoredObjectQuery(type: HKSeriesType.workoutRoute(), predicate: HKQuery.predicateForObjects(from: workout), anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] query, samples, _, _, error in
+      if let error = error {
+        print("iOS: 경로 쿼리 오류: \(error)")
+        completion(nil)
+        return
+      }
+
+      guard let routes = samples as? [HKWorkoutRoute], let route = routes.first else {
+        print("iOS: 해당 운동에 경로 데이터 없음")
+        completion(nil)
+        return
+      }
+
+      self?.getLocationsForRouteDirect(route: route, completion: completion)
+    }
+
+    healthStore.execute(routeQuery)
+  }
+
+  private func getLocationsForRouteDirect(route: HKWorkoutRoute, completion: @escaping ([[String: Any]]?) -> Void) {
+    print("iOS: 경로 위치 데이터 조회")
+
+    var allLocations: [CLLocation] = []
+    let routeQuery = HKWorkoutRouteQuery(route: route) { [weak self] query, locations, done, error in
+      if let error = error {
+        print("iOS: 위치 조회 오류: \(error)")
+        completion(nil)
+        return
+      }
+
+      if let locations = locations {
+        allLocations.append(contentsOf: locations)
+      }
+
+      if done {
+        print("iOS: 경로에서 \(allLocations.count)개 위치 수집 완료")
+
+        let locationData = allLocations.map { location -> [String: Any] in
+          return [
+            "latitude": location.coordinate.latitude,
+            "longitude": location.coordinate.longitude,
+            "altitude": location.altitude,
+            "timestamp": location.timestamp.timeIntervalSince1970 * 1000,
+            "speed": location.speed >= 0 ? location.speed : 0,
+            "course": location.course >= 0 ? location.course : 0,
+            "horizontalAccuracy": location.horizontalAccuracy,
+            "verticalAccuracy": location.verticalAccuracy
+          ]
+        }
+
+        completion(locationData)
+      }
+    }
+
+    healthStore.execute(routeQuery)
+  }
+
   private func collectGPSDataDirectly(startDate: Date, endDate: Date, workoutId: String?, completion: @escaping ([[String: Any]]?) -> Void) {
     print("iOS: ===== collectGPSDataDirectly 메서드 시작 =====")
     print("iOS: 직접 GPS 데이터 수집 시작 - \(startDate) ~ \(endDate)")
