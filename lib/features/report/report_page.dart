@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:health/health.dart';
 import '../running/running_analysis_page.dart';
 
 /// 리포트 페이지 - 달력 중심의 통합 시스템
@@ -24,9 +25,11 @@ class _ReportPageState extends ConsumerState<ReportPage> {
   // 통계 데이터
   int _totalHabits = 0;
   int _totalWorkouts = 0;
+  int _totalRunningWorkouts = 0;
   final int _totalMeals = 0;
   double _habitCompletionRate = 0.0;
   double _workoutCompletionRate = 0.0;
+  final double _runningCompletionRate = 0.0;
 
   @override
   void initState() {
@@ -52,6 +55,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
           '📅 로드 범위: ${startOfMonth.year}-${startOfMonth.month} ~ ${endOfMonth.year}-${endOfMonth.month}');
 
       await _loadMonthData(startOfMonth, endOfMonth);
+      await _loadRunningData(startOfMonth, endOfMonth);
       await _calculateStatistics(startOfMonth, endOfMonth);
 
       print('✅ 캘린더 데이터 로드 완료');
@@ -137,6 +141,65 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     }
   }
 
+  /// 달리기 데이터 로드 (HealthKit) - 운동에 통합
+  Future<void> _loadRunningData(DateTime start, DateTime end) async {
+    try {
+      print('🏃‍♂️ 달리기 데이터 로드 시작...');
+
+      final health = HealthFactory();
+
+      // HealthKit 사용 가능 여부 확인
+      try {
+        final types = [HealthDataType.WORKOUT];
+        final granted = await health.requestAuthorization(types);
+
+        if (granted) {
+          // 달리기 운동 데이터 가져오기
+          final runningWorkouts = await health.getHealthDataFromTypes(
+            start,
+            end,
+            [HealthDataType.WORKOUT],
+          );
+
+          // 달리기 운동만 필터링
+          final runningData = runningWorkouts.where((workout) {
+            final workoutType = workout.value.toString().toLowerCase();
+            return workoutType.contains('running') ||
+                workoutType.contains('run') ||
+                workoutType.contains('jog');
+          }).toList();
+
+          print('🏃‍♂️ 달리기 운동 데이터: ${runningData.length}개');
+
+          // 달리기를 운동으로 통합하여 캘린더에 추가
+          for (final workout in runningData) {
+            final workoutDate = DateTime(
+              workout.dateFrom.year,
+              workout.dateFrom.month,
+              workout.dateFrom.day,
+            );
+
+            if (_events.containsKey(workoutDate)) {
+              if (!_events[workoutDate]!.contains('workout')) {
+                _events[workoutDate]!.add('workout');
+              }
+            } else {
+              _events[workoutDate] = ['workout'];
+            }
+          }
+
+          _totalRunningWorkouts = runningData.length;
+        } else {
+          print('⚠️ HealthKit 권한이 거부되었습니다.');
+        }
+      } catch (e) {
+        print('❌ HealthKit 데이터 로드 실패: $e');
+      }
+    } catch (e) {
+      print('❌ 달리기 데이터 로드 실패: $e');
+    }
+  }
+
   Future<void> _calculateStatistics(DateTime start, DateTime end) async {
     try {
       final daysInMonth = end.difference(start).inDays + 1;
@@ -160,11 +223,12 @@ class _ReportPageState extends ConsumerState<ReportPage> {
           .where('date', isLessThanOrEqualTo: _getDateId(end))
           .get();
 
-      _totalWorkouts = workoutsQuery.docs.length;
+      // 운동 + 달리기를 통합하여 계산
+      _totalWorkouts = workoutsQuery.docs.length + _totalRunningWorkouts;
       _workoutCompletionRate =
           daysInMonth > 0 ? (_totalWorkouts / daysInMonth) * 100 : 0;
 
-      print('📊 실제 통계: 습관 $_totalHabits회, 운동 $_totalWorkouts회');
+      print('📊 실제 통계: 습관 $_totalHabits회, 운동(통합) $_totalWorkouts회');
     } catch (e) {
       print('❌ 통계 계산 실패: $e');
     }
@@ -219,7 +283,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📊 리포트 & 달력'),
+        title: const Text('📊 리포트'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -260,9 +324,12 @@ class _ReportPageState extends ConsumerState<ReportPage> {
   }
 
   Widget _buildTodaySummary() {
-    final today = DateTime.now();
-    final todayKey = DateTime(today.year, today.month, today.day);
-    final todayEvents = _events[todayKey] ?? [];
+    final selectedKey =
+        DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+    final selectedEvents = _events[selectedKey] ?? [];
+    final isToday = DateTime.now().year == _selectedDay.year &&
+        DateTime.now().month == _selectedDay.month &&
+        DateTime.now().day == _selectedDay.day;
 
     return Container(
       width: double.infinity,
@@ -288,13 +355,15 @@ class _ReportPageState extends ConsumerState<ReportPage> {
           Row(
             children: [
               Icon(
-                Icons.today,
+                isToday ? Icons.today : Icons.calendar_today,
                 color: Colors.white,
                 size: 24,
               ),
               const SizedBox(width: 8),
               Text(
-                '오늘 요약 (${today.month}월 ${today.day}일)',
+                isToday
+                    ? '오늘 요약 (${_selectedDay.month}월 ${_selectedDay.day}일)'
+                    : '${_selectedDay.month}월 ${_selectedDay.day}일 요약',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -304,25 +373,25 @@ class _ReportPageState extends ConsumerState<ReportPage> {
             ],
           ),
           const SizedBox(height: 16),
-          if (todayEvents.isEmpty)
-            const Text(
-              '완료된 항목이 없습니다',
-              style: TextStyle(
+          if (selectedEvents.isEmpty)
+            Text(
+              isToday ? '완료된 항목이 없습니다' : '해당 날짜에 완료된 항목이 없습니다',
+              style: const TextStyle(
                 fontSize: 16,
                 color: Colors.white70,
                 fontStyle: FontStyle.italic,
               ),
             )
           else
-            ...todayEvents.map((event) => _buildSummaryItem(
+            ...selectedEvents.map((event) => _buildSummaryItem(
                   _getEventLabel(event),
                   '완료',
                   _getEventIcon(event),
                 )),
           const SizedBox(height: 16),
-          const Text(
-            '내일도 파이팅! 💪',
-            style: TextStyle(
+          Text(
+            isToday ? '내일도 파이팅! 💪' : '다음 날도 파이팅! 💪',
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.white70,
               fontStyle: FontStyle.italic,
@@ -364,27 +433,30 @@ class _ReportPageState extends ConsumerState<ReportPage> {
               ),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _focusedDay = DateTime.now();
-                    _selectedDay = DateTime.now();
-                  });
-                  _loadCalendarData();
-                },
-                icon: const Icon(Icons.today),
-                label: const Text('Today'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          const SizedBox(height: 16),
+          // Today 버튼 추가
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _focusedDay = DateTime.now();
+                  _selectedDay = DateTime.now();
+                });
+                _loadCalendarData();
+              },
+              icon: const Icon(Icons.today, size: 18),
+              label: const Text('Today'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                elevation: 2,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 16),
           TableCalendar(
@@ -395,9 +467,54 @@ class _ReportPageState extends ConsumerState<ReportPage> {
             eventLoader: _getEventsForDay,
             calendarFormat: CalendarFormat.month,
             startingDayOfWeek: StartingDayOfWeek.sunday,
-            headerStyle: const HeaderStyle(
+            headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
+              leftChevronIcon: IconButton(
+                icon: const Icon(Icons.chevron_left, color: Colors.blue),
+                onPressed: () {
+                  final previousMonth =
+                      DateTime(_focusedDay.year, _focusedDay.month - 1);
+                  setState(() {
+                    _focusedDay = previousMonth;
+                  });
+                  _loadCalendarData();
+                },
+              ),
+              rightChevronIcon: IconButton(
+                icon: const Icon(Icons.chevron_right, color: Colors.blue),
+                onPressed: () {
+                  final nextMonth =
+                      DateTime(_focusedDay.year, _focusedDay.month + 1);
+                  setState(() {
+                    _focusedDay = nextMonth;
+                  });
+                  _loadCalendarData();
+                },
+              ),
+              titleTextFormatter: (date, locale) {
+                return '${date.month}월 ${date.year}';
+              },
+              titleTextStyle: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              headerMargin: const EdgeInsets.symmetric(vertical: 12),
+              headerPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
             ),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
@@ -422,94 +539,123 @@ class _ReportPageState extends ConsumerState<ReportPage> {
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, date, events) {
                 if (events.isNotEmpty) {
-                  // 이벤트 타입별로 색상 구분
                   final hasHabit = events.contains('habit');
                   final hasWorkout = events.contains('workout');
                   final hasMeal = events.contains('meal');
 
-                  // 활동 강도 계산 (이벤트 개수 기반)
-                  final activityLevel = events.length;
+                  // 습관과 운동을 개별적으로 표시
+                  List<Widget> markers = [];
 
-                  // 활동 강도에 따른 색상과 크기 결정
-                  Color markerColor;
-                  String markerText;
-                  double markerSize;
-                  double opacity;
-
-                  if (hasHabit && hasWorkout) {
-                    // 습관 + 운동: 초록색 계열, 활동 강도에 따라 진해짐
-                    markerColor = Colors.green;
-                    markerText = '$activityLevel';
-                    markerSize = 8.0 + (activityLevel * 2.0); // 8~16
-                    opacity = 0.6 + (activityLevel * 0.2); // 0.6~1.0
-                  } else if (hasHabit) {
-                    // 습관만: 초록색
-                    markerColor = Colors.green;
-                    markerText = '습';
-                    markerSize = 8.0;
-                    opacity = 0.8;
-                  } else if (hasWorkout) {
-                    // 운동만: 파란색
-                    markerColor = Colors.blue;
-                    markerText = '운';
-                    markerSize = 8.0;
-                    opacity = 0.8;
-                  } else if (hasMeal) {
-                    // 식사만: 주황색
-                    markerColor = Colors.orange;
-                    markerText = '식';
-                    markerSize = 8.0;
-                    opacity = 0.8;
-                  } else {
-                    // 기타: 회색
-                    markerColor = Colors.grey;
-                    markerText = '$activityLevel';
-                    markerSize = 6.0;
-                    opacity = 0.6;
+                  if (hasHabit) {
+                    final habitCount = events.where((e) => e == 'habit').length;
+                    markers.add(
+                      Positioned(
+                        right: 2,
+                        bottom: 2,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              habitCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
                   }
 
-                  return Positioned(
-                    right: 1,
-                    bottom: 1,
-                    child: Container(
-                      width: markerSize,
-                      height: markerSize,
-                      decoration: BoxDecoration(
-                        color: markerColor.withOpacity(opacity),
-                        borderRadius: BorderRadius.circular(markerSize / 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: markerColor.withOpacity(opacity * 0.5),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                        // 히트맵 효과를 위한 그라데이션
-                        gradient: activityLevel > 1
-                            ? LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  markerColor.withOpacity(opacity),
-                                  markerColor.withOpacity(opacity * 0.7),
-                                ],
-                              )
-                            : null,
-                      ),
-                      child: activityLevel > 1
-                          ? Center(
-                              child: Text(
-                                markerText,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                  if (hasWorkout) {
+                    final workoutCount =
+                        events.where((e) => e == 'workout').length;
+                    markers.add(
+                      Positioned(
+                        right: hasHabit ? 24 : 2,
+                        bottom: 2,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.3),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
                               ),
-                            )
-                          : null,
-                    ),
-                  );
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              workoutCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (hasMeal) {
+                    final mealCount = events.where((e) => e == 'meal').length;
+                    markers.add(
+                      Positioned(
+                        right: (hasHabit ? 24 : 0) + (hasWorkout ? 24 : 0) + 2,
+                        bottom: 2,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withOpacity(0.3),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              mealCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Stack(children: markers);
                 }
                 return null;
               },
@@ -619,7 +765,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
 
           const SizedBox(height: 16),
 
-          // 운동 완료율
+          // 운동 완료율 (달리기 포함)
           _buildStatItem(
             '운동 완료율',
             '${_workoutCompletionRate.toStringAsFixed(1)}%',

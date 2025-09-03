@@ -31,6 +31,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   int _dailySquatGoal = 20;
   int _dailyPushupGoal = 15;
   int _dailyHabitGoal = 1;
+  double _dailyRunningGoal = 5.0; // km 단위
 
   @override
   void initState() {
@@ -65,6 +66,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _dailySquatGoal = _prefs.getInt('dailySquatGoal') ?? 20;
       _dailyPushupGoal = _prefs.getInt('dailyPushupGoal') ?? 15;
       _dailyHabitGoal = _prefs.getInt('dailyHabitGoal') ?? 1;
+      _dailyRunningGoal = _prefs.getDouble('dailyRunningGoal') ?? 5.0;
     });
   }
 
@@ -86,6 +88,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _prefs.setInt('dailySquatGoal', _dailySquatGoal);
     await _prefs.setInt('dailyPushupGoal', _dailyPushupGoal);
     await _prefs.setInt('dailyHabitGoal', _dailyHabitGoal);
+    await _prefs.setDouble('dailyRunningGoal', _dailyRunningGoal);
 
     // 설정 저장 후 알림 스케줄 업데이트
     await _updateNotificationSchedules();
@@ -231,6 +234,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               (value) => setState(() => _dailyHabitGoal = value),
               min: 1,
               max: 10,
+            ),
+            _buildRunningGoalTile(
+              '일일 달리기 목표',
+              '하루에 목표로 하는 달리기 거리',
+              _dailyRunningGoal,
+              (value) => setState(() => _dailyRunningGoal = value),
+              min: 0.5,
+              max: 50.0,
+              step: 0.5,
             ),
 
             const SizedBox(height: 32),
@@ -511,6 +523,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
             onPressed: value < max ? () => onChanged(value + 1) : null,
+            color: value < max ? Colors.green : Colors.grey,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRunningGoalTile(
+      String title, String subtitle, double value, Function(double) onChanged,
+      {required double min, required double max, required double step}) {
+    return ListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline),
+            onPressed: value > min
+                ? () => onChanged((value - step).clamp(min, max))
+                : null,
+            color: value > min ? Colors.red : Colors.grey,
+          ),
+          Text(
+            '${value.toStringAsFixed(1)} km',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: value < max
+                ? () => onChanged((value + step).clamp(min, max))
+                : null,
             color: value < max ? Colors.green : Colors.grey,
           ),
         ],
