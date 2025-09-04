@@ -50,16 +50,22 @@ class _DayDetailsPageState extends State<DayDetailsPage> {
       if (FirebaseAuth.instance.currentUser != null) {
         // 실제 사용자 인증이 된 경우 Firebase 데이터 로드
         try {
-          // 습관 데이터 로드 (전역 컬렉션에서 uid로 필터링)
+          // 습관 완료 데이터 로드 (인덱스 없이 단순 조회)
           final habitSnapshot = await FirebaseFirestore.instance
-              .collection('habits')
+              .collection('habit_completions')
               .where('uid', isEqualTo: uid)
-              .where('date', isEqualTo: _getDateId(widget.selectedDay))
+              .where('done', isEqualTo: true)
               .get();
 
-          if (habitSnapshot.docs.isNotEmpty) {
-            dayData['habits'] =
-                habitSnapshot.docs.map((doc) => doc.data()).toList();
+          // 선택된 날짜의 습관만 필터링
+          final selectedDateHabits = habitSnapshot.docs
+              .where(
+                  (doc) => doc.data()['date'] == _getDateId(widget.selectedDay))
+              .map((doc) => doc.data())
+              .toList();
+
+          if (selectedDateHabits.isNotEmpty) {
+            dayData['habits'] = selectedDateHabits;
           }
 
           // 운동 데이터 로드 (전역 컬렉션에서 uid로 필터링)

@@ -97,15 +97,21 @@ class _ReportPageState extends ConsumerState<ReportPage> {
       final uid = user.uid;
       print('👤 사용자 UID: $uid');
 
-      // Firebase에서 사용자별 데이터 로드
+      // Firebase에서 사용자별 습관 완료 데이터 로드 (인덱스 없이 단순 조회)
       final habitsQuery = await FirebaseFirestore.instance
-          .collection('habits')
+          .collection('habit_completions')
           .where('uid', isEqualTo: uid)
-          .where('date', isGreaterThanOrEqualTo: _getDateId(start))
-          .where('date', isLessThanOrEqualTo: _getDateId(end))
+          .where('done', isEqualTo: true)
           .get();
 
       print('📝 습관 데이터: ${habitsQuery.docs.length}개');
+
+      // 습관 데이터 디버깅
+      for (final doc in habitsQuery.docs) {
+        final data = doc.data();
+        print(
+            '📝 습관 완료 데이터: ${data['date']} - ${data['habitId']} - ${data['done']}');
+      }
 
       final workoutsQuery = await FirebaseFirestore.instance
           .collection('workouts')
@@ -125,17 +131,14 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         final dateId = _getDateId(date);
         print('📅 $dateId 처리 중...');
 
-        // 습관 체크 여부
-        try {
-          final habitDoc = habitsQuery.docs.firstWhere(
-            (doc) => doc.data()['date'] == dateId,
-          );
-          if (habitDoc.data()['done'] == true) {
-            _events[dateKey]!.add('habit');
-            print('✅ $dateId: 습관 완료');
-          }
-        } catch (e) {
-          print('❌ $dateId: 습관 데이터 없음');
+        // 습관 체크 여부 (클라이언트에서 날짜 필터링)
+        final habitDocs = habitsQuery.docs.where(
+          (doc) => doc.data()['date'] == dateId,
+        );
+        if (habitDocs.isNotEmpty) {
+          // 습관 완료 개수를 이벤트에 저장
+          _events[dateKey]!.add('habit:${habitDocs.length}');
+          print('✅ $dateId: 습관 완료 (${habitDocs.length}개)');
         }
 
         // 운동 완료 여부
@@ -231,16 +234,19 @@ class _ReportPageState extends ConsumerState<ReportPage> {
 
       final uid = user.uid;
 
-      // Firebase에서 사용자별 통계 계산
+      // Firebase에서 사용자별 통계 계산 (habit_completions에서)
       final habitsQuery = await FirebaseFirestore.instance
-          .collection('habits')
+          .collection('habit_completions')
           .where('uid', isEqualTo: uid)
-          .where('date', isGreaterThanOrEqualTo: _getDateId(start))
-          .where('date', isLessThanOrEqualTo: _getDateId(end))
+          .where('done', isEqualTo: true)
           .get();
 
-      final completedHabits =
-          habitsQuery.docs.where((doc) => doc.data()['done'] == true).length;
+      // 클라이언트에서 날짜 범위 필터링
+      final completedHabits = habitsQuery.docs.where((doc) {
+        final date = doc.data()['date'] as String;
+        return date.compareTo(_getDateId(start)) >= 0 &&
+            date.compareTo(_getDateId(end)) <= 0;
+      }).length;
       _totalHabits = completedHabits;
       _habitCompletionRate =
           daysInMonth > 0 ? (completedHabits / daysInMonth) * 100 : 0;
@@ -429,75 +435,131 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         DateTime.now().month == _selectedDay.month &&
         DateTime.now().day == _selectedDay.day;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue[400]!, Colors.blue[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isToday ? Icons.today : Icons.calendar_today,
-                color: Colors.white,
-                size: 24,
+    // 습관 완료 개수 계산
+    int habitCount = 0;
+    int workoutCount = 0;
+
+    for (final event in selectedEvents) {
+      if (event.toString().startsWith('habit:')) {
+        final parts = event.toString().split(':');
+        if (parts.length > 1) {
+          habitCount += int.tryParse(parts[1]) ?? 0;
+        }
+      } else if (event.toString().startsWith('workout:')) {
+        final parts = event.toString().split(':');
+        if (parts.length > 1) {
+          workoutCount += int.tryParse(parts[1]) ?? 0;
+        }
+      }
+    }
+
+    // 총 습관 개수 가져오기 (비동기로 처리)
+    return FutureBuilder<int>(
+      future: _getTotalHabitCount(),
+      builder: (context, snapshot) {
+        final totalHabits = snapshot.data ?? 0;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[400]!, Colors.blue[600]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
-              const SizedBox(width: 8),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    isToday ? Icons.today : Icons.calendar_today,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isToday
+                        ? '오늘 요약 (${_selectedDay.month}월 ${_selectedDay.day}일)'
+                        : '${_selectedDay.month}월 ${_selectedDay.day}일 요약',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (selectedEvents.isEmpty)
+                Text(
+                  isToday ? '완료된 항목이 없습니다' : '해당 날짜에 완료된 항목이 없습니다',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    if (habitCount > 0)
+                      _buildSummaryItem(
+                        '습관',
+                        '완료 ($habitCount/$totalHabits)',
+                        Icons.check_circle,
+                      ),
+                    if (workoutCount > 0)
+                      _buildSummaryItem(
+                        '운동',
+                        '완료 ($workoutCount개)',
+                        Icons.fitness_center,
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 16),
               Text(
-                isToday
-                    ? '오늘 요약 (${_selectedDay.month}월 ${_selectedDay.day}일)'
-                    : '${_selectedDay.month}월 ${_selectedDay.day}일 요약',
+                isToday ? '내일도 파이팅! 💪' : '다음 날도 파이팅! 💪',
                 style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontSize: 16,
+                  color: Colors.white70,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (selectedEvents.isEmpty)
-            Text(
-              isToday ? '완료된 항목이 없습니다' : '해당 날짜에 완료된 항목이 없습니다',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-                fontStyle: FontStyle.italic,
-              ),
-            )
-          else
-            ...selectedEvents.map((event) => _buildSummaryItem(
-                  _getEventLabel(event),
-                  '완료',
-                  _getEventIcon(event),
-                )),
-          const SizedBox(height: 16),
-          Text(
-            isToday ? '내일도 파이팅! 💪' : '다음 날도 파이팅! 💪',
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  /// 사용자의 총 습관 개수 가져오기
+  Future<int> _getTotalHabitCount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return 0;
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('user_habits')
+          .where('uid', isEqualTo: user.uid)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return querySnapshot.docs.length;
+    } catch (e) {
+      print('❌ 총 습관 개수 가져오기 실패: $e');
+      return 0;
+    }
   }
 
   Widget _buildMonthlyCalendar() {
@@ -539,6 +601,71 @@ class _ReportPageState extends ConsumerState<ReportPage> {
             eventLoader: _getEventsForDay,
             calendarFormat: CalendarFormat.month,
             startingDayOfWeek: StartingDayOfWeek.sunday,
+            calendarBuilders: CalendarBuilders(
+              markerBuilder: (context, date, events) {
+                if (events.isEmpty) return null;
+
+                int habitCount = 0;
+                int workoutCount = 0;
+
+                for (final event in events) {
+                  if (event.toString().startsWith('habit:')) {
+                    final parts = event.toString().split(':');
+                    if (parts.length > 1) {
+                      habitCount += int.tryParse(parts[1]) ?? 0;
+                    }
+                  } else if (event.toString().startsWith('workout:')) {
+                    final parts = event.toString().split(':');
+                    if (parts.length > 1) {
+                      workoutCount += int.tryParse(parts[1]) ?? 0;
+                    }
+                  }
+                }
+
+                return Positioned(
+                  bottom: 1,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (habitCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$habitCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      if (workoutCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$workoutCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: false,
@@ -662,218 +789,6 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                 color: Colors.red,
                 fontWeight: FontWeight.w500,
               ),
-            ),
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                if (events.isNotEmpty) {
-                  final hasHabit = events.contains('habit');
-                  final hasWorkout = events.contains('workout');
-                  final hasMeal = events.contains('meal');
-
-                  // 습관과 운동을 개별적으로 표시
-                  List<Widget> markers = [];
-
-                  if (hasHabit) {
-                    final habitCount = events.where((e) => e == 'habit').length;
-                    markers.add(
-                      Positioned(
-                        right: 1,
-                        bottom: 1,
-                        child: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(color: Colors.white, width: 1),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.green.withOpacity(0.3),
-                                blurRadius: 2,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              habitCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (hasWorkout) {
-                    final workoutCount =
-                        events.where((e) => e == 'workout').length;
-                    markers.add(
-                      Positioned(
-                        right: hasHabit ? 18 : 1,
-                        bottom: 1,
-                        child: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(color: Colors.white, width: 1),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
-                                blurRadius: 2,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              workoutCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (hasMeal) {
-                    final mealCount = events.where((e) => e == 'meal').length;
-                    markers.add(
-                      Positioned(
-                        right: (hasHabit ? 18 : 0) + (hasWorkout ? 18 : 0) + 1,
-                        bottom: 1,
-                        child: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(color: Colors.white, width: 1),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.orange.withOpacity(0.3),
-                                blurRadius: 2,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              mealCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Stack(children: markers);
-                }
-                return null;
-              },
-              // 날짜 셀 배경색 개선 (히트맵 효과)
-              defaultBuilder: (context, date, focusedDay) {
-                final events = _getEventsForDay(date);
-                final hasHabit = events.contains('habit');
-                final hasWorkout = events.contains('workout');
-                final hasMeal = events.contains('meal');
-
-                // 활동이 있는 날짜는 히트맵처럼 배경색 적용
-                if (hasHabit || hasWorkout || hasMeal) {
-                  final activityLevel = events.length;
-
-                  // 활동 강도에 따른 배경색 투명도
-                  double opacity;
-                  Color backgroundColor;
-
-                  if (hasHabit && hasWorkout) {
-                    // 습관 + 운동: 초록색 계열, 활동 강도에 따라 진해짐
-                    backgroundColor = Colors.green;
-                    opacity = 0.08 +
-                        (activityLevel *
-                            0.07); // 0.08~0.22 (약한 히트맵 효과로 텍스트 가독성 높임)
-                  } else if (hasHabit) {
-                    // 습관만: 초록색
-                    backgroundColor = Colors.green;
-                    opacity = 0.06 +
-                        (activityLevel *
-                            0.06); // 0.06~0.18 (약한 투명도로 텍스트 가독성 높임)
-                  } else if (hasWorkout) {
-                    // 운동만: 파란색
-                    backgroundColor = Colors.blue;
-                    opacity = 0.06 +
-                        (activityLevel *
-                            0.06); // 0.06~0.18 (약한 투명도로 텍스트 가독성 높임)
-                  } else if (hasMeal) {
-                    // 식사만: 주황색
-                    backgroundColor = Colors.orange;
-                    opacity = 0.06 +
-                        (activityLevel *
-                            0.06); // 0.06~0.18 (약한 투명도로 텍스트 가독성 높임)
-                  } else {
-                    // 기타: 회색
-                    backgroundColor = Colors.grey;
-                    opacity = 0.05 +
-                        (activityLevel *
-                            0.04); // 0.05~0.13 (약한 투명도로 텍스트 가독성 높임)
-                  }
-
-                  return Container(
-                    margin: const EdgeInsets.all(1),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: backgroundColor.withOpacity(opacity),
-                      borderRadius: BorderRadius.circular(4),
-                      // 히트맵 효과를 위한 그라데이션
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          backgroundColor.withOpacity(opacity * 0.7),
-                          backgroundColor.withOpacity(opacity),
-                        ],
-                      ),
-                    ),
-                    child: Text(
-                      date.day.toString(),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  );
-                } else {
-                  // 활동이 없는 날짜도 검은색 텍스트로 표시
-                  return Container(
-                    margin: const EdgeInsets.all(1),
-                    alignment: Alignment.center,
-                    child: Text(
-                      date.day.toString(),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
-                      ),
-                    ),
-                  );
-                }
-              },
             ),
           ),
         ],
@@ -1212,8 +1127,23 @@ class _ReportPageState extends ConsumerState<ReportPage> {
           children: List.generate(7, (index) {
             final date = weekStart.add(Duration(days: index));
             final isToday = date.day == now.day && date.month == now.month;
-            final hasHabit = _getEventsForDay(date).contains('habit');
-            final hasWorkout = _getEventsForDay(date).contains('workout');
+            final events = _getEventsForDay(date);
+            int habitCount = 0;
+            int workoutCount = 0;
+
+            for (final event in events) {
+              if (event.toString().startsWith('habit:')) {
+                final parts = event.toString().split(':');
+                if (parts.length > 1) {
+                  habitCount += int.tryParse(parts[1]) ?? 0;
+                }
+              } else if (event.toString().startsWith('workout:')) {
+                final parts = event.toString().split(':');
+                if (parts.length > 1) {
+                  workoutCount += int.tryParse(parts[1]) ?? 0;
+                }
+              }
+            }
 
             return Expanded(
               child: Container(
@@ -1242,22 +1172,38 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (hasHabit)
+                        if (habitCount > 0)
                           Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
                               color: Colors.green,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$habitCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        if (hasWorkout)
+                        if (workoutCount > 0)
                           Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
                               color: Colors.blue,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$workoutCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                       ],

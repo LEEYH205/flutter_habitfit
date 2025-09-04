@@ -130,6 +130,14 @@ class HabitService {
         'timestamp': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
+      // 오늘 날짜의 습관 완료 상태가 변경되면 연속 기록 업데이트
+      final today = DateTime.now();
+      if (date.year == today.year &&
+          date.month == today.month &&
+          date.day == today.day) {
+        await _updateHabitStreak(habitId, done);
+      }
+
       print('✅ 습관 완료 상태 저장: $habitId - $dateId - $done');
       return true;
     } catch (e) {
@@ -147,10 +155,8 @@ class HabitService {
       final dateId = _getDateId(date);
       final docId = '${user.uid}-$habitId-$dateId';
 
-      final doc = await _firestore
-          .collection('habit_completions')
-          .doc(docId)
-          .get();
+      final doc =
+          await _firestore.collection('habit_completions').doc(docId).get();
 
       return doc.exists ? (doc.data()?['done'] ?? false) : false;
     } catch (e) {
@@ -159,52 +165,75 @@ class HabitService {
     }
   }
 
-  /// 특정 습관의 연속 달성 기록 계산
+  /// 습관의 연속 기록을 저장된 값에서 가져오기 (빠른 방식)
   Future<Map<String, int>> getHabitStreak(String habitId) async {
     try {
       final user = _auth.currentUser;
       if (user == null) return {'current': 0, 'max': 0};
 
-      final today = DateTime.now();
-      int currentStreak = 0;
-      int maxStreak = 0;
-      int tempStreak = 0;
+      final habitDoc =
+          await _firestore.collection('user_habits').doc(habitId).get();
 
-      // 최근 365일 동안의 데이터 확인
-      for (int i = 0; i < 365; i++) {
-        final date = today.subtract(Duration(days: i));
-        final isDone = await getHabitDone(habitId, date);
-
-        if (isDone) {
-          if (i == 0) {
-            currentStreak = 1;
-            tempStreak = 1;
-          } else {
-            currentStreak++;
-            tempStreak++;
-          }
-        } else {
-          if (i == 0) {
-            // 오늘 완료하지 않았으면 연속 기록은 0
-            currentStreak = 0;
-          } else {
-            // 과거 날짜에서 완료하지 않았으면 연속 기록 중단
-            if (tempStreak > maxStreak) {
-              maxStreak = tempStreak;
-            }
-            tempStreak = 0;
-          }
-        }
+      if (habitDoc.exists) {
+        final data = habitDoc.data()!;
+        return {
+          'current': data['currentStreak'] ?? 0,
+          'max': data['maxStreak'] ?? 0,
+        };
       }
 
-      if (tempStreak > maxStreak) {
-        maxStreak = tempStreak;
-      }
-
-      return {'current': currentStreak, 'max': maxStreak};
-    } catch (e) {
-      print('❌ 습관 연속 기록 계산 실패: $e');
       return {'current': 0, 'max': 0};
+    } catch (e) {
+      print('❌ 습관 연속 기록 가져오기 실패: $e');
+      return {'current': 0, 'max': 0};
+    }
+  }
+
+  /// 습관 완료 상태 변경 시 연속 기록 업데이트
+  Future<void> _updateHabitStreak(String habitId, bool isCompleted) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final today = DateTime.now();
+      final yesterday = today.subtract(const Duration(days: 1));
+
+      // 현재 연속 기록과 최고 기록 가져오기
+      final currentStreakData = await getHabitStreak(habitId);
+      int currentStreak = currentStreakData['current'] ?? 0;
+      int maxStreak = currentStreakData['max'] ?? 0;
+
+      if (isCompleted) {
+        // 습관 완료 시
+        final wasCompletedYesterday = await getHabitDone(habitId, yesterday);
+
+        if (wasCompletedYesterday) {
+          // 어제도 완료했으면 연속 기록 증가
+          currentStreak++;
+        } else {
+          // 어제 완료하지 않았으면 연속 기록 초기화 (오늘부터 시작)
+          currentStreak = 1;
+        }
+      } else {
+        // 습관 해제 시
+        currentStreak = 0;
+      }
+
+      // 최고 기록 업데이트
+      if (currentStreak > maxStreak) {
+        maxStreak = currentStreak;
+      }
+
+      // user_habits 컬렉션에 연속 기록 저장
+      await _firestore.collection('user_habits').doc(habitId).update({
+        'currentStreak': currentStreak,
+        'maxStreak': maxStreak,
+        'lastStreakUpdate': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ 연속 기록 업데이트: 현재 $currentStreak일, 최고 $maxStreak일');
+    } catch (e) {
+      print('❌ 연속 기록 업데이트 실패: $e');
     }
   }
 
@@ -212,4 +241,3 @@ class HabitService {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }
-

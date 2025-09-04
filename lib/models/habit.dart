@@ -5,6 +5,8 @@ class Habit {
   final String emoji;
   final DateTime createdAt;
   final bool isActive;
+  final int currentStreak;
+  final int maxStreak;
 
   Habit({
     required this.id,
@@ -13,6 +15,8 @@ class Habit {
     required this.emoji,
     required this.createdAt,
     this.isActive = true,
+    this.currentStreak = 0,
+    this.maxStreak = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +27,8 @@ class Habit {
       'emoji': emoji,
       'createdAt': createdAt.toIso8601String(),
       'isActive': isActive,
+      'currentStreak': currentStreak,
+      'maxStreak': maxStreak,
     };
   }
 
@@ -32,8 +38,11 @@ class Habit {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       emoji: map['emoji'] ?? '✅',
-      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt:
+          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       isActive: map['isActive'] ?? true,
+      currentStreak: map['currentStreak'] ?? 0,
+      maxStreak: map['maxStreak'] ?? 0,
     );
   }
 
@@ -44,6 +53,8 @@ class Habit {
     String? emoji,
     DateTime? createdAt,
     bool? isActive,
+    int? currentStreak,
+    int? maxStreak,
   }) {
     return Habit(
       id: id ?? this.id,
@@ -52,7 +63,8 @@ class Habit {
       emoji: emoji ?? this.emoji,
       createdAt: createdAt ?? this.createdAt,
       isActive: isActive ?? this.isActive,
+      currentStreak: currentStreak ?? this.currentStreak,
+      maxStreak: maxStreak ?? this.maxStreak,
     );
   }
 }
-

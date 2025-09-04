@@ -33,6 +33,12 @@ class _HabitPageState extends ConsumerState<HabitPage> {
     _loadHabitData();
   }
 
+  @override
+  void dispose() {
+    // 메모리 누수 방지
+    super.dispose();
+  }
+
   Future<void> _loadHabitData() async {
     try {
       _prefs = await SharedPreferences.getInstance();
@@ -44,17 +50,34 @@ class _HabitPageState extends ConsumerState<HabitPage> {
       final habits = await _habitService.getUserHabits();
       ref.read(_habitsProvider.notifier).state = habits;
 
-      // 각 습관의 오늘 완료 상태 로드
+      // 병렬로 모든 습관의 완료 상태와 연속 기록 로드
       final today = DateTime.now();
       final completions = <String, bool>{};
       final streaks = <String, Map<String, int>>{};
 
-      for (final habit in habits) {
+      // Future.wait를 사용하여 병렬 처리 (연속 기록은 Habit 모델에서 가져옴)
+      final futures = habits.map((habit) async {
         final isDone = await _habitService.getHabitDone(habit.id, today);
-        completions[habit.id] = isDone;
+        return {
+          'habitId': habit.id,
+          'isDone': isDone,
+        };
+      }).toList();
 
-        final streak = await _habitService.getHabitStreak(habit.id);
-        streaks[habit.id] = streak;
+      final results = await Future.wait(futures);
+
+      // 결과를 맵에 저장
+      for (final result in results) {
+        final habitId = result['habitId'] as String;
+        final isDone = result['isDone'] as bool;
+        completions[habitId] = isDone;
+
+        // Habit 모델에서 연속 기록 가져오기
+        final habit = habits.firstWhere((h) => h.id == habitId);
+        streaks[habitId] = {
+          'current': habit.currentStreak,
+          'max': habit.maxStreak,
+        };
       }
 
       ref.read(_habitCompletionsProvider.notifier).state = completions;
@@ -64,9 +87,11 @@ class _HabitPageState extends ConsumerState<HabitPage> {
     } catch (e) {
       print('❌ 습관 데이터 로드 실패: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -193,15 +218,22 @@ class _HabitPageState extends ConsumerState<HabitPage> {
         ref.read(_habitCompletionsProvider.notifier).state =
             Map.from(completions);
 
-        // 연속 기록 재계산
-        final streak = await _habitService.getHabitStreak(habit.id);
+        // 연속 기록 업데이트 후 Habit 모델 새로고침
+        final updatedHabits = await _habitService.getUserHabits();
+        ref.read(_habitsProvider.notifier).state = updatedHabits;
+
+        // 업데이트된 Habit에서 연속 기록 가져오기
+        final updatedHabit = updatedHabits.firstWhere((h) => h.id == habit.id);
         final streaks = ref.read(_habitStreaksProvider);
-        streaks[habit.id] = streak;
+        streaks[habit.id] = {
+          'current': updatedHabit.currentStreak,
+          'max': updatedHabit.maxStreak,
+        };
         ref.read(_habitStreaksProvider.notifier).state = Map.from(streaks);
 
         if (done) {
           // 습관 체크 완료 알림
-          if (_habitRemindersEnabled) {
+          if (_habitRemindersEnabled && mounted) {
             await LocalNotificationService.instance
                 .showHabitCompletionNotification(
               '습관 체크 완료',
@@ -210,10 +242,10 @@ class _HabitPageState extends ConsumerState<HabitPage> {
           }
 
           // 연속 달성 기록 축하
-          final currentStreak = streak['current'] ?? 0;
-          final maxStreak = streak['max'] ?? 0;
+          final currentStreak = updatedHabit.currentStreak;
+          final maxStreak = updatedHabit.maxStreak;
 
-          if (currentStreak > 1) {
+          if (currentStreak > 1 && mounted) {
             String streakMessage = '';
             if (currentStreak == maxStreak && currentStreak > 1) {
               streakMessage = '🎊 새로운 최고 기록! $currentStreak일 연속 달성! 🎊';
@@ -235,8 +267,8 @@ class _HabitPageState extends ConsumerState<HabitPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content:
-                    Text('✅ ${habit.title} 완료! ${streak['current']}일 연속 달성'),
+                content: Text(
+                    '✅ ${habit.title} 완료! ${updatedHabit.currentStreak}일 연속 달성'),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 3),
               ),

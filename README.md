@@ -36,6 +36,7 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 - **👤 사용자/세팅 페이지**: 사용자 프로필, 계정 관리, 로그아웃/계정 삭제, 상세 계정 정보 표시
 - **🔐 사용자 인증 연동**: Report 탭에서 사용자별 데이터 필터링 및 로그인 필요 UI 구현
 - **✅ 습관 CRUD 시스템**: 습관 추가/편집/삭제, 이모지 선택, Firebase Firestore 연동, 연속 달성 기록 추적
+- **📊 습관 완료 개수 표시**: Report 탭에서 "완료 (2/2)" 형태로 완료된 습관과 총 습관 개수를 한눈에 확인
 
 **⚠️ PARTIALLY WORKING:**
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
