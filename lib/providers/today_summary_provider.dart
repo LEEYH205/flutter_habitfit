@@ -12,7 +12,7 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
 
   final today = DateTime.now();
   final dateId = _getDateId(today);
-  
+
   // 오늘의 습관 완료 데이터
   final habitsQuery = await FirebaseFirestore.instance
       .collection('habit_completions')
@@ -49,8 +49,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
     calories: _calculateTodayCalories(workoutsQuery.docs, runningData),
     protein: _calculateTodayProtein(), // TODO: 식사 데이터 연동 시 실제 계산
     steps: _getTodaySteps(), // TODO: HealthKit 연동 시 실제 데이터
-    habitCompletionRate: totalHabitsQuery.docs.isNotEmpty 
-        ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100 
+    habitCompletionRate: totalHabitsQuery.docs.isNotEmpty
+        ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
         : 0.0,
   );
 });
@@ -66,18 +66,19 @@ Future<Map<String, dynamic>> _getTodayRunningData(DateTime today) async {
 }
 
 /// 오늘의 칼로리 계산
-double _calculateTodayCalories(List<QueryDocumentSnapshot> workouts, Map<String, dynamic> runningData) {
+double _calculateTodayCalories(
+    List<QueryDocumentSnapshot> workouts, Map<String, dynamic> runningData) {
   double totalCalories = 0.0;
-  
+
   // 운동에서 칼로리 합계
   for (final workout in workouts) {
     final data = workout.data() as Map<String, dynamic>;
     totalCalories += (data['calories'] ?? 0).toDouble();
   }
-  
+
   // 달리기 칼로리 추가
   totalCalories += (runningData['calories'] ?? 0).toDouble();
-  
+
   return totalCalories;
 }
 

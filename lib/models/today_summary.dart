@@ -25,7 +25,8 @@ class TodaySummary {
   });
 
   /// 습관 완료율 (0.0 ~ 1.0)
-  double get habitProgress => totalHabits > 0 ? completedHabits / totalHabits : 0.0;
+  double get habitProgress =>
+      totalHabits > 0 ? completedHabits / totalHabits : 0.0;
 
   /// 칼로리 목표 대비 진행률 (목표: 2000kcal)
   double get caloriesProgress => (calories / 2000.0).clamp(0.0, 1.0);
@@ -46,7 +47,8 @@ class TodaySummary {
   String get habitStatusText => '$completedHabits/$totalHabits';
 
   /// 운동 완료 상태 텍스트
-  String get workoutStatusText => completedWorkouts > 0 ? '$completedWorkouts개 완료' : '운동 없음';
+  String get workoutStatusText =>
+      completedWorkouts > 0 ? '$completedWorkouts개 완료' : '운동 없음';
 
   /// 달리기 상태 텍스트
   String get runningStatusText {
