@@ -4,6 +4,62 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 
 ## 📊 **현재 상태**
 
+### 🚀 **Phase 5: UI/UX 구조 개선 (진행 예정)**
+
+**문제점**: 현재 Home, Day Details, Report 페이지 간 역할 겹침 및 데이터 중복 표시
+- 같은 데이터(습관 완료, 운동 기록)가 3곳에서 다르게 표시
+- 사용자 경험 혼란: 어디서 무엇을 해야 하는지 명확하지 않음
+- 데이터 일관성 문제: 같은 정보를 여러 곳에서 확인해야 함
+
+**해결 방안**: 명확한 역할 분리 및 컴포넌트 재사용
+- **Today(Home)**: 실행 중심 - "지금 뭘 해야 하지?" (오늘 고정)
+- **Journal(Day Details)**: 기록/편집 중심 - "이 날 뭘 했지?" (선택한 1일)
+- **Insights(Report)**: 분석 중심 - "어떤 패턴이 있지?" (주/월/범위)
+
+**구현 계획**:
+
+#### **Phase 5.1: 컴포넌트 분리 및 재사용**
+- **공통 위젯 추출**: `KpiRing`, `StatChip`, `SectionCard`, `MiniSpark` 등
+- **데이터 Provider 단일화**: `todaySummaryProvider`, `dayLogProvider`, `trendProvider`
+- **UseCase 레이어 정리**: `DaySummaryUseCase`, `TrendUseCase`, `CoachUseCase`
+
+#### **Phase 5.2: 페이지 역할 명확화**
+- **Today(Home)**: 실행 중심 - 오늘 해야 할 것(CTA) + 실시간 진행(남은 목표/권장)
+- **Journal(Day Details)**: 기록/편집 중심 - 특정 날짜의 세부 로그와 편집 기능
+- **Insights(Report)**: 분석 중심 - 주/월 트렌드, 비교, 최고기록, 차트 위주
+
+#### **Phase 5.3: 네비게이션 및 사용자 경험 개선**
+- **탭 구조 변경**: Today | Journal | Insights | Settings (4탭)
+- **딥링크 라우팅**: `/today` → `/day/:yyyyMMdd` → `/insights?range=7d`
+- **가드 규칙 적용**: 각 페이지의 금지 기능 명확화
+
+#### **Phase 5.4: 성능 최적화**
+- **데이터 캐싱**: RepaintBoundary + AutomaticKeepAliveClientMixin
+- **쿼리 최적화**: Today는 오늘만, Insights는 range 변경 시에만
+- **배터리 최적화**: debounce 300ms 적용
+
+#### **역할 분리 매트릭스**
+
+| 영역 | Today(홈) - 실행 | Journal(일지) - 기록/편집 | Insights(리포트) - 분석 |
+|------|------------------|---------------------------|------------------------|
+| **시간 스코프** | 오늘 고정 | 선택한 1일 | 주/월/범위 |
+| **주 표시 KPI** | 남은 단백질/칼로리, 오늘 러닝 권장, 오늘 목표 잔량·스트릭 | 해당 날짜의 총 섭취/운동/습관, 항목 리스트 | 주/월 합계·평균·분산, 최고 기록, 추세 |
+| **행동(CTA)** | 운동 시작, 식사 촬영/기록, 습관 체크 | 항목 추가/수정/삭제, 복제, 즐겨찾기 등록 | 기간 변경, 비교(이전 주/월), 목표 재설정 제안 |
+| **차트** | 미니 링·스파크라인(당일)만 | 없음(또는 미니 히스토리) | 본격 차트(라인/바/분포) |
+| **코칭** | 한 줄 권장 | 항목별 미세 코멘트(선택 시) | 주간 요약, 다음 주 계획 제안 |
+
+#### **가드 규칙 (금지 사항)**
+- **Today**: 주간/월간 차트, 개별 항목 편집, 트렌드 분석
+- **Journal**: 트렌드/랭킹, 주간/월간 통계, 목표 재설정
+- **Insights**: 개별 항목 편집, 실시간 액션, 오늘 전용 기능
+
+#### **데이터 플로우 최적화**
+```
+Today: todaySummaryProvider (오늘만)
+Journal: dayLogProvider(date) (단일일)
+Insights: trendProvider(range) (집계)
+```
+
 ### ✅ **완료된 기능**
 - **기본 앱 구조**: Flutter + Riverpod + Firebase
 - **운동 인식**: TFLite MoveNet 기반 스쿼트/푸시업 카운팅
