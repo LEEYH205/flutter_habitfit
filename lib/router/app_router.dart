@@ -87,7 +87,7 @@ class AppRouter {
       // AuthProvider가 아직 초기화되지 않은 경우 로딩 상태 유지
       try {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        
+
         // 로딩 중인 경우 리다이렉트하지 않음
         if (authProvider.isLoading) {
           return null;
@@ -169,7 +169,6 @@ class _MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<_MainShell> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

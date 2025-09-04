@@ -48,12 +48,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (confirmed == true) {
       try {
         // AuthProvider를 통해 로그아웃
-        final authProvider = Provider.of<auth.AuthProvider>(context, listen: false);
+        final authProvider =
+            Provider.of<auth.AuthProvider>(context, listen: false);
         await authProvider.signOut();
-        
+
         // 모든 캐시 데이터 정리
         await CacheService.clearAllCache();
-        
+
         // Google Sign-In도 정리
         await _googleSignIn.signOut();
 
@@ -216,7 +217,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
     );
   }
-
 
   Widget _buildSectionHeader(String title) {
     return Padding(

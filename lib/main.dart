@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:health/health.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -80,7 +81,7 @@ Future<void> _initializeHealthKit() async {
   try {
     final health = HealthFactory();
 
-    // 기본 권한 요청 (걸음 수, 심박수, 운동 거리)
+    // 앱 시작 시 기본 권한만 요청 (걸음 수, 심박수, 운동 거리, 운동)
     final types = [
       HealthDataType.STEPS,
       HealthDataType.HEART_RATE,

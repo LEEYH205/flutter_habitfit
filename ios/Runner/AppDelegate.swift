@@ -70,100 +70,16 @@ import GoogleSignIn
       result("iOS 네이티브 코드에서 응답: 로깅 테스트 성공!")
       
     case "requestHealthKitPermissions":
-      // HealthKit 권한 요청
-      guard HKHealthStore.isHealthDataAvailable() else {
-        result(false)
-        return
-      }
+      // 앱 시작 시 기본 권한만 요청
+      requestBasicPermissions(result: result)
       
-      let typesToRead: Set<HKObjectType> = [
-        // 기본 운동 데이터
-        HKObjectType.workoutType(),                    // 운동
-        HKSeriesType.workoutRoute(),                   // 운동 경로
-
-        // 심박수 및 심장 건강 데이터
-        HKObjectType.quantityType(forIdentifier: .heartRate)!,  // 심박수
-        HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,  // 안정 심박수
-        HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,  // 걷기 평균 심박수
-        HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,  // 심박수 변이도
-
-        // 운동 및 활동 데이터
-        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,     // 활동 에너지
-        HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,      // 휴식 에너지
-        HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!, // 걷기+달리기 거리
-        HKObjectType.quantityType(forIdentifier: .stepCount)!,              // 걸음
-        HKObjectType.quantityType(forIdentifier: .flightsClimbed)!,          // 오른 층수
-        HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,       // 운동하기 시간
-        HKObjectType.quantityType(forIdentifier: .appleStandTime)!,            // 서 있는 시간
-
-        // 신체 데이터
-        HKObjectType.quantityType(forIdentifier: .height)!,                 // 신장
-
-        // Apple Watch 특화 러닝 다이내믹스 데이터
-        HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,       // 달리기 보폭 길이 (Apple Watch)
-        HKObjectType.quantityType(forIdentifier: .runningSpeed)!,              // 달리기 속도 (Apple Watch)
-        HKObjectType.quantityType(forIdentifier: .runningPower)!,              // 달리기 파워 (Apple Watch)
-        HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation)!, // 수직 진폭 (Apple Watch)
-        HKObjectType.quantityType(forIdentifier: .runningGroundContactTime)!,  // 지면 접촉 시간 (Apple Watch)
-
-        // 추가 심장 건강 데이터 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
-        // HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,
-        // HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-
-        // 추가 활동 데이터 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .appleStandTime)!,
-
-        // 신체 측정 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .bodyMass)!,
-        // HKObjectType.quantityType(forIdentifier: .height)!,
-        // HKObjectType.quantityType(forIdentifier: .bodyFatPercentage)!,
-        // HKObjectType.quantityType(forIdentifier: .leanBodyMass)!,
-
-        // 영양 및 수분 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
-        // HKObjectType.quantityType(forIdentifier: .dietaryProtein)!,
-        // HKObjectType.quantityType(forIdentifier: .dietaryCarbohydrates)!,
-        // HKObjectType.quantityType(forIdentifier: .dietaryFatTotal)!,
-        // HKObjectType.quantityType(forIdentifier: .dietaryWater)!,
-
-        // 수면 (주석 처리)
-        // HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-
-        // 혈압 및 혈당 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
-        // HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
-        // HKObjectType.quantityType(forIdentifier: .bloodGlucose)!,
-
-        // 체온 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .bodyTemperature)!,
-
-        // 산소 포화도 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
-        // HKObjectType.quantityType(forIdentifier: .peripheralPerfusionIndex)!,
-
-        // 호흡 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
-
-        // 여성 건강 (주석 처리)
-        // HKObjectType.categoryType(forIdentifier: .menstrualFlow)!,
-        // HKObjectType.quantityType(forIdentifier: .basalBodyTemperature)!,
-
-        // 건강 기록 (주석 처리)
-        // HKObjectType.clinicalType(forIdentifier: .allergyRecord)!,
-        // HKObjectType.clinicalType(forIdentifier: .conditionRecord)!,
-        // HKObjectType.clinicalType(forIdentifier: .medicationRecord)!,
-        // HKObjectType.clinicalType(forIdentifier: .procedureRecord)!,
-
-        // 정신 건강 (주석 처리)
-        // HKObjectType.quantityType(forIdentifier: .mindfulSession)!,
-      ]
+    case "requestReportPermissions":
+      // 달력 클릭 시 리포트 관련 권한 요청
+      requestReportPermissions(result: result)
       
-      self.healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
-        DispatchQueue.main.async {
-          result(success)
-        }
-      }
+    case "requestRunningPermissions":
+      // 러닝 기록 클릭 시 Apple Watch 고급 권한 요청
+      requestRunningPermissions(result: result)
       
     case "getWorkoutRoute":
       guard let args = call.arguments as? [String: Any],
@@ -315,28 +231,98 @@ import GoogleSignIn
   }
   
   
-  // MARK: - 고급 러닝 메트릭 헬퍼 메서드들
-  private func requestRunningPermissions(result: @escaping FlutterResult) {
-    var readTypes = Set<HKObjectType>()
+  // MARK: - 단계별 HealthKit 권한 요청 메서드들
+  
+  /// 앱 시작 시 기본 권한 요청 (걸음 수, 심박수, 운동 거리, 운동)
+  private func requestBasicPermissions(result: @escaping FlutterResult) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result(false)
+      return
+    }
     
-    // 러닝 고급 지표
-    let qtyIds: [HKQuantityTypeIdentifier] = [
-      .runningStrideLength, .runningSpeed, .runningPower,
-      .runningVerticalOscillation, .runningGroundContactTime
+    print("📱 iOS: 기본 HealthKit 권한 요청 시작")
+    
+    let typesToRead: Set<HKObjectType> = [
+      // 기본 운동 데이터
+      HKObjectType.workoutType(),                    // 운동
+      HKObjectType.quantityType(forIdentifier: .heartRate)!,  // 심박수
+      HKObjectType.quantityType(forIdentifier: .stepCount)!,              // 걸음
+      HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!, // 걷기+달리기 거리
     ]
     
-    qtyIds.forEach { if let t = HKObjectType.quantityType(forIdentifier: $0) { readTypes.insert(t) } }
-    
-    let route = HKSeriesType.workoutRoute()
-    readTypes.insert(route)
-    readTypes.insert(HKObjectType.workoutType())
-    
-    healthStore.requestAuthorization(toShare: nil, read: readTypes) { ok, err in
-      if let err = err {
-        result(FlutterError(code: "AUTH", message: err.localizedDescription, details: nil))
-        return
+    self.healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+      DispatchQueue.main.async {
+        if success {
+          print("✅ iOS: 기본 HealthKit 권한 승인됨")
+        } else {
+          print("❌ iOS: 기본 HealthKit 권한 거부됨")
+        }
+        result(success)
       }
-      result(ok)
+    }
+  }
+  
+  /// 달력 클릭 시 리포트 관련 권한 요청
+  private func requestReportPermissions(result: @escaping FlutterResult) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result(false)
+      return
+    }
+    
+    print("📊 iOS: 리포트 관련 HealthKit 권한 요청 시작")
+    
+    let typesToRead: Set<HKObjectType> = [
+      // 리포트 관련 데이터
+      HKObjectType.quantityType(forIdentifier: .height)!,                 // 신장
+      HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,  // 심박수 변이도
+      HKObjectType.quantityType(forIdentifier: .flightsClimbed)!,          // 오른 층수
+      HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,       // 운동하기 시간
+      HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,     // 활동 에너지
+      HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,      // 휴식 에너지
+      HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,  // 안정 심박수
+    ]
+    
+    self.healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+      DispatchQueue.main.async {
+        if success {
+          print("✅ iOS: 리포트 관련 HealthKit 권한 승인됨")
+        } else {
+          print("❌ iOS: 리포트 관련 HealthKit 권한 거부됨")
+        }
+        result(success)
+      }
+    }
+  }
+  
+  /// 러닝 기록 클릭 시 Apple Watch 고급 권한 요청
+  private func requestRunningPermissions(result: @escaping FlutterResult) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result(false)
+      return
+    }
+    
+    print("🏃‍♂️ iOS: Apple Watch 러닝 관련 HealthKit 권한 요청 시작")
+    
+    let typesToRead: Set<HKObjectType> = [
+      // Apple Watch 특화 러닝 다이내믹스 데이터
+      HKObjectType.quantityType(forIdentifier: .runningStrideLength)!,       // 달리기 보폭 길이 (Apple Watch)
+      HKObjectType.quantityType(forIdentifier: .runningSpeed)!,              // 달리기 속도 (Apple Watch)
+      HKObjectType.quantityType(forIdentifier: .runningPower)!,              // 달리기 파워 (Apple Watch)
+      HKObjectType.quantityType(forIdentifier: .runningVerticalOscillation)!, // 수직 진폭 (Apple Watch)
+      HKObjectType.quantityType(forIdentifier: .runningGroundContactTime)!,  // 지면 접촉 시간 (Apple Watch)
+      HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,  // 걷기 평균 심박수
+      HKObjectType.quantityType(forIdentifier: .appleStandTime)!,            // 서 있는 시간
+    ]
+    
+    self.healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+      DispatchQueue.main.async {
+        if success {
+          print("✅ iOS: Apple Watch 러닝 관련 HealthKit 권한 승인됨")
+        } else {
+          print("❌ iOS: Apple Watch 러닝 관련 HealthKit 권한 거부됨")
+        }
+        result(success)
+      }
     }
   }
   

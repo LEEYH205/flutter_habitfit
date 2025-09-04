@@ -1,5 +1,6 @@
 import 'package:health/health.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter/services.dart';
 import 'dart:math';
 import 'healthkit_route_service.dart';
 import 'running_coaching_service.dart' as coaching;
@@ -52,6 +53,10 @@ class HealthKitService {
 
         // 신체 데이터
         HealthDataType.HEIGHT, // 키
+
+        // Apple Watch 러닝 다이내믹스 데이터 (iOS 16+)
+        // 주의: 일부 데이터 타입은 iOS 버전에 따라 지원되지 않을 수 있음
+        // 실제로는 iOS 네이티브 코드에서 직접 처리해야 할 수 있음
 
         // GPS 경로 데이터는 iOS 네이티브 코드에서 직접 처리
         // Apple Watch 특화 데이터는 iOS 네이티브에서 직접 요청

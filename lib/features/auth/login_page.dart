@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../common/widgets/custom_button.dart';
 import '../../common/widgets/custom_text_field.dart';
@@ -290,7 +291,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (success && mounted) {
       // 로그인 성공 시 메인 화면으로 이동
-      Navigator.of(context).pushReplacementNamed('/home');
+      context.go('/today');
     }
   }
 
@@ -300,7 +301,7 @@ class _LoginPageState extends State<LoginPage> {
     final success = await authProvider.signInWithGoogle();
 
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      context.go('/today');
     }
   }
 
@@ -310,7 +311,7 @@ class _LoginPageState extends State<LoginPage> {
     final success = await authProvider.signInAnonymously();
 
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      context.go('/today');
     }
   }
 
