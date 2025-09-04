@@ -12,13 +12,43 @@ final dayLogProvider = FutureProvider.family<DayLog, DateTime>((ref, date) async
 
   final dateId = _getDateId(date);
   
-  // 해당 날짜의 습관 완료 데이터
+  // 해당 날짜의 습관 완료 데이터와 습관 상세 정보 조합
   final habitsQuery = await FirebaseFirestore.instance
       .collection('habit_completions')
       .where('uid', isEqualTo: user.uid)
       .where('done', isEqualTo: true)
       .where('date', isEqualTo: dateId)
       .get();
+
+  // 습관 상세 정보 가져오기
+  final userHabitsQuery = await FirebaseFirestore.instance
+      .collection('user_habits')
+      .where('uid', isEqualTo: user.uid)
+      .where('isActive', isEqualTo: true)
+      .get();
+
+  // 습관 완료 데이터와 습관 상세 정보를 매칭
+  final habitsWithDetails = <Map<String, dynamic>>[];
+  for (final completionDoc in habitsQuery.docs) {
+    final completionData = completionDoc.data();
+    final habitId = completionData['habitId'];
+    
+    // 해당 습관의 상세 정보 찾기
+    final habitDetail = userHabitsQuery.docs
+        .where((doc) => doc.id == habitId)
+        .map((doc) => doc.data())
+        .firstOrNull;
+    
+    if (habitDetail != null) {
+      // 습관 상세 정보와 완료 정보를 합치기
+      habitsWithDetails.add({
+        ...habitDetail,
+        'completionId': completionDoc.id,
+        'completedAt': completionData['completedAt'],
+        'date': completionData['date'],
+      });
+    }
+  }
 
   // 해당 날짜의 운동 데이터
   final workoutsQuery = await FirebaseFirestore.instance
@@ -35,7 +65,7 @@ final dayLogProvider = FutureProvider.family<DayLog, DateTime>((ref, date) async
 
   return DayLog(
     date: date,
-    habits: habitsQuery.docs.map((doc) => doc.data()).toList(),
+    habits: habitsWithDetails,
     workouts: workoutsQuery.docs.map((doc) => doc.data()).toList(),
     runningData: runningData,
     meals: mealsData,

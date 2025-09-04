@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/app_bar_with_notifications.dart';
 import '../../widgets/common/section_card.dart';
 import '../../providers/day_log_provider.dart';
@@ -544,22 +545,83 @@ class _JournalPageState extends ConsumerState<JournalPage>
 
   /// 습관 아이템
   Widget _buildHabitItem(Map<String, dynamic> habit) {
-    return ListTile(
-      leading: const Icon(Icons.check_circle, color: Colors.green),
-      title: Text(habit['title'] ?? '제목 없음'),
-      subtitle: Text(habit['description'] ?? ''),
-      trailing: PopupMenuButton(
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'edit',
-            child: Text('편집'),
+    final emoji = habit['emoji'] ?? '✅';
+    final title = habit['title'] ?? '제목 없음';
+    final description = habit['description'] ?? '';
+    final completedAt = habit['completedAt'];
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.green.shade100,
+            borderRadius: BorderRadius.circular(20),
           ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Text('삭제'),
+          child: Center(
+            child: Text(
+              emoji,
+              style: const TextStyle(fontSize: 20),
+            ),
           ),
-        ],
-        onSelected: (value) => _handleHabitAction(value, habit),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.green,
+          ),
+        ),
+        subtitle: description.isNotEmpty 
+            ? Text(
+                description,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              )
+            : completedAt != null 
+                ? Text(
+                    '완료 시간: ${_formatTime(completedAt)}',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
+        trailing: PopupMenuButton(
+          icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit, size: 18),
+                  SizedBox(width: 8),
+                  Text('편집'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 18, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('삭제', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+          onSelected: (value) => _handleHabitAction(value, habit),
+        ),
       ),
     );
   }
@@ -721,5 +783,21 @@ class _JournalPageState extends ConsumerState<JournalPage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('식사 $action 기능은 곧 추가될 예정입니다')),
     );
+  }
+
+  /// 시간 포맷팅
+  String _formatTime(dynamic timestamp) {
+    if (timestamp == null) return '';
+    
+    DateTime dateTime;
+    if (timestamp is Timestamp) {
+      dateTime = timestamp.toDate();
+    } else if (timestamp is String) {
+      dateTime = DateTime.parse(timestamp);
+    } else {
+      return '';
+    }
+    
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
