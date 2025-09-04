@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/services/local_notification_service.dart';
+import '../../services/analytics_service.dart';
+import '../../services/recommendation_service.dart';
 import 'user_profile_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -95,11 +97,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _weeklyResetEnabled = true;
   int _weeklyResetDay = 1; // 월요일 (1=월요일, 0=일요일)
 
+  // 스마트 추천 관련
+  final AnalyticsService _analyticsService = AnalyticsService();
+  final RecommendationService _recommendationService = RecommendationService();
+  UserPattern? _userPattern;
+  List<GoalAdjustment> _goalAdjustments = [];
+  List<HabitSuggestion> _habitSuggestions = [];
+  String _personalizedInsight = '';
+  bool _isAnalyzing = false;
+
   @override
   void initState() {
     super.initState();
     _currentUser = _auth.currentUser;
     _loadSettings();
+    _loadSmartRecommendations();
   }
 
   Future<void> _loadSettings() async {
@@ -184,6 +196,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _dailyHabitGoal = _prefs.getInt('dailyHabitGoal') ?? 1;
       _dailyRunningGoal = _prefs.getDouble('dailyRunningGoal') ?? 5.0;
     });
+  }
+
+  Future<void> _loadSmartRecommendations() async {
+    if (_currentUser == null) return;
+
+    setState(() {
+      _isAnalyzing = true;
+    });
+
+    try {
+      // 사용자 패턴 분석
+      _userPattern =
+          await _analyticsService.analyzeUserPattern(_currentUser!.uid);
+
+      // 목표 조정 제안
+      _goalAdjustments = await _recommendationService
+          .suggestGoalAdjustments(_currentUser!.uid);
+
+      // 새로운 습관 제안
+      _habitSuggestions =
+          await _recommendationService.suggestNewHabits(_currentUser!.uid);
+
+      // 개인화된 인사이트
+      _personalizedInsight = await _recommendationService
+          .generatePersonalizedInsight(_currentUser!.uid);
+
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    } catch (e) {
+      print('❌ 스마트 추천 로드 실패: $e');
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    }
   }
 
   Future<void> _saveSettings({bool showSnackBar = false}) async {
@@ -612,6 +663,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
             if (_weeklyResetEnabled) ...[
               _buildWeeklyResetTile(),
+            ],
+
+            const SizedBox(height: 24),
+
+            // 스마트 추천 섹션
+            _buildSectionHeader('🤖 스마트 추천'),
+
+            if (_isAnalyzing) ...[
+              _buildAnalyzingCard(),
+            ] else if (_userPattern != null) ...[
+              _buildPersonalizedInsightCard(),
+              _buildPatternAnalysisCard(),
+              if (_goalAdjustments.isNotEmpty) _buildGoalAdjustmentCard(),
+              if (_habitSuggestions.isNotEmpty) _buildHabitSuggestionCard(),
+            ] else ...[
+              _buildNoDataCard(),
             ],
           ],
         ),
@@ -1089,6 +1156,361 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 fontSize: 12,
                 color: Colors.green.shade600,
                 fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalyzingCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            const Text(
+              '사용자 패턴을 분석하고 있습니다...',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '최근 30일간의 습관 데이터를 분석하여\n개인화된 추천을 준비하고 있어요',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonalizedInsightCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb, color: Colors.amber.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '개인화된 인사이트',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _personalizedInsight,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPatternAnalysisCard() {
+    if (_userPattern == null) return const SizedBox.shrink();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.analytics, color: Colors.blue.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '패턴 분석 결과',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    '완료율',
+                    '${(_userPattern!.overallCompletionRate * 100).toStringAsFixed(1)}%',
+                    Colors.green,
+                    Icons.check_circle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    '일관성',
+                    '${(_userPattern!.consistencyScore * 100).toStringAsFixed(1)}%',
+                    Colors.blue,
+                    Icons.trending_up,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_userPattern!.bestTimeSlots.isNotEmpty) ...[
+              const Text(
+                '최적 시간대',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: _userPattern!.bestTimeSlots.map((time) {
+                  return Chip(
+                    label: Text(time),
+                    backgroundColor: Colors.blue.shade100,
+                    labelStyle: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontSize: 12,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+      String title, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalAdjustmentCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.tune, color: Colors.orange.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '목표 조정 제안',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._goalAdjustments.map((adjustment) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      adjustment.reason,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '신뢰도: ${(adjustment.confidence * 100).toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHabitSuggestionCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: Colors.purple.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '새로운 습관 제안',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._habitSuggestions.take(3).map((suggestion) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.purple.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      suggestion.emoji,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            suggestion.title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            suggestion.description,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${(suggestion.relevanceScore * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.purple.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoDataCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(Icons.analytics_outlined,
+                size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              '아직 충분한 데이터가 없어요',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '습관을 실천해보시면\n개인화된 추천을 받을 수 있습니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadSmartRecommendations,
+              icon: const Icon(Icons.refresh),
+              label: const Text('다시 분석하기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
               ),
             ),
           ],
