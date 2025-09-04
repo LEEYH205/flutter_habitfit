@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:routinex/features/running/running_analysis_page.dart';
-import 'package:routinex/services/health_kit_service.dart';
+import 'package:habitfit_mvp/features/running/running_analysis_page.dart';
+import 'package:habitfit_mvp/services/health_kit_service.dart';
 
 class DayDetailsPage extends StatefulWidget {
   final DateTime selectedDay;

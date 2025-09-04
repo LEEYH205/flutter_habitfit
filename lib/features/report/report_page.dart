@@ -148,7 +148,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     try {
       print('🏃‍♂️ 달리기 데이터 로드 시작...');
 
-      final health = HealthFactory();
+      final health = Health();
 
       // HealthKit 사용 가능 여부 확인
       try {

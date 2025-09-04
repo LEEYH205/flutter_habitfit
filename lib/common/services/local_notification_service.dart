@@ -111,8 +111,7 @@ class LocalNotificationService {
         '오늘의 습관을 체크해보세요!',
         tz.TZDateTime.from(scheduledDate, tz.local),
         _getHabitNotificationDetails(),
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
       print(
@@ -145,8 +144,7 @@ class LocalNotificationService {
         '오늘의 운동 기록을 확인해보세요!',
         tz.TZDateTime.from(scheduledDate, tz.local),
         _getSummaryNotificationDetails(),
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
       print(
@@ -213,8 +211,7 @@ class LocalNotificationService {
         '이번 주 운동 기록을 확인해보세요!',
         tz.TZDateTime.from(scheduledDate, tz.local),
         _getWeeklySummaryNotificationDetails(),
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
       print('✅ 주간 운동 요약 알림 설정 성공');

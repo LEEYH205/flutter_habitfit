@@ -10,7 +10,7 @@ class HealthKitService {
   factory HealthKitService() => _instance;
   HealthKitService._internal();
 
-  final HealthFactory _health = HealthFactory();
+  final Health _health = Health();
   bool _isInitialized = false;
   bool _appleWatchDetected = false;
 
