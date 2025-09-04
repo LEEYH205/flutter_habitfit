@@ -12,13 +12,26 @@ import '../meals/meal_page.dart';
 
 /// Today 페이지 - 실행 중심: "지금 뭘 해야 하지?"
 class TodayPage extends ConsumerStatefulWidget {
-  const TodayPage({super.key});
+  final String? action; // 빠른 액션 파라미터
+  
+  const TodayPage({super.key, this.action});
 
   @override
   ConsumerState<TodayPage> createState() => _TodayPageState();
 }
 
 class _TodayPageState extends ConsumerState<TodayPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 액션 파라미터가 있으면 해당 액션 실행
+    if (widget.action != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleAction(widget.action!);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,7 +116,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     return Consumer(
       builder: (context, ref, child) {
         final todaySummaryAsync = ref.watch(todaySummaryProvider);
-        
+
         return todaySummaryAsync.when(
           data: (summary) => Row(
             children: [
@@ -127,7 +140,8 @@ class _TodayPageState extends ConsumerState<TodayPage> {
                 child: KpiRing.habits(
                   value: summary.habitStatusText,
                   progress: summary.habitProgress,
-                  subtitle: '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  subtitle:
+                      '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
                 ),
               ),
             ],
@@ -142,8 +156,9 @@ class _TodayPageState extends ConsumerState<TodayPage> {
   /// KPI 링 로딩 상태
   Widget _buildKpiRingsLoading() {
     return Row(
-      children: List.generate(3, (index) => 
-        Expanded(
+      children: List.generate(
+        3,
+        (index) => Expanded(
           child: Container(
             height: 120,
             margin: EdgeInsets.only(right: index < 2 ? 12 : 0),
@@ -279,7 +294,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     return Consumer(
       builder: (context, ref, child) {
         final todaySummaryAsync = ref.watch(todaySummaryProvider);
-        
+
         return todaySummaryAsync.when(
           data: (summary) => SectionCard(
             title: '오늘의 진행',
@@ -295,7 +310,7 @@ class _TodayPageState extends ConsumerState<TodayPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                
+
                 // 진행률 요약
                 Row(
                   children: [
@@ -329,7 +344,8 @@ class _TodayPageState extends ConsumerState<TodayPage> {
   }
 
   /// 진행률 아이템
-  Widget _buildProgressItem(String label, String value, double progress, Color color) {
+  Widget _buildProgressItem(
+      String label, String value, double progress, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -390,12 +406,14 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     return Consumer(
       builder: (context, ref, child) {
         final todaySummaryAsync = ref.watch(todaySummaryProvider);
-        
+
         return todaySummaryAsync.when(
           data: (summary) {
-            final coachingMessage = CoachUseCase.generateTodayCoaching(summary, null);
-            final motivationalMessage = CoachUseCase.generateMotivationalMessage(summary, null);
-            
+            final coachingMessage =
+                CoachUseCase.generateTodayCoaching(summary, null);
+            final motivationalMessage =
+                CoachUseCase.generateMotivationalMessage(summary, null);
+
             return SectionCard(
               title: 'AI 코칭',
               icon: Icons.psychology,
@@ -484,6 +502,23 @@ class _TodayPageState extends ConsumerState<TodayPage> {
     return data;
   }
 
+  /// 액션 처리
+  void _handleAction(String action) {
+    switch (action) {
+      case 'habits':
+        _navigateToHabits();
+        break;
+      case 'workout':
+        _navigateToWorkout();
+        break;
+      case 'meals':
+        _navigateToMeals();
+        break;
+      default:
+        break;
+    }
+  }
+
   /// 네비게이션 메서드들
   void _navigateToHabits() {
     Navigator.push(
@@ -525,8 +560,18 @@ class _TodayPageState extends ConsumerState<TodayPage> {
   /// 월 이름 변환
   String _getMonthName(int month) {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC'
     ];
     return months[month - 1];
   }

@@ -9,7 +9,9 @@ import '../../models/day_log.dart';
 
 /// Journal 페이지 - 기록/편집 중심: "이 날 뭘 했지?"
 class JournalPage extends ConsumerStatefulWidget {
-  const JournalPage({super.key});
+  final DateTime? initialDate; // 초기 선택 날짜
+  
+  const JournalPage({super.key, this.initialDate});
 
   @override
   ConsumerState<JournalPage> createState() => _JournalPageState();
@@ -22,8 +24,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   @override
   void initState() {
     super.initState();
-    _focusedDay = DateTime.now();
-    _selectedDay = DateTime.now();
+    _focusedDay = widget.initialDate ?? DateTime.now();
+    _selectedDay = widget.initialDate ?? DateTime.now();
   }
 
   @override

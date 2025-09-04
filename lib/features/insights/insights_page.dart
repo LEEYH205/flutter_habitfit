@@ -11,14 +11,27 @@ import 'package:fl_chart/fl_chart.dart';
 
 /// Insights 페이지 - 분석 중심: "어떤 패턴이 있지?"
 class InsightsPage extends ConsumerStatefulWidget {
-  const InsightsPage({super.key});
+  final String? initialRange; // 초기 분석 범위
+  
+  const InsightsPage({super.key, this.initialRange});
 
   @override
   ConsumerState<InsightsPage> createState() => _InsightsPageState();
 }
 
 class _InsightsPageState extends ConsumerState<InsightsPage> {
-  TrendRange _selectedRange = TrendRange.week7;
+  late TrendRange _selectedRange;
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기 범위 설정
+    if (widget.initialRange != null) {
+      _selectedRange = _parseRange(widget.initialRange!);
+    } else {
+      _selectedRange = TrendRange.week7;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -621,5 +634,25 @@ class _InsightsPageState extends ConsumerState<InsightsPage> {
         child: Text('데이터를 불러올 수 없습니다'),
       ),
     );
+  }
+
+  /// 범위 문자열을 TrendRange로 변환
+  TrendRange _parseRange(String range) {
+    switch (range.toLowerCase()) {
+      case '7d':
+      case 'week7':
+        return TrendRange.week7;
+      case '14d':
+      case 'week14':
+        return TrendRange.week14;
+      case '30d':
+      case 'month30':
+        return TrendRange.month30;
+      case '90d':
+      case 'month90':
+        return TrendRange.month90;
+      default:
+        return TrendRange.week7;
+    }
   }
 }
