@@ -64,6 +64,7 @@ app.*.map.json
 **/ios/**/profile
 **/ios/**/xcuserdata
 **/ios/.generated/
+**/ios/build/
 **/ios/Flutter/App.framework
 **/ios/Flutter/Flutter.framework
 **/ios/Flutter/Flutter.podspec
