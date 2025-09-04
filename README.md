@@ -1,4 +1,4 @@
-# RoutineX
+# habitfit
 
 A Flutter-based habit tracking and fitness app with HealthKit integration and AI-powered features.
 
