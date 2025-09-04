@@ -106,6 +106,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _personalizedInsight = '';
   bool _isAnalyzing = false;
 
+  // 프리셋 관련
+  String _selectedPreset =
+      'custom'; // 'beginner', 'intermediate', 'advanced', 'custom'
+
   @override
   void initState() {
     super.initState();
@@ -195,7 +199,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _dailyPushupGoal = _prefs.getInt('dailyPushupGoal') ?? 15;
       _dailyHabitGoal = _prefs.getInt('dailyHabitGoal') ?? 1;
       _dailyRunningGoal = _prefs.getDouble('dailyRunningGoal') ?? 5.0;
+      _selectedPreset = _prefs.getString('selectedPreset') ?? 'custom';
     });
+  }
+
+  void _applyPreset(String preset) {
+    setState(() {
+      _selectedPreset = preset;
+
+      switch (preset) {
+        case 'beginner':
+          // 초보자 프리셋
+          _workoutNotificationsEnabled = true;
+          _habitRemindersEnabled = true;
+          _dailySummaryEnabled = true;
+          _goalAchievementEnabled = true;
+          _missedHabitReminderEnabled = false;
+          _snoozeEnabled = false;
+          _quietHoursEnabled = false;
+          _focusModeRespectEnabled = false;
+          _progressiveIncreaseEnabled = false;
+          _deloadSystemEnabled = false;
+          _restDaysEnabled = true;
+          _weeklyResetEnabled = true;
+          _dailySquatGoal = 10;
+          _dailyPushupGoal = 5;
+          _dailyHabitGoal = 1;
+          _dailyRunningGoal = 2.0;
+          break;
+
+        case 'intermediate':
+          // 중급자 프리셋
+          _workoutNotificationsEnabled = true;
+          _habitRemindersEnabled = true;
+          _dailySummaryEnabled = true;
+          _goalAchievementEnabled = true;
+          _missedHabitReminderEnabled = true;
+          _snoozeEnabled = true;
+          _quietHoursEnabled = true;
+          _focusModeRespectEnabled = true;
+          _progressiveIncreaseEnabled = true;
+          _deloadSystemEnabled = true;
+          _restDaysEnabled = true;
+          _weeklyResetEnabled = true;
+          _dailySquatGoal = 20;
+          _dailyPushupGoal = 15;
+          _dailyHabitGoal = 2;
+          _dailyRunningGoal = 5.0;
+          break;
+
+        case 'advanced':
+          // 고급자 프리셋
+          _workoutNotificationsEnabled = true;
+          _habitRemindersEnabled = true;
+          _dailySummaryEnabled = true;
+          _goalAchievementEnabled = true;
+          _missedHabitReminderEnabled = true;
+          _snoozeEnabled = true;
+          _quietHoursEnabled = true;
+          _focusModeRespectEnabled = true;
+          _progressiveIncreaseEnabled = true;
+          _deloadSystemEnabled = true;
+          _restDaysEnabled = true;
+          _weeklyResetEnabled = true;
+          _dailySquatGoal = 50;
+          _dailyPushupGoal = 30;
+          _dailyHabitGoal = 3;
+          _dailyRunningGoal = 10.0;
+          break;
+
+        case 'custom':
+          // 사용자 정의 - 현재 설정 유지
+          break;
+      }
+    });
+
+    _saveSettings();
   }
 
   Future<void> _loadSmartRecommendations() async {
@@ -280,6 +359,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         'restDays', _restDays.map((e) => e.toString()).toList());
     await _prefs.setBool('weeklyResetEnabled', _weeklyResetEnabled);
     await _prefs.setInt('weeklyResetDay', _weeklyResetDay);
+    await _prefs.setString('selectedPreset', _selectedPreset);
 
     await _prefs.setInt('habitReminderHour', _habitReminderTime.hour);
     await _prefs.setInt('habitReminderMinute', _habitReminderTime.minute);
@@ -338,352 +418,269 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('👤 사용자 & 설정'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 사용자 정보 섹션
-            _buildUserInfoSection(),
-
-            const SizedBox(height: 24),
-
-            // 알림 설정 섹션
-            _buildSectionHeader('🔔 알림 설정'),
-            _buildSwitchTile(
-              '운동 완료 알림',
-              '스쿼트 세션 완료 시 알림',
-              _workoutNotificationsEnabled,
-              (value) {
-                setState(() => _workoutNotificationsEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '습관 체크 리마인더',
-              '매일 설정된 시간에 습관 체크 알림',
-              _habitRemindersEnabled,
-              (value) {
-                setState(() => _habitRemindersEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '일일 운동 요약',
-              '매일 설정된 시간에 운동 요약 알림',
-              _dailySummaryEnabled,
-              (value) {
-                setState(() => _dailySummaryEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '목표 달성 축하',
-              '목표 달성 시 축하 알림',
-              _goalAchievementEnabled,
-              (value) {
-                setState(() => _goalAchievementEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '주간 운동 요약',
-              '매주 일요일에 주간 요약 알림',
-              _weeklySummaryEnabled,
-              (value) {
-                setState(() => _weeklySummaryEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // 확장된 알림 설정
-            _buildSwitchTile(
-              '미완료 습관 재알림',
-              '습관을 놓쳤을 때 추가 알림',
-              _missedHabitReminderEnabled,
-              (value) {
-                setState(() => _missedHabitReminderEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_missedHabitReminderEnabled) ...[
-              _buildNumberTile(
-                '재알림 횟수',
-                '하루에 몇 번까지 재알림할지 설정',
-                _missedHabitReminderCount,
-                (value) {
-                  setState(() => _missedHabitReminderCount = value);
-                  _saveSettings();
-                },
-                min: 1,
-                max: 3,
-              ),
-            ],
-
-            _buildSwitchTile(
-              '스누즈 기능',
-              '알림을 잠시 미루고 나중에 다시 받기',
-              _snoozeEnabled,
-              (value) {
-                setState(() => _snoozeEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_snoozeEnabled) ...[
-              _buildSnoozeDurationTile(),
-            ],
-
-            _buildSwitchTile(
-              '조용한 시간',
-              '야간 시간대 알림 방지',
-              _quietHoursEnabled,
-              (value) {
-                setState(() => _quietHoursEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_quietHoursEnabled) ...[
-              _buildTimeTile(
-                '조용한 시간 시작',
-                _quietHoursStart,
-                (time) {
-                  setState(() => _quietHoursStart = time);
-                  _saveSettings();
-                },
-                enabled: true,
-              ),
-              _buildTimeTile(
-                '조용한 시간 종료',
-                _quietHoursEnd,
-                (time) {
-                  setState(() => _quietHoursEnd = time);
-                  _saveSettings();
-                },
-                enabled: true,
-              ),
-            ],
-
-            _buildSwitchTile(
-              '집중모드 연동',
-              'iOS 집중모드 활성화 시 알림 방지',
-              _focusModeRespectEnabled,
-              (value) {
-                setState(() => _focusModeRespectEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // 시간 설정 섹션
-            _buildSectionHeader('⏰ 시간 설정'),
-            _buildTimeTile(
-              '습관 체크 리마인더',
-              _habitRemindersEnabled ? _habitReminderTime : null,
-              (time) {
-                setState(() => _habitReminderTime = time);
-                _saveSettings();
-              },
-              enabled: _habitRemindersEnabled,
-            ),
-            _buildTimeTile(
-              '일일 운동 요약',
-              _dailySummaryEnabled ? _dailySummaryTime : null,
-              (time) {
-                setState(() => _dailySummaryTime = time);
-                _saveSettings();
-              },
-              enabled: _dailySummaryEnabled,
-            ),
-            _buildTimeTile(
-              '주간 운동 요약',
-              _weeklySummaryEnabled ? _weeklySummaryTime : null,
-              (time) {
-                setState(() => _weeklySummaryTime = time);
-                _saveSettings();
-              },
-              enabled: _weeklySummaryEnabled,
-            ),
-
-            const SizedBox(height: 16),
-
-            // 요일별 반복 설정
-            _buildDaySelectorTile(
-              '습관 체크 요일',
-              '습관 체크 알림을 받을 요일을 선택하세요',
-              _habitReminderDays,
-              (days) {
-                setState(() => _habitReminderDays = days);
-                _saveSettings();
-              },
-            ),
-
-            _buildDaySelectorTile(
-              '일일 요약 요일',
-              '일일 운동 요약을 받을 요일을 선택하세요',
-              _dailySummaryDays,
-              (days) {
-                setState(() => _dailySummaryDays = days);
-                _saveSettings();
-              },
-            ),
-
-            _buildDaySelectorTile(
-              '주간 요약 요일',
-              '주간 운동 요약을 받을 요일을 선택하세요',
-              _weeklySummaryDays,
-              (days) {
-                setState(() => _weeklySummaryDays = days);
-                _saveSettings();
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // 목표 설정 섹션
-            _buildSectionHeader('🎯 목표 설정'),
-            _buildNumberTile(
-              '일일 스쿼트 목표',
-              '하루에 목표로 하는 스쿼트 횟수',
-              _dailySquatGoal,
-              (value) {
-                setState(() => _dailySquatGoal = value);
-                _saveSettings();
-              },
-              min: 1,
-              max: 100,
-            ),
-            _buildNumberTile(
-              '일일 푸시업 목표',
-              '하루에 목표로 하는 푸시업 횟수',
-              _dailyPushupGoal,
-              (value) {
-                setState(() => _dailyPushupGoal = value);
-                _saveSettings();
-              },
-              min: 1,
-              max: 50,
-            ),
-            _buildNumberTile(
-              '일일 습관 목표',
-              '하루에 목표로 하는 습관 체크 횟수',
-              _dailyHabitGoal,
-              (value) {
-                setState(() => _dailyHabitGoal = value);
-                _saveSettings();
-              },
-              min: 1,
-              max: 10,
-            ),
-            _buildRunningGoalTile(
-              '일일 달리기 목표',
-              '하루에 목표로 하는 달리기 거리',
-              _dailyRunningGoal,
-              (value) {
-                setState(() => _dailyRunningGoal = value);
-                _saveSettings();
-              },
-              min: 0.5,
-              max: 50.0,
-              step: 0.5,
-            ),
-
-            const SizedBox(height: 16),
-
-            // 고급 목표 설정
-            _buildSwitchTile(
-              '점진적 증가 시스템',
-              '매주 목표를 자동으로 증가시킵니다',
-              _progressiveIncreaseEnabled,
-              (value) {
-                setState(() => _progressiveIncreaseEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_progressiveIncreaseEnabled) ...[
-              _buildProgressiveIncreaseTile(),
-            ],
-
-            _buildSwitchTile(
-              '딜로드 시스템',
-              '연속 실패 시 목표를 일시적으로 감소시킵니다',
-              _deloadSystemEnabled,
-              (value) {
-                setState(() => _deloadSystemEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_deloadSystemEnabled) ...[
-              _buildDeloadSettingsTile(),
-            ],
-
-            _buildSwitchTile(
-              '휴식일 지정',
-              '특정 요일을 휴식일로 설정합니다',
-              _restDaysEnabled,
-              (value) {
-                setState(() => _restDaysEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_restDaysEnabled) ...[
-              _buildDaySelectorTile(
-                '휴식일 설정',
-                '휴식일로 설정할 요일을 선택하세요',
-                _restDays,
-                (days) {
-                  setState(() => _restDays = days);
-                  _saveSettings();
-                },
-              ),
-            ],
-
-            _buildSwitchTile(
-              '주간 목표 리셋',
-              '매주 특정 요일에 목표를 초기화합니다',
-              _weeklyResetEnabled,
-              (value) {
-                setState(() => _weeklyResetEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_weeklyResetEnabled) ...[
-              _buildWeeklyResetTile(),
-            ],
-
-            const SizedBox(height: 24),
-
-            // 스마트 추천 섹션
-            _buildSectionHeader('🤖 스마트 추천'),
-
-            if (_isAnalyzing) ...[
-              _buildAnalyzingCard(),
-            ] else if (_userPattern != null) ...[
-              _buildPersonalizedInsightCard(),
-              _buildPatternAnalysisCard(),
-              if (_goalAdjustments.isNotEmpty) _buildGoalAdjustmentCard(),
-              if (_habitSuggestions.isNotEmpty) _buildHabitSuggestionCard(),
-            ] else ...[
-              _buildNoDataCard(),
-            ],
-          ],
+        appBar: AppBar(
+          title: const Text('👤 사용자 & 설정'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
         ),
-      ),
-    );
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 사용자 정보 섹션
+                _buildUserInfoSection(),
+
+                const SizedBox(height: 24),
+
+                // 프리셋 선택 섹션
+                _buildPresetSelectionCard(),
+
+                const SizedBox(height: 24),
+
+                // 알림 설정 섹션
+                _buildNotificationSettingsCard(),
+
+                const SizedBox(height: 24),
+                _buildSwitchTile(
+                  '일일 운동 요약',
+                  '매일 설정된 시간에 운동 요약 알림',
+                  _dailySummaryEnabled,
+                  (value) {
+                    setState(() => _dailySummaryEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+                _buildSwitchTile(
+                  '목표 달성 축하',
+                  '목표 달성 시 축하 알림',
+                  _goalAchievementEnabled,
+                  (value) {
+                    setState(() => _goalAchievementEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+                _buildSwitchTile(
+                  '주간 운동 요약',
+                  '매주 일요일에 주간 요약 알림',
+                  _weeklySummaryEnabled,
+                  (value) {
+                    setState(() => _weeklySummaryEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 확장된 알림 설정
+                _buildSwitchTile(
+                  '미완료 습관 재알림',
+                  '습관을 놓쳤을 때 추가 알림',
+                  _missedHabitReminderEnabled,
+                  (value) {
+                    setState(() => _missedHabitReminderEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_missedHabitReminderEnabled) ...[
+                  _buildNumberTile(
+                    '재알림 횟수',
+                    '하루에 몇 번까지 재알림할지 설정',
+                    _missedHabitReminderCount,
+                    (value) {
+                      setState(() => _missedHabitReminderCount = value);
+                      _saveSettings();
+                    },
+                    min: 1,
+                    max: 3,
+                  ),
+                ],
+
+                _buildSwitchTile(
+                  '스누즈 기능',
+                  '알림을 잠시 미루고 나중에 다시 받기',
+                  _snoozeEnabled,
+                  (value) {
+                    setState(() => _snoozeEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_snoozeEnabled) ...[
+                  _buildSnoozeDurationTile(),
+                ],
+
+                _buildSwitchTile(
+                  '조용한 시간',
+                  '야간 시간대 알림 방지',
+                  _quietHoursEnabled,
+                  (value) {
+                    setState(() => _quietHoursEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_quietHoursEnabled) ...[
+                  _buildTimeTile(
+                    '조용한 시간 시작',
+                    _quietHoursStart,
+                    (time) {
+                      setState(() => _quietHoursStart = time);
+                      _saveSettings();
+                    },
+                    enabled: true,
+                  ),
+                  _buildTimeTile(
+                    '조용한 시간 종료',
+                    _quietHoursEnd,
+                    (time) {
+                      setState(() => _quietHoursEnd = time);
+                      _saveSettings();
+                    },
+                    enabled: true,
+                  ),
+                ],
+
+                _buildSwitchTile(
+                  '집중모드 연동',
+                  'iOS 집중모드 활성화 시 알림 방지',
+                  _focusModeRespectEnabled,
+                  (value) {
+                    setState(() => _focusModeRespectEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // 시간 설정 섹션
+                _buildTimeSettingsCard(),
+
+                const SizedBox(height: 24),
+
+                // 목표 설정 섹션
+                _buildGoalSettingsCard(),
+
+                const SizedBox(height: 24),
+
+                // 확장된 알림 설정
+                _buildAdvancedNotificationCard(),
+
+                const SizedBox(height: 24),
+
+                const SizedBox(height: 16),
+                _buildNumberTile(
+                  '일일 습관 목표',
+                  '하루에 목표로 하는 습관 체크 횟수',
+                  _dailyHabitGoal,
+                  (value) {
+                    setState(() => _dailyHabitGoal = value);
+                    _saveSettings();
+                  },
+                  min: 1,
+                  max: 10,
+                ),
+                _buildRunningGoalTile(
+                  '일일 달리기 목표',
+                  '하루에 목표로 하는 달리기 거리',
+                  _dailyRunningGoal,
+                  (value) {
+                    setState(() => _dailyRunningGoal = value);
+                    _saveSettings();
+                  },
+                  min: 0.5,
+                  max: 50.0,
+                  step: 0.5,
+                ),
+
+                const SizedBox(height: 16),
+
+                // 고급 목표 설정
+                _buildSwitchTile(
+                  '점진적 증가 시스템',
+                  '매주 목표를 자동으로 증가시킵니다',
+                  _progressiveIncreaseEnabled,
+                  (value) {
+                    setState(() => _progressiveIncreaseEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_progressiveIncreaseEnabled) ...[
+                  _buildProgressiveIncreaseTile(),
+                ],
+
+                _buildSwitchTile(
+                  '딜로드 시스템',
+                  '연속 실패 시 목표를 일시적으로 감소시킵니다',
+                  _deloadSystemEnabled,
+                  (value) {
+                    setState(() => _deloadSystemEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_deloadSystemEnabled) ...[
+                  _buildDeloadSettingsTile(),
+                ],
+
+                _buildSwitchTile(
+                  '휴식일 지정',
+                  '특정 요일을 휴식일로 설정합니다',
+                  _restDaysEnabled,
+                  (value) {
+                    setState(() => _restDaysEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_restDaysEnabled) ...[
+                  _buildDaySelectorTile(
+                    '휴식일 설정',
+                    '휴식일로 설정할 요일을 선택하세요',
+                    _restDays,
+                    (days) {
+                      setState(() => _restDays = days);
+                      _saveSettings();
+                    },
+                  ),
+                ],
+
+                _buildSwitchTile(
+                  '주간 목표 리셋',
+                  '매주 특정 요일에 목표를 초기화합니다',
+                  _weeklyResetEnabled,
+                  (value) {
+                    setState(() => _weeklyResetEnabled = value);
+                    _saveSettings();
+                  },
+                ),
+
+                if (_weeklyResetEnabled) ...[
+                  _buildWeeklyResetTile(),
+                ],
+
+                const SizedBox(height: 24),
+
+                // 스마트 추천 섹션
+                _buildSectionHeader('🤖 스마트 추천'),
+
+                if (_isAnalyzing) ...[
+                  _buildAnalyzingCard(),
+                ] else if (_userPattern != null) ...[
+                  _buildPersonalizedInsightCard(),
+                  _buildPatternAnalysisCard(),
+                  if (_goalAdjustments.isNotEmpty) _buildGoalAdjustmentCard(),
+                  if (_habitSuggestions.isNotEmpty) _buildHabitSuggestionCard(),
+                ] else ...[
+                  _buildNoDataCard(),
+                ],
+              ],
+            ),
+          ),
+        ));
   }
 
   Widget _buildSectionHeader(String title) {
@@ -862,7 +859,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Text(
                   '활성 계정',
                   style: TextStyle(
-                    color: Colors.green.shade700,
+                    color: Colors.green.withOpacity(0.7),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -934,7 +931,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     onChanged(newDays);
                   },
                   selectedColor: Colors.blue.shade100,
-                  checkmarkColor: Colors.blue.shade700,
+                  checkmarkColor: Colors.blue.withOpacity(0.7),
                 );
               }),
             ),
@@ -1145,7 +1142,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     }
                   },
                   selectedColor: Colors.blue.shade100,
-                  checkmarkColor: Colors.blue.shade700,
+                  checkmarkColor: Colors.blue.withOpacity(0.7),
                 );
               }),
             ),
@@ -1219,7 +1216,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               _personalizedInsight,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade700,
+                color: Colors.grey.withOpacity(0.7),
                 height: 1.4,
               ),
             ),
@@ -1290,7 +1287,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     label: Text(time),
                     backgroundColor: Colors.blue.shade100,
                     labelStyle: TextStyle(
-                      color: Colors.blue.shade700,
+                      color: Colors.blue.withOpacity(0.7),
                       fontSize: 12,
                     ),
                   );
@@ -1463,7 +1460,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         '${(suggestion.relevanceScore * 100).toInt()}%',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.purple.shade700,
+                          color: Colors.purple.withOpacity(0.7),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1513,6 +1510,697 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 foregroundColor: Colors.white,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetSelectionCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.settings_suggest,
+                    color: Colors.purple.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '설정 프리셋',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Tooltip(
+                  message: '운동 경험에 따라 추천되는 설정을 선택하세요',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '운동 경험에 맞는 설정을 선택하면 자동으로 최적화됩니다',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _buildPresetChip('beginner', '초보자', '🌱', '간단한 설정으로 시작'),
+                _buildPresetChip('intermediate', '중급자', '💪', '균형잡힌 설정'),
+                _buildPresetChip('advanced', '고급자', '🏆', '고급 기능 포함'),
+                _buildPresetChip('custom', '사용자 정의', '⚙️', '직접 설정'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetChip(
+      String preset, String title, String emoji, String description) {
+    final isSelected = _selectedPreset == preset;
+
+    return InkWell(
+      onTap: () => _applyPreset(preset),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.purple.shade100 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.purple.shade300 : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              emoji,
+              style: const TextStyle(fontSize: 24),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isSelected
+                    ? Colors.purple.withOpacity(0.7)
+                    : Colors.grey.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 11,
+                color:
+                    isSelected ? Colors.purple.shade600 : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationSettingsCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.notifications,
+                    color: Colors.blue.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '알림 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Tooltip(
+                  message: '앱에서 받을 알림의 종류와 시간을 설정하세요',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildSwitchTile(
+              '운동 완료 알림',
+              '스쿼트 세션 완료 시 알림',
+              _workoutNotificationsEnabled,
+              (value) {
+                setState(() => _workoutNotificationsEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '습관 체크 리마인더',
+              '매일 설정된 시간에 습관 체크 알림',
+              _habitRemindersEnabled,
+              (value) {
+                setState(() => _habitRemindersEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '일일 운동 요약',
+              '매일 설정된 시간에 운동 요약 알림',
+              _dailySummaryEnabled,
+              (value) {
+                setState(() => _dailySummaryEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '목표 달성 축하',
+              '목표 달성 시 축하 알림',
+              _goalAchievementEnabled,
+              (value) {
+                setState(() => _goalAchievementEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '주간 운동 요약',
+              '매주 일요일에 주간 요약 알림',
+              _weeklySummaryEnabled,
+              (value) {
+                setState(() => _weeklySummaryEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '미완료 습관 재알림',
+              '습관을 놓쳤을 때 추가 알림',
+              _missedHabitReminderEnabled,
+              (value) {
+                setState(() => _missedHabitReminderEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '스누즈 기능',
+              '알림을 잠시 미룰 수 있는 기능',
+              _snoozeEnabled,
+              (value) {
+                setState(() => _snoozeEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '조용한 시간',
+              '특정 시간대에 알림 비활성화',
+              _quietHoursEnabled,
+              (value) {
+                setState(() => _quietHoursEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '포커스 모드 존중',
+              'iOS 포커스 모드 설정을 존중',
+              _focusModeRespectEnabled,
+              (value) {
+                setState(() => _focusModeRespectEnabled = value);
+                _saveSettings();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoalSettingsCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.flag, color: Colors.red.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '목표 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Tooltip(
+                  message: '일일 목표를 설정하여 꾸준한 습관 형성을 돕습니다',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 운동 목표들
+            _buildGoalTile(
+              '스쿼트 목표',
+              '일일 스쿼트 횟수 목표',
+              _dailySquatGoal,
+              Icons.fitness_center,
+              Colors.red,
+              (value) {
+                setState(() => _dailySquatGoal = value);
+                _saveSettings();
+              },
+            ),
+            _buildGoalTile(
+              '푸시업 목표',
+              '일일 푸시업 횟수 목표',
+              _dailyPushupGoal,
+              Icons.accessibility,
+              Colors.blue,
+              (value) {
+                setState(() => _dailyPushupGoal = value);
+                _saveSettings();
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // 습관 목표
+            _buildGoalTile(
+              '습관 목표',
+              '일일 습관 완료 목표',
+              _dailyHabitGoal,
+              Icons.check_circle,
+              Colors.green,
+              (value) {
+                setState(() => _dailyHabitGoal = value);
+                _saveSettings();
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // 러닝 목표
+            _buildGoalTile(
+              '러닝 목표',
+              '일일 러닝 거리 목표 (km)',
+              _dailyRunningGoal,
+              Icons.directions_run,
+              Colors.orange,
+              (value) {
+                setState(() => _dailyRunningGoal = value);
+                _saveSettings();
+              },
+              isDouble: true,
+            ),
+
+            // 목표 달성률 표시
+            const SizedBox(height: 20),
+            const Text(
+              '목표 달성 현황',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildGoalProgressCard('스쿼트', _dailySquatGoal, 15, Colors.red),
+            _buildGoalProgressCard('푸시업', _dailyPushupGoal, 8, Colors.blue),
+            _buildGoalProgressCard('습관', _dailyHabitGoal, 2, Colors.green),
+            _buildGoalProgressCard('러닝', _dailyRunningGoal, 3.5, Colors.orange,
+                isDouble: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoalTile(String title, String subtitle, dynamic value,
+      IconData icon, Color color, Function(dynamic) onChanged,
+      {bool isDouble = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color.withOpacity(0.7),
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.remove, color: color, size: 16),
+                onPressed: () {
+                  final newValue =
+                      isDouble ? (value as double) - 0.5 : (value as int) - 1;
+                  if ((isDouble && newValue >= 0) ||
+                      (!isDouble && newValue >= 0)) {
+                    onChanged(newValue);
+                  }
+                },
+              ),
+              SizedBox(
+                width: 60,
+                child: Text(
+                  isDouble ? '${value.toStringAsFixed(1)}' : value.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color.withOpacity(0.7),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add, color: color, size: 16),
+                onPressed: () {
+                  final newValue =
+                      isDouble ? (value as double) + 0.5 : (value as int) + 1;
+                  onChanged(newValue);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalProgressCard(
+      String title, dynamic goal, dynamic current, Color color,
+      {bool isDouble = false}) {
+    final progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: color.withOpacity(0.7),
+                ),
+              ),
+              Text(
+                isDouble
+                    ? '${current.toStringAsFixed(1)}/${goal.toStringAsFixed(1)}'
+                    : '$current/$goal',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${(progress * 100).toStringAsFixed(1)}% 달성',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdvancedNotificationCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.settings, color: Colors.purple.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '고급 알림 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Tooltip(
+                  message: '세부적인 알림 제어 옵션들입니다',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 미완료 습관 재알림
+            _buildSwitchTile(
+              '미완료 습관 재알림',
+              '습관을 놓쳤을 때 추가 알림',
+              _missedHabitReminderEnabled,
+              (value) {
+                setState(() => _missedHabitReminderEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_missedHabitReminderEnabled) ...[
+              _buildNumberTile(
+                '재알림 횟수',
+                '하루에 몇 번까지 재알림할지 설정',
+                _missedHabitReminderCount,
+                (value) {
+                  setState(() => _missedHabitReminderCount = value);
+                  _saveSettings();
+                },
+                min: 1,
+                max: 3,
+              ),
+            ],
+
+            // 스누즈 기능
+            _buildSwitchTile(
+              '스누즈 기능',
+              '알림을 잠시 미루고 나중에 다시 받기',
+              _snoozeEnabled,
+              (value) {
+                setState(() => _snoozeEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_snoozeEnabled) ...[
+              _buildSnoozeDurationTile(),
+            ],
+
+            // 조용한 시간
+            _buildSwitchTile(
+              '조용한 시간',
+              '야간 시간대 알림 방지',
+              _quietHoursEnabled,
+              (value) {
+                setState(() => _quietHoursEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            // 포커스 모드 존중
+            _buildSwitchTile(
+              '집중모드 연동',
+              'iOS 집중모드 활성화 시 알림 방지',
+              _focusModeRespectEnabled,
+              (value) {
+                setState(() => _focusModeRespectEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // 프로그레시브 증가 설정
+            _buildSwitchTile(
+              '점진적 증가',
+              '시간이 지남에 따라 목표를 자동으로 높임',
+              _progressiveIncreaseEnabled,
+              (value) {
+                setState(() => _progressiveIncreaseEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            // 딜로드 시스템
+            _buildSwitchTile(
+              '딜로드 시스템',
+              '과도한 피로 시 목표를 자동으로 낮춤',
+              _deloadSystemEnabled,
+              (value) {
+                setState(() => _deloadSystemEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            // 휴식일 지정
+            _buildSwitchTile(
+              '휴식일 지정',
+              '특정 요일을 휴식일로 설정',
+              _restDaysEnabled,
+              (value) {
+                setState(() => _restDaysEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            // 주간 리셋
+            _buildSwitchTile(
+              '주간 리셋',
+              '매주 설정된 요일에 주간 목표 리셋',
+              _weeklyResetEnabled,
+              (value) {
+                setState(() => _weeklyResetEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_weeklyResetEnabled) ...[
+              _buildWeeklyResetTile(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeSettingsCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.access_time,
+                    color: Colors.orange.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '시간 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Tooltip(
+                  message: '알림 시간과 요일별 반복 설정을 관리하세요',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildTimeTile(
+              '습관 체크 리마인더',
+              _habitReminderTime,
+              (time) {
+                setState(() => _habitReminderTime = time);
+                _saveSettings();
+              },
+              enabled: _habitRemindersEnabled,
+            ),
+            _buildTimeTile(
+              '일일 운동 요약',
+              _dailySummaryTime,
+              (time) {
+                setState(() => _dailySummaryTime = time);
+                _saveSettings();
+              },
+              enabled: _dailySummaryEnabled,
+            ),
+            _buildTimeTile(
+              '주간 운동 요약',
+              _weeklySummaryTime,
+              (time) {
+                setState(() => _weeklySummaryTime = time);
+                _saveSettings();
+              },
+              enabled: _weeklySummaryEnabled,
+            ),
+            if (_quietHoursEnabled) ...[
+              _buildTimeTile(
+                '조용한 시간 시작',
+                _quietHoursStart,
+                (time) {
+                  setState(() => _quietHoursStart = time);
+                  _saveSettings();
+                },
+                enabled: true,
+              ),
+              _buildTimeTile(
+                '조용한 시간 종료',
+                _quietHoursEnd,
+                (time) {
+                  setState(() => _quietHoursEnd = time);
+                  _saveSettings();
+                },
+                enabled: true,
+              ),
+            ],
           ],
         ),
       ),
