@@ -10,14 +10,15 @@ import '../../models/day_log.dart';
 /// Journal 페이지 - 기록/편집 중심: "이 날 뭘 했지?"
 class JournalPage extends ConsumerStatefulWidget {
   final DateTime? initialDate; // 초기 선택 날짜
-  
+
   const JournalPage({super.key, this.initialDate});
 
   @override
   ConsumerState<JournalPage> createState() => _JournalPageState();
 }
 
-class _JournalPageState extends ConsumerState<JournalPage> {
+class _JournalPageState extends ConsumerState<JournalPage>
+    with AutomaticKeepAliveClientMixin {
   late DateTime _focusedDay;
   late DateTime _selectedDay;
 
@@ -29,24 +30,31 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   }
 
   @override
+  bool get wantKeepAlive => true; // 페이지 상태 유지
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 필수
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const AppBarWithNotifications(title: 'Journal'),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 캘린더 헤더
-            _buildCalendarHeader(),
-            
-            // 캘린더
-            _buildCalendar(),
-            
-            // 선택된 날짜의 상세 정보
-            Expanded(
-              child: _buildSelectedDayDetails(),
-            ),
-          ],
+        child: RepaintBoundary(
+          child: Column(
+            children: [
+              // 캘린더 헤더
+              _buildCalendarHeader(),
+
+              // 캘린더
+              _buildCalendar(),
+
+              // 선택된 날짜의 상세 정보
+              Expanded(
+                child: _buildSelectedDayDetails(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -144,7 +152,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     return Consumer(
       builder: (context, ref, child) {
         final dayLogAsync = ref.watch(dayLogProvider(_selectedDay));
-        
+
         return dayLogAsync.when(
           data: (dayLog) => _buildDayLogContent(dayLog),
           loading: () => _buildLoadingContent(),
@@ -305,7 +313,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       child: dayLog.habits.isEmpty
           ? _buildEmptyState('습관이 없습니다', '새로운 습관을 추가해보세요')
           : Column(
-              children: dayLog.habits.map((habit) => _buildHabitItem(habit)).toList(),
+              children:
+                  dayLog.habits.map((habit) => _buildHabitItem(habit)).toList(),
             ),
     );
   }
@@ -326,7 +335,9 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       child: dayLog.workouts.isEmpty
           ? _buildEmptyState('운동이 없습니다', '새로운 운동을 추가해보세요')
           : Column(
-              children: dayLog.workouts.map((workout) => _buildWorkoutItem(workout)).toList(),
+              children: dayLog.workouts
+                  .map((workout) => _buildWorkoutItem(workout))
+                  .toList(),
             ),
     );
   }
@@ -390,7 +401,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       child: dayLog.meals.isEmpty
           ? _buildEmptyState('식사 기록이 없습니다', '새로운 식사를 추가해보세요')
           : Column(
-              children: dayLog.meals.map((meal) => _buildMealItem(meal)).toList(),
+              children:
+                  dayLog.meals.map((meal) => _buildMealItem(meal)).toList(),
             ),
     );
   }
@@ -456,7 +468,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   }
 
   /// 요약 아이템
-  Widget _buildSummaryItem(String label, String value, Color color, IconData icon) {
+  Widget _buildSummaryItem(
+      String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

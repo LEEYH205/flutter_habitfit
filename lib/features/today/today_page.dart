@@ -13,14 +13,15 @@ import '../meals/meal_page.dart';
 /// Today 페이지 - 실행 중심: "지금 뭘 해야 하지?"
 class TodayPage extends ConsumerStatefulWidget {
   final String? action; // 빠른 액션 파라미터
-  
+
   const TodayPage({super.key, this.action});
 
   @override
   ConsumerState<TodayPage> createState() => _TodayPageState();
 }
 
-class _TodayPageState extends ConsumerState<TodayPage> {
+class _TodayPageState extends ConsumerState<TodayPage>
+    with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
@@ -33,41 +34,47 @@ class _TodayPageState extends ConsumerState<TodayPage> {
   }
 
   @override
+  bool get wantKeepAlive => true; // 페이지 상태 유지
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 필수
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: const AppBarWithNotifications(title: 'Today'),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 오늘 날짜와 인사말
-                _buildTodayHeader(),
-                const SizedBox(height: 24),
+        backgroundColor: Colors.white,
+        appBar: const AppBarWithNotifications(title: 'Today'),
+        body: SafeArea(
+          child: RepaintBoundary(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 오늘 날짜와 인사말
+                    _buildTodayHeader(),
+                    const SizedBox(height: 24),
 
-                // KPI 링 (칼로리, 단백질, 습관)
-                _buildKpiRings(),
-                const SizedBox(height: 24),
+                    // KPI 링 (칼로리, 단백질, 습관)
+                    _buildKpiRings(),
+                    const SizedBox(height: 24),
 
-                // 빠른 액션 버튼들
-                _buildQuickActions(),
-                const SizedBox(height: 24),
+                    // 빠른 액션 버튼들
+                    _buildQuickActions(),
+                    const SizedBox(height: 24),
 
-                // 오늘의 진행 상황
-                _buildTodayProgress(),
-                const SizedBox(height: 24),
+                    // 오늘의 진행 상황
+                    _buildTodayProgress(),
+                    const SizedBox(height: 24),
 
-                // AI 코칭 메시지
-                _buildCoachingMessage(),
-              ],
+                    // AI 코칭 메시지
+                    _buildCoachingMessage(),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   /// 오늘 날짜와 인사말

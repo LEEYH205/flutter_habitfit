@@ -19,7 +19,7 @@ class InsightsPage extends ConsumerStatefulWidget {
   ConsumerState<InsightsPage> createState() => _InsightsPageState();
 }
 
-class _InsightsPageState extends ConsumerState<InsightsPage> {
+class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepAliveClientMixin {
   late TrendRange _selectedRange;
 
   @override
@@ -34,12 +34,18 @@ class _InsightsPageState extends ConsumerState<InsightsPage> {
   }
 
   @override
+  bool get wantKeepAlive => true; // 페이지 상태 유지
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 필수
+    
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const AppBarWithNotifications(title: 'Insights'),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: RepaintBoundary(
+          child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -69,6 +75,7 @@ class _InsightsPageState extends ConsumerState<InsightsPage> {
                 _buildImprovementSuggestions(),
               ],
             ),
+          ),
           ),
         ),
       ),

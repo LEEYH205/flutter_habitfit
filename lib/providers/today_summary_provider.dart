@@ -2,9 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/today_summary.dart';
+import '../services/cache_service.dart';
 
-/// 오늘 요약 데이터 Provider
+/// 오늘 요약 데이터 Provider (캐싱 적용)
 final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
+  const cacheKey = CacheKeys.todaySummary;
+  
+  // 캐시에서 먼저 확인
+  final cachedData = await CacheService.getCache<TodaySummary>(cacheKey);
+  if (cachedData != null) {
+    print('📦 Today 요약 데이터 캐시에서 로드');
+    return cachedData;
+  }
+  
+  // 캐시에 없으면 새로 로드
+  print('🔄 Today 요약 데이터 새로 로드');
+  
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) {
     throw Exception('사용자가 로그인되지 않았습니다.');
@@ -39,7 +52,7 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
   // TODO: HealthKit 연동 시 실제 데이터로 교체
   final runningData = await _getTodayRunningData(today);
 
-  return TodaySummary(
+  final summary = TodaySummary(
     date: today,
     completedHabits: habitsQuery.docs.length,
     totalHabits: totalHabitsQuery.docs.length,
@@ -53,6 +66,11 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
         ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
         : 0.0,
   );
+  
+  // 캐시에 저장 (5분간 유효)
+  await CacheService.setCache(cacheKey, summary, expiry: CacheExpiry.short);
+  
+  return summary;
 });
 
 /// 오늘의 달리기 데이터 가져오기 (HealthKit 연동 예정)
@@ -99,9 +117,12 @@ String _getDateId(DateTime date) {
   return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
-/// 오늘 요약 데이터 새로고침 Provider
+/// 오늘 요약 데이터 새로고침 Provider (캐시 무효화)
 final todaySummaryRefreshProvider = Provider<void Function()>((ref) {
-  return () {
+  return () async {
+    // 캐시 삭제
+    await CacheService.removeCache(CacheKeys.todaySummary);
+    // Provider 무효화
     ref.invalidate(todaySummaryProvider);
   };
 });

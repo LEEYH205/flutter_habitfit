@@ -10,8 +10,10 @@ import '../../services/navigation_service.dart';
 
 /// 앱 라우터 설정
 class AppRouter {
-  static final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
-  static final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> _rootNavigatorKey =
+      GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> _shellNavigatorKey =
+      GlobalKey<NavigatorState>();
 
   static GoRouter get router => _router;
 
@@ -25,7 +27,7 @@ class AppRouter {
         name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
-      
+
       // 메인 셸 (하단 탭 네비게이션)
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -40,7 +42,7 @@ class AppRouter {
               return TodayPage(action: action);
             },
           ),
-          
+
           // Journal 페이지
           GoRoute(
             path: '/journal',
@@ -59,7 +61,7 @@ class AppRouter {
               ),
             ],
           ),
-          
+
           // Insights 페이지
           GoRoute(
             path: '/insights',
@@ -69,7 +71,7 @@ class AppRouter {
               return InsightsPage(initialRange: range);
             },
           ),
-          
+
           // Settings 페이지
           GoRoute(
             path: '/settings',
@@ -79,24 +81,24 @@ class AppRouter {
         ],
       ),
     ],
-    
+
     // 리다이렉트 로직
     redirect: (context, state) {
       final isLoggedIn = true; // TODO: 실제 인증 상태 확인
-      
+
       // 로그인되지 않은 경우 로그인 페이지로
-      if (!isLoggedIn && state.location != '/login') {
+      if (!isLoggedIn && state.uri.toString() != '/login') {
         return '/login';
       }
-      
+
       // 로그인된 경우 로그인 페이지에서 메인으로
-      if (isLoggedIn && state.location == '/login') {
+      if (isLoggedIn && state.uri.toString() == '/login') {
         return '/today';
       }
-      
+
       return null;
     },
-    
+
     // 에러 페이지
     errorBuilder: (context, state) => Scaffold(
       body: Center(
@@ -115,10 +117,10 @@ class AppRouter {
             ),
             const SizedBox(height: 8),
             Text(
-              state.location,
+              state.uri.toString(),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey,
-              ),
+                    color: Colors.grey,
+                  ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -180,8 +182,10 @@ class _MainShellState extends State<_MainShell> {
               children: [
                 _buildNavItem(0, Icons.today_outlined, 'Today', '/today'),
                 _buildNavItem(1, Icons.book_outlined, 'Journal', '/journal'),
-                _buildNavItem(2, Icons.analytics_outlined, 'Insights', '/insights'),
-                _buildNavItem(3, Icons.settings_outlined, 'Settings', '/settings'),
+                _buildNavItem(
+                    2, Icons.analytics_outlined, 'Insights', '/insights'),
+                _buildNavItem(
+                    3, Icons.settings_outlined, 'Settings', '/settings'),
               ],
             ),
           ),
