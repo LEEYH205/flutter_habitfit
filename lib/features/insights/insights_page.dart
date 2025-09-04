@@ -12,14 +12,15 @@ import 'package:fl_chart/fl_chart.dart';
 /// Insights 페이지 - 분석 중심: "어떤 패턴이 있지?"
 class InsightsPage extends ConsumerStatefulWidget {
   final String? initialRange; // 초기 분석 범위
-  
+
   const InsightsPage({super.key, this.initialRange});
 
   @override
   ConsumerState<InsightsPage> createState() => _InsightsPageState();
 }
 
-class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepAliveClientMixin {
+class _InsightsPageState extends ConsumerState<InsightsPage>
+    with AutomaticKeepAliveClientMixin {
   late TrendRange _selectedRange;
 
   @override
@@ -39,43 +40,43 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
   @override
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin 필수
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const AppBarWithNotifications(title: 'Insights'),
       body: SafeArea(
         child: RepaintBoundary(
           child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 기간 선택
-                _buildRangeSelector(),
-                const SizedBox(height: 24),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 기간 선택
+                  _buildRangeSelector(),
+                  const SizedBox(height: 24),
 
-                // 트렌드 개요
-                _buildTrendOverview(),
-                const SizedBox(height: 24),
+                  // 트렌드 개요
+                  _buildTrendOverview(),
+                  const SizedBox(height: 24),
 
-                // 성과 차트
-                _buildPerformanceCharts(),
-                const SizedBox(height: 24),
+                  // 성과 차트
+                  _buildPerformanceCharts(),
+                  const SizedBox(height: 24),
 
-                // 상세 통계
-                _buildDetailedStats(),
-                const SizedBox(height: 24),
+                  // 상세 통계
+                  _buildDetailedStats(),
+                  const SizedBox(height: 24),
 
-                // AI 인사이트
-                _buildAIInsights(),
-                const SizedBox(height: 24),
+                  // AI 인사이트
+                  _buildAIInsights(),
+                  const SizedBox(height: 24),
 
-                // 개선 제안
-                _buildImprovementSuggestions(),
-              ],
+                  // 개선 제안
+                  _buildImprovementSuggestions(),
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ),
@@ -120,11 +121,11 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
     return Consumer(
       builder: (context, ref, child) {
         final trendDataAsync = ref.watch(trendProvider(_selectedRange));
-        
+
         return trendDataAsync.when(
           data: (trendData) {
             final analysis = TrendUseCase.analyzeTrend(trendData);
-            
+
             return SectionCard(
               title: '${getTrendRangeName(_selectedRange)} 개요',
               icon: Icons.analytics,
@@ -137,7 +138,8 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                       Expanded(
                         child: StatChip(
                           label: '습관 완료율',
-                          value: '${trendData.habitCompletionRate.toStringAsFixed(1)}%',
+                          value:
+                              '${trendData.habitCompletionRate.toStringAsFixed(1)}%',
                           color: Colors.green,
                           icon: Icons.check_circle,
                         ),
@@ -146,7 +148,8 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                       Expanded(
                         child: StatChip(
                           label: '운동 완료율',
-                          value: '${trendData.workoutCompletionRate.toStringAsFixed(1)}%',
+                          value:
+                              '${trendData.workoutCompletionRate.toStringAsFixed(1)}%',
                           color: Colors.blue,
                           icon: Icons.fitness_center,
                         ),
@@ -159,7 +162,8 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                       Expanded(
                         child: StatChip(
                           label: '일관성 점수',
-                          value: '${trendData.consistencyScore.toStringAsFixed(1)}%',
+                          value:
+                              '${trendData.consistencyScore.toStringAsFixed(1)}%',
                           color: Colors.purple,
                           icon: Icons.trending_up,
                         ),
@@ -175,16 +179,18 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                       ),
                     ],
                   ),
-                  
+
                   // 트렌드 방향
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: _getTrendColor(analysis.direction).withOpacity(0.1),
+                      color:
+                          _getTrendColor(analysis.direction).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _getTrendColor(analysis.direction).withOpacity(0.3),
+                        color:
+                            _getTrendColor(analysis.direction).withOpacity(0.3),
                       ),
                     ),
                     child: Row(
@@ -224,7 +230,7 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
     return Consumer(
       builder: (context, ref, child) {
         final trendDataAsync = ref.watch(trendProvider(_selectedRange));
-        
+
         return trendDataAsync.when(
           data: (trendData) => SectionCard(
             title: '성과 차트',
@@ -235,7 +241,7 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                 // 습관 완료율 차트
                 _buildHabitCompletionChart(trendData),
                 const SizedBox(height: 24),
-                
+
                 // 운동 완료율 차트
                 _buildWorkoutCompletionChart(trendData),
               ],
@@ -253,7 +259,7 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
     return Consumer(
       builder: (context, ref, child) {
         final trendDataAsync = ref.watch(trendProvider(_selectedRange));
-        
+
         return trendDataAsync.when(
           data: (trendData) => SectionCard(
             title: '상세 통계',
@@ -261,11 +267,20 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
             color: Colors.purple.shade50,
             child: Column(
               children: [
-                _buildStatRow('평균 일일 습관', '${trendData.averageDailyHabits.toStringAsFixed(1)}개', Colors.green),
-                _buildStatRow('평균 일일 운동', '${trendData.averageDailyWorkouts.toStringAsFixed(1)}개', Colors.blue),
-                _buildStatRow('총 완료 습관', '${trendData.completedHabits}개', Colors.green),
-                _buildStatRow('총 완료 운동', '${trendData.completedWorkouts}개', Colors.blue),
-                _buildStatRow('분석 기간', '${trendData.periodLength}일', Colors.grey),
+                _buildStatRow(
+                    '평균 일일 습관',
+                    '${trendData.averageDailyHabits.toStringAsFixed(1)}개',
+                    Colors.green),
+                _buildStatRow(
+                    '평균 일일 운동',
+                    '${trendData.averageDailyWorkouts.toStringAsFixed(1)}개',
+                    Colors.blue),
+                _buildStatRow(
+                    '총 완료 습관', '${trendData.completedHabits}개', Colors.green),
+                _buildStatRow(
+                    '총 완료 운동', '${trendData.completedWorkouts}개', Colors.blue),
+                _buildStatRow(
+                    '분석 기간', '${trendData.periodLength}일', Colors.grey),
               ],
             ),
           ),
@@ -281,12 +296,13 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
     return Consumer(
       builder: (context, ref, child) {
         final trendDataAsync = ref.watch(trendProvider(_selectedRange));
-        
+
         return trendDataAsync.when(
           data: (trendData) {
             final summary = TrendUseCase.generateTrendSummary(trendData);
-            final weeklyCoaching = CoachUseCase.generateWeeklyCoaching(trendData);
-            
+            final weeklyCoaching =
+                CoachUseCase.generateWeeklyCoaching(trendData);
+
             return SectionCard(
               title: 'AI 인사이트',
               icon: Icons.psychology,
@@ -364,12 +380,13 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
     return Consumer(
       builder: (context, ref, child) {
         final trendDataAsync = ref.watch(trendProvider(_selectedRange));
-        
+
         return trendDataAsync.when(
           data: (trendData) {
-            final suggestions = TrendUseCase.generateImprovementSuggestions(trendData);
+            final suggestions =
+                TrendUseCase.generateImprovementSuggestions(trendData);
             final nextWeekPlan = TrendUseCase.generateNextWeekPlan(trendData);
-            
+
             return SectionCard(
               title: '개선 제안',
               icon: Icons.lightbulb,
@@ -387,29 +404,28 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                   ),
                   const SizedBox(height: 8),
                   ...suggestions.map((suggestion) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 12,
-                          color: Colors.yellow.shade700,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            suggestion,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.yellow.shade800,
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 12,
+                              color: Colors.yellow.shade700,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                suggestion,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.yellow.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  )),
-                  
+                      )),
                   const SizedBox(height: 16),
                   Text(
                     '다음 주 계획:',
@@ -421,28 +437,28 @@ class _InsightsPageState extends ConsumerState<InsightsPage> with AutomaticKeepA
                   ),
                   const SizedBox(height: 8),
                   ...nextWeekPlan.map((plan) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.flag,
-                          size: 12,
-                          color: Colors.yellow.shade700,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            plan,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.yellow.shade800,
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.flag,
+                              size: 12,
+                              color: Colors.yellow.shade700,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                plan,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.yellow.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  )),
+                      )),
                 ],
               ),
             );

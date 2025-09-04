@@ -7,17 +7,17 @@ import '../services/cache_service.dart';
 /// 오늘 요약 데이터 Provider (캐싱 적용)
 final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
   const cacheKey = CacheKeys.todaySummary;
-  
+
   // 캐시에서 먼저 확인
   final cachedData = await CacheService.getCache<TodaySummary>(cacheKey);
   if (cachedData != null) {
     print('📦 Today 요약 데이터 캐시에서 로드');
     return cachedData;
   }
-  
+
   // 캐시에 없으면 새로 로드
   print('🔄 Today 요약 데이터 새로 로드');
-  
+
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) {
     throw Exception('사용자가 로그인되지 않았습니다.');
@@ -66,10 +66,10 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
         ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
         : 0.0,
   );
-  
+
   // 캐시에 저장 (5분간 유효)
   await CacheService.setCache(cacheKey, summary, expiry: CacheExpiry.short);
-  
+
   return summary;
 });
 
