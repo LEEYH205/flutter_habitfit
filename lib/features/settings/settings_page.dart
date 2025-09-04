@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../../common/services/local_notification_service.dart';
-import '../../common/services/fcm_service.dart';
-import '../health/health_test_page.dart';
+import 'user_profile_page.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -17,7 +15,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late SharedPreferences _prefs;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // 사용자 정보
   User? _currentUser;
@@ -78,7 +75,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
-  Future<void> _saveSettings() async {
+  Future<void> _saveSettings({bool showSnackBar = false}) async {
     await _prefs.setBool(
         'workoutNotificationsEnabled', _workoutNotificationsEnabled);
     await _prefs.setBool('habitRemindersEnabled', _habitRemindersEnabled);
@@ -101,11 +98,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     // 설정 저장 후 알림 스케줄 업데이트
     await _updateNotificationSchedules();
 
-    if (mounted) {
+    if (showSnackBar && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ 설정이 저장되었습니다!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -139,77 +137,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<void> _signOut() async {
-    try {
-      await _auth.signOut();
-      await _googleSignIn.signOut();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('로그아웃되었습니다'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('로그아웃 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('계정 삭제'),
-        content: const Text(
-          '정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await _currentUser?.delete();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('계정이 삭제되었습니다'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('계정 삭제 실패: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,18 +144,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         title: const Text('👤 사용자 & 설정'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveSettings,
-            tooltip: '설정 저장',
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // 사용자 정보 섹션
             _buildUserInfoSection(),
@@ -241,31 +161,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               '운동 완료 알림',
               '스쿼트 세션 완료 시 알림',
               _workoutNotificationsEnabled,
-              (value) => setState(() => _workoutNotificationsEnabled = value),
+              (value) {
+                setState(() => _workoutNotificationsEnabled = value);
+                _saveSettings();
+              },
             ),
             _buildSwitchTile(
               '습관 체크 리마인더',
               '매일 설정된 시간에 습관 체크 알림',
               _habitRemindersEnabled,
-              (value) => setState(() => _habitRemindersEnabled = value),
+              (value) {
+                setState(() => _habitRemindersEnabled = value);
+                _saveSettings();
+              },
             ),
             _buildSwitchTile(
               '일일 운동 요약',
               '매일 설정된 시간에 운동 요약 알림',
               _dailySummaryEnabled,
-              (value) => setState(() => _dailySummaryEnabled = value),
+              (value) {
+                setState(() => _dailySummaryEnabled = value);
+                _saveSettings();
+              },
             ),
             _buildSwitchTile(
               '목표 달성 축하',
               '목표 달성 시 축하 알림',
               _goalAchievementEnabled,
-              (value) => setState(() => _goalAchievementEnabled = value),
+              (value) {
+                setState(() => _goalAchievementEnabled = value);
+                _saveSettings();
+              },
             ),
             _buildSwitchTile(
               '주간 운동 요약',
               '매주 일요일에 주간 요약 알림',
               _weeklySummaryEnabled,
-              (value) => setState(() => _weeklySummaryEnabled = value),
+              (value) {
+                setState(() => _weeklySummaryEnabled = value);
+                _saveSettings();
+              },
             ),
 
             const SizedBox(height: 24),
@@ -275,19 +210,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             _buildTimeTile(
               '습관 체크 리마인더',
               _habitRemindersEnabled ? _habitReminderTime : null,
-              (time) => setState(() => _habitReminderTime = time),
+              (time) {
+                setState(() => _habitReminderTime = time);
+                _saveSettings();
+              },
               enabled: _habitRemindersEnabled,
             ),
             _buildTimeTile(
               '일일 운동 요약',
               _dailySummaryEnabled ? _dailySummaryTime : null,
-              (time) => setState(() => _dailySummaryTime = time),
+              (time) {
+                setState(() => _dailySummaryTime = time);
+                _saveSettings();
+              },
               enabled: _dailySummaryEnabled,
             ),
             _buildTimeTile(
               '주간 운동 요약',
               _weeklySummaryEnabled ? _weeklySummaryTime : null,
-              (time) => setState(() => _weeklySummaryTime = time),
+              (time) {
+                setState(() => _weeklySummaryTime = time);
+                _saveSettings();
+              },
               enabled: _weeklySummaryEnabled,
             ),
 
@@ -299,7 +243,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               '일일 스쿼트 목표',
               '하루에 목표로 하는 스쿼트 횟수',
               _dailySquatGoal,
-              (value) => setState(() => _dailySquatGoal = value),
+              (value) {
+                setState(() => _dailySquatGoal = value);
+                _saveSettings();
+              },
               min: 1,
               max: 100,
             ),
@@ -307,7 +254,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               '일일 푸시업 목표',
               '하루에 목표로 하는 푸시업 횟수',
               _dailyPushupGoal,
-              (value) => setState(() => _dailyPushupGoal = value),
+              (value) {
+                setState(() => _dailyPushupGoal = value);
+                _saveSettings();
+              },
               min: 1,
               max: 50,
             ),
@@ -315,7 +265,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               '일일 습관 목표',
               '하루에 목표로 하는 습관 체크 횟수',
               _dailyHabitGoal,
-              (value) => setState(() => _dailyHabitGoal = value),
+              (value) {
+                setState(() => _dailyHabitGoal = value);
+                _saveSettings();
+              },
               min: 1,
               max: 10,
             ),
@@ -323,217 +276,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               '일일 달리기 목표',
               '하루에 목표로 하는 달리기 거리',
               _dailyRunningGoal,
-              (value) => setState(() => _dailyRunningGoal = value),
+              (value) {
+                setState(() => _dailyRunningGoal = value);
+                _saveSettings();
+              },
               min: 0.5,
               max: 50.0,
               step: 0.5,
-            ),
-
-            const SizedBox(height: 32),
-
-            // 테스트 버튼
-            _buildSectionHeader('🧪 알림 테스트'),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '로컬 알림 기능들을 테스트해보세요.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            await FcmService.instance.showTestNotification();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('🧪 로컬 테스트 알림을 보냈습니다!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.notifications),
-                          label: const Text('로컬 알림\n테스트'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            await LocalNotificationService.instance
-                                .showDailyWorkoutSummary(25, 120);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('📊 일일 요약 알림을 보냈습니다!'),
-                                  backgroundColor: Colors.orange,
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.description),
-                          label: const Text('일일 요약\n알림'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            await LocalNotificationService.instance
-                                .showGoalAchievementNotification('스쿼트', 20);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('🎯 목표 달성 알림을 보냈습니다!'),
-                                  backgroundColor: Colors.purple,
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.emoji_events),
-                          label: const Text('목표 달성\n알림'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            await LocalNotificationService.instance
-                                .scheduleHabitReminder(
-                                    const TimeOfDay(hour: 20, minute: 0));
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('📝 오후 8시 습관 체크 리마인더를 설정했습니다!'),
-                                  backgroundColor: Colors.blue,
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.access_time),
-                          label: const Text('습관\n리마인더'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '로컬 알림은 FCM 없이도 완벽하게 작동합니다!',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.blue,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 계정 관리 섹션
-                  _buildAccountManagementSection(),
-
-                  const SizedBox(height: 20),
-
-                  // HealthKit 테스트
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red[200]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.favorite,
-                                color: Colors.red[600], size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'HealthKit 연동 테스트',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red[800],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'iPhone 건강앱과 연동하여 운동 데이터를 가져옵니다',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _testHealthKit(),
-                            icon: const Icon(Icons.favorite),
-                            label: const Text('HealthKit 테스트'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              textStyle: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -654,256 +403,78 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  void _testHealthKit() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const HealthTestPage(),
-      ),
-    );
-  }
-
   Widget _buildUserInfoSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue[400]!, Colors.blue[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Card(
+      elevation: 4,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const UserProfilePage()),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white,
+                radius: 40,
+                backgroundColor: Colors.blue.shade100,
                 child: _currentUser?.photoURL != null
                     ? ClipOval(
                         child: Image.network(
                           _currentUser!.photoURL!,
-                          width: 60,
-                          height: 60,
+                          width: 80,
+                          height: 80,
                           fit: BoxFit.cover,
                         ),
                       )
                     : Icon(
                         Icons.person,
-                        size: 30,
-                        color: Colors.blue[600],
+                        size: 40,
+                        color: Colors.blue.shade600,
                       ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _currentUser?.displayName ?? '사용자',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _currentUser?.email ?? '이메일 없음',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'UID: ${_currentUser?.uid.substring(0, 8) ?? 'N/A'}...',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(
-                Icons.verified_user,
-                color: Colors.white.withOpacity(0.8),
-                size: 16,
-              ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 16),
               Text(
-                'Firebase 인증 완료',
+                _currentUser?.displayName ?? '사용자',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _currentUser?.email ?? '이메일 없음',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.grey.shade600,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const Spacer(),
-              Icon(
-                Icons.check_circle,
-                color: Colors.green[300],
-                size: 16,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAccountManagementSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.account_circle, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                '계정 관리',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // 로그아웃 버튼
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.orange),
-            title: const Text('로그아웃'),
-            subtitle: const Text('현재 계정에서 로그아웃합니다'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: _signOut,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            tileColor: Colors.orange[50],
-          ),
-
-          const SizedBox(height: 8),
-
-          // 계정 삭제 버튼
-          ListTile(
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text('계정 삭제'),
-            subtitle: const Text('계정과 모든 데이터를 영구적으로 삭제합니다'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: _deleteAccount,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            tileColor: Colors.red[50],
-          ),
-
-          const SizedBox(height: 16),
-
-          // 계정 정보
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '계정 정보',
+                child: Text(
+                  '활성 계정',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
+                    color: Colors.green.shade700,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
-                _buildInfoRow(
-                    '가입일',
-                    _currentUser?.metadata.creationTime
-                            ?.toString()
-                            .split(' ')[0] ??
-                        'N/A'),
-                _buildInfoRow(
-                    '마지막 로그인',
-                    _currentUser?.metadata.lastSignInTime
-                            ?.toString()
-                            .split(' ')[0] ??
-                        'N/A'),
-                _buildInfoRow('이메일 인증',
-                    _currentUser?.emailVerified == true ? '완료' : '미완료'),
-                _buildInfoRow(
-                    '프로바이더',
-                    _currentUser?.providerData.isNotEmpty == true
-                        ? _currentUser!.providerData.first.providerId
-                        : 'N/A'),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[800],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
