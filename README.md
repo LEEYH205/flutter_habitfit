@@ -35,6 +35,7 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 - **🍎 고급 러닝 메트릭 시스템**: iOS 네이티브 HealthKit 연동으로 러닝 속도, 보폭, 파워, 수직 진폭, 지면 접촉 시간, 운동 경로 데이터 수집 및 시각화
 - **👤 사용자/세팅 페이지**: 사용자 프로필, 계정 관리, 로그아웃/계정 삭제, 상세 계정 정보 표시
 - **🔐 사용자 인증 연동**: Report 탭에서 사용자별 데이터 필터링 및 로그인 필요 UI 구현
+- **✅ 습관 CRUD 시스템**: 습관 추가/편집/삭제, 이모지 선택, Firebase Firestore 연동, 연속 달성 기록 추적
 
 **⚠️ PARTIALLY WORKING:**
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
@@ -139,6 +140,7 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 
 ### **📊 Habit & Fitness Tracking** ✅ **완료**
 - **Daily Habits**: 습관 체크 및 연속 달성 기록
+- **Habit CRUD System**: 습관 추가/편집/삭제, 이모지 선택, Firebase 연동
 - **Meal Logging**: 식사 기록 및 칼로리 추적
 - **Workout Sessions**: AI 기반 운동 세션 관리
 - **Progress Analytics**: 습관 및 운동 진행 상황 분석
@@ -655,6 +657,7 @@ flutter: ⚠️ Low confidence: L(0.00,0.00,0.00) R(0.00,0.00,0.00)
 - **📱 UI/UX**: 모든 탭 상단 디자인 통일, 워크아웃 레이아웃 최적화 완료
 - **👤 사용자/세팅 페이지**: ✅ 완료 - 사용자 프로필, 계정 관리, 설정 기능 구현
 - **🔐 사용자 인증 연동**: ✅ 완료 - Report 탭 사용자별 데이터 필터링
+- **✅ 습관 CRUD 시스템**: ✅ 완료 - 습관 추가/편집/삭제, 이모지 선택, Firebase 연동, 연속 달성 기록
 - **📝 습관 연동**: 습관 체크와 알림 시스템 연동 구현 중
 - **🔢 독립적인 카운터**: 스쿼트와 푸시업 각각의 카운터 시스템 구현 완료
 - **🏥 HealthKit 연동**: ✅ 완료 - iPhone 건강앱과의 데이터 연동 성공
