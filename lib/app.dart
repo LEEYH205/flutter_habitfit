@@ -100,7 +100,7 @@ class _HomeShellState extends State<_HomeShell> {
               icon: Icon(Icons.fitness_center), label: 'Workout'),
           NavigationDestination(icon: Icon(Icons.restaurant), label: 'Meals'),
           NavigationDestination(icon: Icon(Icons.assessment), label: 'Report'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(icon: Icon(Icons.person), label: 'User'),
         ],
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../common/services/fcm_service.dart';
 import '../health/health_test_page.dart';
@@ -14,6 +16,11 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late SharedPreferences _prefs;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // 사용자 정보
+  User? _currentUser;
 
   // 알림 설정
   bool _workoutNotificationsEnabled = true;
@@ -36,6 +43,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _currentUser = _auth.currentUser;
     _loadSettings();
   }
 
@@ -131,11 +139,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  Future<void> _signOut() async {
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('로그아웃되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('로그아웃 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('계정 삭제'),
+        content: const Text(
+          '정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _currentUser?.delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('계정이 삭제되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('계정 삭제 실패: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('⚙️ 설정'),
+        title: const Text('👤 사용자 & 설정'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
@@ -151,6 +230,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 사용자 정보 섹션
+            _buildUserInfoSection(),
+
+            const SizedBox(height: 24),
+
             // 알림 설정 섹션
             _buildSectionHeader('🔔 알림 설정'),
             _buildSwitchTile(
@@ -394,6 +478,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                   const SizedBox(height: 20),
 
+                  // 계정 관리 섹션
+                  _buildAccountManagementSection(),
+
+                  const SizedBox(height: 20),
+
                   // HealthKit 테스트
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -570,6 +659,251 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context,
       MaterialPageRoute(
         builder: (context) => const HealthTestPage(),
+      ),
+    );
+  }
+
+  Widget _buildUserInfoSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue[400]!, Colors.blue[600]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                child: _currentUser?.photoURL != null
+                    ? ClipOval(
+                        child: Image.network(
+                          _currentUser!.photoURL!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Icon(
+                        Icons.person,
+                        size: 30,
+                        color: Colors.blue[600],
+                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _currentUser?.displayName ?? '사용자',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _currentUser?.email ?? '이메일 없음',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'UID: ${_currentUser?.uid.substring(0, 8) ?? 'N/A'}...',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(
+                Icons.verified_user,
+                color: Colors.white.withOpacity(0.8),
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Firebase 인증 완료',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.check_circle,
+                color: Colors.green[300],
+                size: 16,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountManagementSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_circle, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                '계정 관리',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 로그아웃 버튼
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.orange),
+            title: const Text('로그아웃'),
+            subtitle: const Text('현재 계정에서 로그아웃합니다'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: _signOut,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            tileColor: Colors.orange[50],
+          ),
+
+          const SizedBox(height: 8),
+
+          // 계정 삭제 버튼
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text('계정 삭제'),
+            subtitle: const Text('계정과 모든 데이터를 영구적으로 삭제합니다'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: _deleteAccount,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            tileColor: Colors.red[50],
+          ),
+
+          const SizedBox(height: 16),
+
+          // 계정 정보
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '계정 정보',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[800],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                    '가입일',
+                    _currentUser?.metadata.creationTime
+                            ?.toString()
+                            .split(' ')[0] ??
+                        'N/A'),
+                _buildInfoRow(
+                    '마지막 로그인',
+                    _currentUser?.metadata.lastSignInTime
+                            ?.toString()
+                            .split(' ')[0] ??
+                        'N/A'),
+                _buildInfoRow('이메일 인증',
+                    _currentUser?.emailVerified == true ? '완료' : '미완료'),
+                _buildInfoRow(
+                    '프로바이더',
+                    _currentUser?.providerData.isNotEmpty == true
+                        ? _currentUser!.providerData.first.providerId
+                        : 'N/A'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[800],
+            ),
+          ),
+        ],
       ),
     );
   }
