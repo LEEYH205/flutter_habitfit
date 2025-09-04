@@ -37,6 +37,12 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 - **🔐 사용자 인증 연동**: Report 탭에서 사용자별 데이터 필터링 및 로그인 필요 UI 구현
 - **✅ 습관 CRUD 시스템**: 습관 추가/편집/삭제, 이모지 선택, Firebase Firestore 연동, 연속 달성 기록 추적
 - **📊 습관 완료 개수 표시**: Report 탭에서 "완료 (2/2)" 형태로 완료된 습관과 총 습관 개수를 한눈에 확인
+- **🤖 스마트 추천 시스템**: 사용자 패턴 분석, AI 기반 개인화 추천, 최적 시간대/목표 조정 제안
+  - **📊 데이터 분석 서비스**: 최근 30일 습관 데이터 기반 패턴 분석 (시간대별/요일별 성과, 완료율, 일관성 점수)
+  - **🎯 추천 엔진**: 최적 시간 추천, 목표 조정 제안, 새로운 습관 제안, 스마트 알림 시간 추천
+  - **💡 개인화된 인사이트**: 사용자 성과에 따른 맞춤 피드백 및 동기부여 메시지
+  - **📈 패턴 분석 대시보드**: 완료율, 일관성, 최적 시간대를 시각적으로 표시하는 UI
+  - **🔄 실시간 분석**: 앱 시작 시 자동으로 사용자 패턴 분석 및 추천 생성
 
 **⚠️ PARTIALLY WORKING:**
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
@@ -68,10 +74,19 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 - **TensorFlow Lite**: MoveNet 모델 추론 엔진
 - **MoveNet**: 실시간 포즈 추정 및 운동 인식
 - **Pose Estimation**: 17개 키포인트 기반 정확한 자세 분석
+- **스마트 추천 시스템**: 사용자 패턴 분석 및 AI 기반 개인화 추천
+  - **패턴 인식**: 시간대별/요일별 사용 패턴 자동 분석
+  - **군집화 알고리즘**: 비슷한 성과 패턴을 가진 시간대/요일 그룹화
+  - **예측 모델**: 완료율 기반 목표 조정 제안
+  - **개인화 알고리즘**: 사용자 성과에 따른 맞춤 추천
 
 ### **Backend & Database**
 - **Firebase**: 클라우드 백엔드 서비스
   - **Firestore**: 실시간 데이터베이스
+    - **user_habits**: 사용자 습관 데이터 (CRUD 지원)
+    - **habit_completions**: 습관 완료 기록 (날짜별 추적)
+    - **user_patterns**: 사용자 패턴 분석 결과 (AI 추천용)
+    - **users**: 사용자 계정 정보
   - **Authentication**: 사용자 인증
   - **Cloud Messaging**: 푸시 알림
   - **Remote Config**: 원격 설정 관리
@@ -133,10 +148,27 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
 - **Pace Optimization**: 페이스 품질 분석 및 개선 방향 제시
 - **Trending Insights**: 운동 패턴 변화에 따른 코칭 제공
 
+### **🧠 Smart Recommendation System** ✅ **완료**
+- **User Pattern Analysis**: 최근 30일 습관 데이터 기반 패턴 분석
+  - **Time-based Performance**: 0-23시 각 시간대별 완료율 분석
+  - **Day-based Performance**: 월~일 각 요일별 완료율 분석
+  - **Consistency Score**: 연속성과 규칙성을 고려한 점수 (0-1)
+  - **Overall Completion Rate**: 예상 대비 실제 완료율 계산
+- **AI-Powered Recommendations**:
+  - **Optimal Time Suggestions**: 사용자 패턴 기반 최적 습관 시간 제안
+  - **Goal Adjustment Proposals**: 완료율에 따른 목표 증가/감소 제안
+  - **New Habit Suggestions**: 사용자 패턴 기반 맞춤 습관 추천
+  - **Smart Notification Timing**: 알림 타입별 최적 시간 추천
+- **Personalized Insights**: 사용자 성과에 따른 맞춤 피드백 및 동기부여 메시지
+- **Pattern Analysis Dashboard**: 완료율, 일관성, 최적 시간대를 시각적으로 표시
+- **Real-time Analysis**: 앱 시작 시 자동으로 사용자 패턴 분석 및 추천 생성
+
 ### **🔔 Smart Notifications** ✅ **완료**
 - **Local Notifications**: 운동 완료, 목표 달성 알림
 - **Habit Reminders**: 습관 체크 리마인더
 - **Achievement Celebrations**: 목표 달성 시 축하 메시지
+- **Smart Notification Timing**: AI 기반 최적 알림 시간 추천
+- **Personalized Reminders**: 사용자 패턴 기반 맞춤 알림 스케줄
 - **Customizable Scheduling**: 사용자 정의 알림 시간 설정
 
 ### **📊 Habit & Fitness Tracking** ✅ **완료**
