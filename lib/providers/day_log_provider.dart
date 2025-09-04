@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/day_log.dart';
+import 'auth_provider.dart';
 
 /// 특정 날짜의 로그 데이터 Provider
 final dayLogProvider = FutureProvider.family<DayLog, DateTime>((ref, date) async {
-  final user = FirebaseAuth.instance.currentUser;
+  // AuthProvider에서 현재 사용자 가져오기
+  final authProvider = ref.read(authProviderProvider);
+  final user = authProvider.user;
   if (user == null) {
     throw Exception('사용자가 로그인되지 않았습니다.');
   }

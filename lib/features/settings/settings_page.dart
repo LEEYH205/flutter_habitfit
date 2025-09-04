@@ -525,8 +525,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-
-
   Widget _buildUserInfoSection() {
     return Card(
       elevation: 4,
@@ -602,7 +600,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
   }
-
 
   Widget _buildDaySelectorTile(String title, String subtitle, List<bool> days,
       Function(List<bool>) onChanged) {

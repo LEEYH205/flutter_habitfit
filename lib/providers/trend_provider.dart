@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/trend_data.dart';
+import 'auth_provider.dart';
 
 /// 트렌드 데이터 Provider (주/월/범위별 분석)
 final trendProvider = FutureProvider.family<TrendData, TrendRange>((ref, range) async {
-  final user = FirebaseAuth.instance.currentUser;
+  // AuthProvider에서 현재 사용자 가져오기
+  final authProvider = ref.read(authProviderProvider);
+  final user = authProvider.user;
   if (user == null) {
     throw Exception('사용자가 로그인되지 않았습니다.');
   }

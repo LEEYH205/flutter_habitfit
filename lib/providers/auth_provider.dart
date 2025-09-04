@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 
 /// 인증 상태를 관리하는 Provider
@@ -231,3 +232,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+/// AuthProvider의 Riverpod Provider
+final authProviderProvider = ChangeNotifierProvider<AuthProvider>((ref) {
+  return AuthProvider();
+});

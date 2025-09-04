@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/today/today_page.dart';
 import '../../features/journal/journal_page.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/navigation_service.dart';
 
 /// 앱 라우터 설정
 class AppRouter {
@@ -84,19 +84,35 @@ class AppRouter {
 
     // 리다이렉트 로직
     redirect: (context, state) {
-      final isLoggedIn = true; // TODO: 실제 인증 상태 확인
+      // AuthProvider가 아직 초기화되지 않은 경우 로딩 상태 유지
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        
+        // 로딩 중인 경우 리다이렉트하지 않음
+        if (authProvider.isLoading) {
+          return null;
+        }
 
-      // 로그인되지 않은 경우 로그인 페이지로
-      if (!isLoggedIn && state.uri.toString() != '/login') {
-        return '/login';
+        final isLoggedIn = authProvider.isSignedIn;
+
+        // 로그인되지 않은 경우 로그인 페이지로
+        if (!isLoggedIn && state.uri.toString() != '/login') {
+          return '/login';
+        }
+
+        // 로그인된 경우 로그인 페이지에서 메인으로
+        if (isLoggedIn && state.uri.toString() == '/login') {
+          return '/today';
+        }
+
+        return null;
+      } catch (e) {
+        // Provider가 아직 준비되지 않은 경우 로그인 페이지로
+        if (state.uri.toString() != '/login') {
+          return '/login';
+        }
+        return null;
       }
-
-      // 로그인된 경우 로그인 페이지에서 메인으로
-      if (isLoggedIn && state.uri.toString() == '/login') {
-        return '/today';
-      }
-
-      return null;
     },
 
     // 에러 페이지
@@ -153,7 +169,6 @@ class _MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<_MainShell> {
-  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -199,9 +214,6 @@ class _MainShellState extends State<_MainShell> {
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
         context.go(route);
       },
       child: Container(

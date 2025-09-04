@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart' as auth;
+import '../../services/cache_service.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -44,7 +47,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     if (confirmed == true) {
       try {
-        await _auth.signOut();
+        // AuthProvider를 통해 로그아웃
+        final authProvider = Provider.of<auth.AuthProvider>(context, listen: false);
+        await authProvider.signOut();
+        
+        // 모든 캐시 데이터 정리
+        await CacheService.clearAllCache();
+        
+        // Google Sign-In도 정리
         await _googleSignIn.signOut();
 
         if (mounted) {
@@ -207,68 +217,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildProfileCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.blue.shade100,
-              child: _currentUser?.photoURL != null
-                  ? ClipOval(
-                      child: Image.network(
-                        _currentUser!.photoURL!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.blue.shade600,
-                    ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _currentUser?.displayName ?? '사용자',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _currentUser?.email ?? '이메일 없음',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '활성 계정',
-                style: TextStyle(
-                  color: Colors.green.shade700,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildSectionHeader(String title) {
     return Padding(

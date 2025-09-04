@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/today_summary.dart';
 import '../services/cache_service.dart';
+import 'auth_provider.dart';
 
 /// 오늘 요약 데이터 Provider (캐싱 적용)
 final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
@@ -18,7 +18,9 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
   // 캐시에 없으면 새로 로드
   print('🔄 Today 요약 데이터 새로 로드');
 
-  final user = FirebaseAuth.instance.currentUser;
+  // AuthProvider에서 현재 사용자 가져오기
+  final authProvider = ref.read(authProviderProvider);
+  final user = authProvider.user;
   if (user == null) {
     throw Exception('사용자가 로그인되지 않았습니다.');
   }
