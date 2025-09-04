@@ -443,117 +443,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 _buildNotificationSettingsCard(),
 
                 const SizedBox(height: 24),
-                _buildSwitchTile(
-                  '일일 운동 요약',
-                  '매일 설정된 시간에 운동 요약 알림',
-                  _dailySummaryEnabled,
-                  (value) {
-                    setState(() => _dailySummaryEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-                _buildSwitchTile(
-                  '목표 달성 축하',
-                  '목표 달성 시 축하 알림',
-                  _goalAchievementEnabled,
-                  (value) {
-                    setState(() => _goalAchievementEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-                _buildSwitchTile(
-                  '주간 운동 요약',
-                  '매주 일요일에 주간 요약 알림',
-                  _weeklySummaryEnabled,
-                  (value) {
-                    setState(() => _weeklySummaryEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // 확장된 알림 설정
-                _buildSwitchTile(
-                  '미완료 습관 재알림',
-                  '습관을 놓쳤을 때 추가 알림',
-                  _missedHabitReminderEnabled,
-                  (value) {
-                    setState(() => _missedHabitReminderEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_missedHabitReminderEnabled) ...[
-                  _buildNumberTile(
-                    '재알림 횟수',
-                    '하루에 몇 번까지 재알림할지 설정',
-                    _missedHabitReminderCount,
-                    (value) {
-                      setState(() => _missedHabitReminderCount = value);
-                      _saveSettings();
-                    },
-                    min: 1,
-                    max: 3,
-                  ),
-                ],
-
-                _buildSwitchTile(
-                  '스누즈 기능',
-                  '알림을 잠시 미루고 나중에 다시 받기',
-                  _snoozeEnabled,
-                  (value) {
-                    setState(() => _snoozeEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_snoozeEnabled) ...[
-                  _buildSnoozeDurationTile(),
-                ],
-
-                _buildSwitchTile(
-                  '조용한 시간',
-                  '야간 시간대 알림 방지',
-                  _quietHoursEnabled,
-                  (value) {
-                    setState(() => _quietHoursEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_quietHoursEnabled) ...[
-                  _buildTimeTile(
-                    '조용한 시간 시작',
-                    _quietHoursStart,
-                    (time) {
-                      setState(() => _quietHoursStart = time);
-                      _saveSettings();
-                    },
-                    enabled: true,
-                  ),
-                  _buildTimeTile(
-                    '조용한 시간 종료',
-                    _quietHoursEnd,
-                    (time) {
-                      setState(() => _quietHoursEnd = time);
-                      _saveSettings();
-                    },
-                    enabled: true,
-                  ),
-                ],
-
-                _buildSwitchTile(
-                  '집중모드 연동',
-                  'iOS 집중모드 활성화 시 알림 방지',
-                  _focusModeRespectEnabled,
-                  (value) {
-                    setState(() => _focusModeRespectEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                const SizedBox(height: 24),
 
                 // 시간 설정 섹션
                 _buildTimeSettingsCard(),
@@ -565,102 +454,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 const SizedBox(height: 24),
 
-                // 확장된 알림 설정
+                // 고급 설정 섹션
                 _buildAdvancedNotificationCard(),
-
-                const SizedBox(height: 24),
-
-                const SizedBox(height: 16),
-                _buildNumberTile(
-                  '일일 습관 목표',
-                  '하루에 목표로 하는 습관 체크 횟수',
-                  _dailyHabitGoal,
-                  (value) {
-                    setState(() => _dailyHabitGoal = value);
-                    _saveSettings();
-                  },
-                  min: 1,
-                  max: 10,
-                ),
-                _buildRunningGoalTile(
-                  '일일 달리기 목표',
-                  '하루에 목표로 하는 달리기 거리',
-                  _dailyRunningGoal,
-                  (value) {
-                    setState(() => _dailyRunningGoal = value);
-                    _saveSettings();
-                  },
-                  min: 0.5,
-                  max: 50.0,
-                  step: 0.5,
-                ),
-
-                const SizedBox(height: 16),
-
-                // 고급 목표 설정
-                _buildSwitchTile(
-                  '점진적 증가 시스템',
-                  '매주 목표를 자동으로 증가시킵니다',
-                  _progressiveIncreaseEnabled,
-                  (value) {
-                    setState(() => _progressiveIncreaseEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_progressiveIncreaseEnabled) ...[
-                  _buildProgressiveIncreaseTile(),
-                ],
-
-                _buildSwitchTile(
-                  '딜로드 시스템',
-                  '연속 실패 시 목표를 일시적으로 감소시킵니다',
-                  _deloadSystemEnabled,
-                  (value) {
-                    setState(() => _deloadSystemEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_deloadSystemEnabled) ...[
-                  _buildDeloadSettingsTile(),
-                ],
-
-                _buildSwitchTile(
-                  '휴식일 지정',
-                  '특정 요일을 휴식일로 설정합니다',
-                  _restDaysEnabled,
-                  (value) {
-                    setState(() => _restDaysEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_restDaysEnabled) ...[
-                  _buildDaySelectorTile(
-                    '휴식일 설정',
-                    '휴식일로 설정할 요일을 선택하세요',
-                    _restDays,
-                    (days) {
-                      setState(() => _restDays = days);
-                      _saveSettings();
-                    },
-                  ),
-                ],
-
-                _buildSwitchTile(
-                  '주간 목표 리셋',
-                  '매주 특정 요일에 목표를 초기화합니다',
-                  _weeklyResetEnabled,
-                  (value) {
-                    setState(() => _weeklyResetEnabled = value);
-                    _saveSettings();
-                  },
-                ),
-
-                if (_weeklyResetEnabled) ...[
-                  _buildWeeklyResetTile(),
-                ],
 
                 const SizedBox(height: 24),
 
@@ -730,71 +525,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildNumberTile(
-      String title, String subtitle, int value, Function(int) onChanged,
-      {required int min, required int max}) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline),
-            onPressed: value > min ? () => onChanged(value - 1) : null,
-            color: value > min ? Colors.red : Colors.grey,
-          ),
-          Text(
-            '$value',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: value < max ? () => onChanged(value + 1) : null,
-            color: value < max ? Colors.green : Colors.grey,
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildRunningGoalTile(
-      String title, String subtitle, double value, Function(double) onChanged,
-      {required double min, required double max, required double step}) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline),
-            onPressed: value > min
-                ? () => onChanged((value - step).clamp(min, max))
-                : null,
-            color: value > min ? Colors.red : Colors.grey,
-          ),
-          Text(
-            '${value.toStringAsFixed(1)} km',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: value < max
-                ? () => onChanged((value + step).clamp(min, max))
-                : null,
-            color: value < max ? Colors.green : Colors.grey,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildUserInfoSection() {
     return Card(
@@ -872,26 +603,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildSnoozeDurationTile() {
-    return ListTile(
-      title: const Text('스누즈 지속시간'),
-      subtitle: const Text('알림을 몇 분 후에 다시 받을지 설정'),
-      trailing: DropdownButton<int>(
-        value: _snoozeDuration,
-        items: const [
-          DropdownMenuItem(value: 10, child: Text('10분')),
-          DropdownMenuItem(value: 15, child: Text('15분')),
-          DropdownMenuItem(value: 30, child: Text('30분')),
-        ],
-        onChanged: (value) {
-          if (value != null) {
-            setState(() => _snoozeDuration = value);
-            _saveSettings();
-          }
-        },
-      ),
-    );
-  }
 
   Widget _buildDaySelectorTile(String title, String subtitle, List<bool> days,
       Function(List<bool>) onChanged) {
@@ -1695,42 +1406,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 _saveSettings();
               },
             ),
-            _buildSwitchTile(
-              '미완료 습관 재알림',
-              '습관을 놓쳤을 때 추가 알림',
-              _missedHabitReminderEnabled,
-              (value) {
-                setState(() => _missedHabitReminderEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '스누즈 기능',
-              '알림을 잠시 미룰 수 있는 기능',
-              _snoozeEnabled,
-              (value) {
-                setState(() => _snoozeEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '조용한 시간',
-              '특정 시간대에 알림 비활성화',
-              _quietHoursEnabled,
-              (value) {
-                setState(() => _quietHoursEnabled = value);
-                _saveSettings();
-              },
-            ),
-            _buildSwitchTile(
-              '포커스 모드 존중',
-              'iOS 포커스 모드 설정을 존중',
-              _focusModeRespectEnabled,
-              (value) {
-                setState(() => _focusModeRespectEnabled = value);
-                _saveSettings();
-              },
-            ),
           ],
         ),
       ),
@@ -1991,7 +1666,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Icon(Icons.settings, color: Colors.purple.shade600, size: 24),
                 const SizedBox(width: 12),
                 const Text(
-                  '고급 알림 설정',
+                  '고급 목표 설정',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1999,7 +1674,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 const Spacer(),
                 Tooltip(
-                  message: '세부적인 알림 제어 옵션들입니다',
+                  message: '고급 목표 관리 기능들입니다',
                   child: Icon(Icons.help_outline,
                       color: Colors.grey.shade600, size: 20),
                 ),
@@ -2007,74 +1682,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 16),
 
-            // 미완료 습관 재알림
-            _buildSwitchTile(
-              '미완료 습관 재알림',
-              '습관을 놓쳤을 때 추가 알림',
-              _missedHabitReminderEnabled,
-              (value) {
-                setState(() => _missedHabitReminderEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_missedHabitReminderEnabled) ...[
-              _buildNumberTile(
-                '재알림 횟수',
-                '하루에 몇 번까지 재알림할지 설정',
-                _missedHabitReminderCount,
-                (value) {
-                  setState(() => _missedHabitReminderCount = value);
-                  _saveSettings();
-                },
-                min: 1,
-                max: 3,
-              ),
-            ],
-
-            // 스누즈 기능
-            _buildSwitchTile(
-              '스누즈 기능',
-              '알림을 잠시 미루고 나중에 다시 받기',
-              _snoozeEnabled,
-              (value) {
-                setState(() => _snoozeEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            if (_snoozeEnabled) ...[
-              _buildSnoozeDurationTile(),
-            ],
-
-            // 조용한 시간
-            _buildSwitchTile(
-              '조용한 시간',
-              '야간 시간대 알림 방지',
-              _quietHoursEnabled,
-              (value) {
-                setState(() => _quietHoursEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            // 포커스 모드 존중
-            _buildSwitchTile(
-              '집중모드 연동',
-              'iOS 집중모드 활성화 시 알림 방지',
-              _focusModeRespectEnabled,
-              (value) {
-                setState(() => _focusModeRespectEnabled = value);
-                _saveSettings();
-              },
-            ),
-
-            const SizedBox(height: 16),
-
             // 프로그레시브 증가 설정
             _buildSwitchTile(
-              '점진적 증가',
-              '시간이 지남에 따라 목표를 자동으로 높임',
+              '점진적 증가 시스템',
+              '매주 목표를 자동으로 증가시킵니다',
               _progressiveIncreaseEnabled,
               (value) {
                 setState(() => _progressiveIncreaseEnabled = value);
@@ -2082,10 +1693,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
 
+            if (_progressiveIncreaseEnabled) ...[
+              _buildProgressiveIncreaseTile(),
+            ],
+
             // 딜로드 시스템
             _buildSwitchTile(
               '딜로드 시스템',
-              '과도한 피로 시 목표를 자동으로 낮춤',
+              '연속 실패 시 목표를 일시적으로 감소시킵니다',
               _deloadSystemEnabled,
               (value) {
                 setState(() => _deloadSystemEnabled = value);
@@ -2093,10 +1708,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
 
+            if (_deloadSystemEnabled) ...[
+              _buildDeloadSettingsTile(),
+            ],
+
             // 휴식일 지정
             _buildSwitchTile(
               '휴식일 지정',
-              '특정 요일을 휴식일로 설정',
+              '특정 요일을 휴식일로 설정합니다',
               _restDaysEnabled,
               (value) {
                 setState(() => _restDaysEnabled = value);
@@ -2104,10 +1723,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
 
+            if (_restDaysEnabled) ...[
+              _buildDaySelectorTile(
+                '휴식일 설정',
+                '휴식일로 설정할 요일을 선택하세요',
+                _restDays,
+                (days) {
+                  setState(() => _restDays = days);
+                  _saveSettings();
+                },
+              ),
+            ],
+
             // 주간 리셋
             _buildSwitchTile(
-              '주간 리셋',
-              '매주 설정된 요일에 주간 목표 리셋',
+              '주간 목표 리셋',
+              '매주 특정 요일에 목표를 초기화합니다',
               _weeklyResetEnabled,
               (value) {
                 setState(() => _weeklyResetEnabled = value);
@@ -2181,26 +1812,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
               enabled: _weeklySummaryEnabled,
             ),
-            if (_quietHoursEnabled) ...[
-              _buildTimeTile(
-                '조용한 시간 시작',
-                _quietHoursStart,
-                (time) {
-                  setState(() => _quietHoursStart = time);
-                  _saveSettings();
-                },
-                enabled: true,
-              ),
-              _buildTimeTile(
-                '조용한 시간 종료',
-                _quietHoursEnd,
-                (time) {
-                  setState(() => _quietHoursEnd = time);
-                  _saveSettings();
-                },
-                enabled: true,
-              ),
-            ],
           ],
         ),
       ),

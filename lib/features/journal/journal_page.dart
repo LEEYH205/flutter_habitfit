@@ -549,7 +549,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
     final title = habit['title'] ?? '제목 없음';
     final description = habit['description'] ?? '';
     final completedAt = habit['completedAt'];
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -579,7 +579,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
             color: Colors.green,
           ),
         ),
-        subtitle: description.isNotEmpty 
+        subtitle: description.isNotEmpty
             ? Text(
                 description,
                 style: TextStyle(
@@ -587,7 +587,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
                   fontSize: 12,
                 ),
               )
-            : completedAt != null 
+            : completedAt != null
                 ? Text(
                     '완료 시간: ${_formatTime(completedAt)}',
                     style: TextStyle(
@@ -788,7 +788,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
   /// 시간 포맷팅
   String _formatTime(dynamic timestamp) {
     if (timestamp == null) return '';
-    
+
     DateTime dateTime;
     if (timestamp is Timestamp) {
       dateTime = timestamp.toDate();
@@ -797,7 +797,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
     } else {
       return '';
     }
-    
+
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
