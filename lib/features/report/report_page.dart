@@ -164,7 +164,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     try {
       print('🏃‍♂️ 달리기 데이터 로드 시작...');
 
-      final health = Health();
+      final health = HealthFactory();
 
       // HealthKit 사용 가능 여부 확인
       try {
@@ -174,9 +174,9 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         if (granted) {
           // 달리기 운동 데이터 가져오기
           final runningWorkouts = await health.getHealthDataFromTypes(
-            types: [HealthDataType.WORKOUT],
-            startTime: start,
-            endTime: end,
+            start,
+            end,
+            [HealthDataType.WORKOUT],
           );
 
           // 달리기 운동만 필터링
@@ -371,7 +371,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
   Widget build(BuildContext context) {
     // 사용자 인증 상태 확인
     final user = FirebaseAuth.instance.currentUser;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('📊 리포트'),
@@ -394,30 +394,30 @@ class _ReportPageState extends ConsumerState<ReportPage> {
                       const SizedBox(height: 24),
 
                       // 월간 달력
-                  _buildMonthlyCalendar(),
+                      _buildMonthlyCalendar(),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  // 월간 통계
-                  _buildMonthlyStatistics(),
+                      // 월간 통계
+                      _buildMonthlyStatistics(),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  // 목표 진행률 (간소화)
-                  _buildGoalProgress(),
+                      // 목표 진행률 (간소화)
+                      _buildGoalProgress(),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  // 이벤트 범례
-                  _buildEventLegend(),
+                      // 이벤트 범례
+                      _buildEventLegend(),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  // HealthKit 테스트 버튼
-                  _buildHealthKitTestButton(),
-                ],
-              ),
-            ),
+                      // HealthKit 테스트 버튼
+                      _buildHealthKitTestButton(),
+                    ],
+                  ),
+                ),
     );
   }
 

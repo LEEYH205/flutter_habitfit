@@ -13,7 +13,7 @@ class HealthTestPage extends StatefulWidget {
 }
 
 class _HealthTestPageState extends State<HealthTestPage> {
-  final Health _health = Health();
+  final HealthFactory _health = HealthFactory();
   bool _isAvailable = false;
   bool _hasPermissions = false;
   List<HealthDataPoint> _healthData = [];

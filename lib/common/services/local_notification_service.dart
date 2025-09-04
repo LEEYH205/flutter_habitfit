@@ -112,6 +112,8 @@ class LocalNotificationService {
         tz.TZDateTime.from(scheduledDate, tz.local),
         _getHabitNotificationDetails(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
       print(
@@ -145,6 +147,8 @@ class LocalNotificationService {
         tz.TZDateTime.from(scheduledDate, tz.local),
         _getSummaryNotificationDetails(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
       print(
@@ -212,6 +216,8 @@ class LocalNotificationService {
         tz.TZDateTime.from(scheduledDate, tz.local),
         _getWeeklySummaryNotificationDetails(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
       print('✅ 주간 운동 요약 알림 설정 성공');

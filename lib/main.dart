@@ -78,7 +78,7 @@ Future<void> main() async {
 /// HealthKit 초기화 및 기본 권한 체크
 Future<void> _initializeHealthKit() async {
   try {
-    final health = Health();
+    final health = HealthFactory();
 
     // 기본 권한 요청 (걸음 수, 심박수, 운동 거리)
     final types = [
