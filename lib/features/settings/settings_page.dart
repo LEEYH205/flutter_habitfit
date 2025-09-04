@@ -26,16 +26,74 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _goalAchievementEnabled = true;
   bool _weeklySummaryEnabled = true;
 
+  // 확장된 알림 설정
+  bool _missedHabitReminderEnabled = true;
+  int _missedHabitReminderCount = 2; // 1-3회
+  bool _snoozeEnabled = true;
+  int _snoozeDuration = 15; // 10, 15, 30분
+  bool _quietHoursEnabled = true;
+  TimeOfDay _quietHoursStart = const TimeOfDay(hour: 22, minute: 0);
+  TimeOfDay _quietHoursEnd = const TimeOfDay(hour: 7, minute: 0);
+  bool _focusModeRespectEnabled = true;
+
   // 시간 설정
   TimeOfDay _habitReminderTime = const TimeOfDay(hour: 20, minute: 0);
   TimeOfDay _dailySummaryTime = const TimeOfDay(hour: 21, minute: 0);
   TimeOfDay _weeklySummaryTime = const TimeOfDay(hour: 20, minute: 0);
+
+  // 요일별 반복 설정
+  List<bool> _habitReminderDays = [
+    true,
+    true,
+    true,
+    true,
+    true,
+    false,
+    false
+  ]; // 월~일
+  List<bool> _dailySummaryDays = [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ]; // 매일
+  List<bool> _weeklySummaryDays = [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true
+  ]; // 일요일만
 
   // 목표 설정
   int _dailySquatGoal = 20;
   int _dailyPushupGoal = 15;
   int _dailyHabitGoal = 1;
   double _dailyRunningGoal = 5.0; // km 단위
+
+  // 고급 목표 설정
+  bool _progressiveIncreaseEnabled = true;
+  double _progressiveIncreaseRate = 0.05; // 5% 증가
+  bool _deloadSystemEnabled = true;
+  int _consecutiveFailuresForDeload = 2; // 연속 실패 2회
+  double _deloadRate = 0.1; // 10% 감소
+  bool _restDaysEnabled = true;
+  List<bool> _restDays = [
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true
+  ]; // 토, 일 휴식
+  bool _weeklyResetEnabled = true;
+  int _weeklyResetDay = 1; // 월요일 (1=월요일, 0=일요일)
 
   @override
   void initState() {
@@ -55,6 +113,59 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _goalAchievementEnabled =
           _prefs.getBool('goalAchievementEnabled') ?? true;
       _weeklySummaryEnabled = _prefs.getBool('weeklySummaryEnabled') ?? true;
+
+      // 확장된 알림 설정
+      _missedHabitReminderEnabled =
+          _prefs.getBool('missedHabitReminderEnabled') ?? true;
+      _missedHabitReminderCount =
+          _prefs.getInt('missedHabitReminderCount') ?? 2;
+      _snoozeEnabled = _prefs.getBool('snoozeEnabled') ?? true;
+      _snoozeDuration = _prefs.getInt('snoozeDuration') ?? 15;
+      _quietHoursEnabled = _prefs.getBool('quietHoursEnabled') ?? true;
+      _focusModeRespectEnabled =
+          _prefs.getBool('focusModeRespectEnabled') ?? true;
+
+      final quietStartHour = _prefs.getInt('quietHoursStartHour') ?? 22;
+      final quietStartMinute = _prefs.getInt('quietHoursStartMinute') ?? 0;
+      _quietHoursStart =
+          TimeOfDay(hour: quietStartHour, minute: quietStartMinute);
+
+      final quietEndHour = _prefs.getInt('quietHoursEndHour') ?? 7;
+      final quietEndMinute = _prefs.getInt('quietHoursEndMinute') ?? 0;
+      _quietHoursEnd = TimeOfDay(hour: quietEndHour, minute: quietEndMinute);
+
+      // 요일별 반복 설정
+      _habitReminderDays = _prefs
+              .getStringList('habitReminderDays')
+              ?.map((e) => e == 'true')
+              .toList() ??
+          [true, true, true, true, true, false, false];
+      _dailySummaryDays = _prefs
+              .getStringList('dailySummaryDays')
+              ?.map((e) => e == 'true')
+              .toList() ??
+          [true, true, true, true, true, true, true];
+      _weeklySummaryDays = _prefs
+              .getStringList('weeklySummaryDays')
+              ?.map((e) => e == 'true')
+              .toList() ??
+          [false, false, false, false, false, false, true];
+
+      // 고급 목표 설정
+      _progressiveIncreaseEnabled =
+          _prefs.getBool('progressiveIncreaseEnabled') ?? true;
+      _progressiveIncreaseRate =
+          _prefs.getDouble('progressiveIncreaseRate') ?? 0.05;
+      _deloadSystemEnabled = _prefs.getBool('deloadSystemEnabled') ?? true;
+      _consecutiveFailuresForDeload =
+          _prefs.getInt('consecutiveFailuresForDeload') ?? 2;
+      _deloadRate = _prefs.getDouble('deloadRate') ?? 0.1;
+      _restDaysEnabled = _prefs.getBool('restDaysEnabled') ?? true;
+      _restDays =
+          _prefs.getStringList('restDays')?.map((e) => e == 'true').toList() ??
+              [false, false, false, false, false, true, true];
+      _weeklyResetEnabled = _prefs.getBool('weeklyResetEnabled') ?? true;
+      _weeklyResetDay = _prefs.getInt('weeklyResetDay') ?? 1;
 
       final habitHour = _prefs.getInt('habitReminderHour') ?? 20;
       final habitMinute = _prefs.getInt('habitReminderMinute') ?? 0;
@@ -82,6 +193,42 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _prefs.setBool('dailySummaryEnabled', _dailySummaryEnabled);
     await _prefs.setBool('goalAchievementEnabled', _goalAchievementEnabled);
     await _prefs.setBool('weeklySummaryEnabled', _weeklySummaryEnabled);
+
+    // 확장된 알림 설정 저장
+    await _prefs.setBool(
+        'missedHabitReminderEnabled', _missedHabitReminderEnabled);
+    await _prefs.setInt('missedHabitReminderCount', _missedHabitReminderCount);
+    await _prefs.setBool('snoozeEnabled', _snoozeEnabled);
+    await _prefs.setInt('snoozeDuration', _snoozeDuration);
+    await _prefs.setBool('quietHoursEnabled', _quietHoursEnabled);
+    await _prefs.setBool('focusModeRespectEnabled', _focusModeRespectEnabled);
+
+    await _prefs.setInt('quietHoursStartHour', _quietHoursStart.hour);
+    await _prefs.setInt('quietHoursStartMinute', _quietHoursStart.minute);
+    await _prefs.setInt('quietHoursEndHour', _quietHoursEnd.hour);
+    await _prefs.setInt('quietHoursEndMinute', _quietHoursEnd.minute);
+
+    // 요일별 반복 설정 저장
+    await _prefs.setStringList('habitReminderDays',
+        _habitReminderDays.map((e) => e.toString()).toList());
+    await _prefs.setStringList('dailySummaryDays',
+        _dailySummaryDays.map((e) => e.toString()).toList());
+    await _prefs.setStringList('weeklySummaryDays',
+        _weeklySummaryDays.map((e) => e.toString()).toList());
+
+    // 고급 목표 설정 저장
+    await _prefs.setBool(
+        'progressiveIncreaseEnabled', _progressiveIncreaseEnabled);
+    await _prefs.setDouble('progressiveIncreaseRate', _progressiveIncreaseRate);
+    await _prefs.setBool('deloadSystemEnabled', _deloadSystemEnabled);
+    await _prefs.setInt(
+        'consecutiveFailuresForDeload', _consecutiveFailuresForDeload);
+    await _prefs.setDouble('deloadRate', _deloadRate);
+    await _prefs.setBool('restDaysEnabled', _restDaysEnabled);
+    await _prefs.setStringList(
+        'restDays', _restDays.map((e) => e.toString()).toList());
+    await _prefs.setBool('weeklyResetEnabled', _weeklyResetEnabled);
+    await _prefs.setInt('weeklyResetDay', _weeklyResetDay);
 
     await _prefs.setInt('habitReminderHour', _habitReminderTime.hour);
     await _prefs.setInt('habitReminderMinute', _habitReminderTime.minute);
@@ -203,6 +350,88 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
 
+            const SizedBox(height: 16),
+
+            // 확장된 알림 설정
+            _buildSwitchTile(
+              '미완료 습관 재알림',
+              '습관을 놓쳤을 때 추가 알림',
+              _missedHabitReminderEnabled,
+              (value) {
+                setState(() => _missedHabitReminderEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_missedHabitReminderEnabled) ...[
+              _buildNumberTile(
+                '재알림 횟수',
+                '하루에 몇 번까지 재알림할지 설정',
+                _missedHabitReminderCount,
+                (value) {
+                  setState(() => _missedHabitReminderCount = value);
+                  _saveSettings();
+                },
+                min: 1,
+                max: 3,
+              ),
+            ],
+
+            _buildSwitchTile(
+              '스누즈 기능',
+              '알림을 잠시 미루고 나중에 다시 받기',
+              _snoozeEnabled,
+              (value) {
+                setState(() => _snoozeEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_snoozeEnabled) ...[
+              _buildSnoozeDurationTile(),
+            ],
+
+            _buildSwitchTile(
+              '조용한 시간',
+              '야간 시간대 알림 방지',
+              _quietHoursEnabled,
+              (value) {
+                setState(() => _quietHoursEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_quietHoursEnabled) ...[
+              _buildTimeTile(
+                '조용한 시간 시작',
+                _quietHoursStart,
+                (time) {
+                  setState(() => _quietHoursStart = time);
+                  _saveSettings();
+                },
+                enabled: true,
+              ),
+              _buildTimeTile(
+                '조용한 시간 종료',
+                _quietHoursEnd,
+                (time) {
+                  setState(() => _quietHoursEnd = time);
+                  _saveSettings();
+                },
+                enabled: true,
+              ),
+            ],
+
+            _buildSwitchTile(
+              '집중모드 연동',
+              'iOS 집중모드 활성화 시 알림 방지',
+              _focusModeRespectEnabled,
+              (value) {
+                setState(() => _focusModeRespectEnabled = value);
+                _saveSettings();
+              },
+            ),
+
             const SizedBox(height: 24),
 
             // 시간 설정 섹션
@@ -233,6 +462,39 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 _saveSettings();
               },
               enabled: _weeklySummaryEnabled,
+            ),
+
+            const SizedBox(height: 16),
+
+            // 요일별 반복 설정
+            _buildDaySelectorTile(
+              '습관 체크 요일',
+              '습관 체크 알림을 받을 요일을 선택하세요',
+              _habitReminderDays,
+              (days) {
+                setState(() => _habitReminderDays = days);
+                _saveSettings();
+              },
+            ),
+
+            _buildDaySelectorTile(
+              '일일 요약 요일',
+              '일일 운동 요약을 받을 요일을 선택하세요',
+              _dailySummaryDays,
+              (days) {
+                setState(() => _dailySummaryDays = days);
+                _saveSettings();
+              },
+            ),
+
+            _buildDaySelectorTile(
+              '주간 요약 요일',
+              '주간 운동 요약을 받을 요일을 선택하세요',
+              _weeklySummaryDays,
+              (days) {
+                setState(() => _weeklySummaryDays = days);
+                _saveSettings();
+              },
             ),
 
             const SizedBox(height: 24),
@@ -284,6 +546,73 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               max: 50.0,
               step: 0.5,
             ),
+
+            const SizedBox(height: 16),
+
+            // 고급 목표 설정
+            _buildSwitchTile(
+              '점진적 증가 시스템',
+              '매주 목표를 자동으로 증가시킵니다',
+              _progressiveIncreaseEnabled,
+              (value) {
+                setState(() => _progressiveIncreaseEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_progressiveIncreaseEnabled) ...[
+              _buildProgressiveIncreaseTile(),
+            ],
+
+            _buildSwitchTile(
+              '딜로드 시스템',
+              '연속 실패 시 목표를 일시적으로 감소시킵니다',
+              _deloadSystemEnabled,
+              (value) {
+                setState(() => _deloadSystemEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_deloadSystemEnabled) ...[
+              _buildDeloadSettingsTile(),
+            ],
+
+            _buildSwitchTile(
+              '휴식일 지정',
+              '특정 요일을 휴식일로 설정합니다',
+              _restDaysEnabled,
+              (value) {
+                setState(() => _restDaysEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_restDaysEnabled) ...[
+              _buildDaySelectorTile(
+                '휴식일 설정',
+                '휴식일로 설정할 요일을 선택하세요',
+                _restDays,
+                (days) {
+                  setState(() => _restDays = days);
+                  _saveSettings();
+                },
+              ),
+            ],
+
+            _buildSwitchTile(
+              '주간 목표 리셋',
+              '매주 특정 요일에 목표를 초기화합니다',
+              _weeklyResetEnabled,
+              (value) {
+                setState(() => _weeklyResetEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_weeklyResetEnabled) ...[
+              _buildWeeklyResetTile(),
+            ],
           ],
         ),
       ),
@@ -474,6 +803,295 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSnoozeDurationTile() {
+    return ListTile(
+      title: const Text('스누즈 지속시간'),
+      subtitle: const Text('알림을 몇 분 후에 다시 받을지 설정'),
+      trailing: DropdownButton<int>(
+        value: _snoozeDuration,
+        items: const [
+          DropdownMenuItem(value: 10, child: Text('10분')),
+          DropdownMenuItem(value: 15, child: Text('15분')),
+          DropdownMenuItem(value: 30, child: Text('30분')),
+        ],
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => _snoozeDuration = value);
+            _saveSettings();
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDaySelectorTile(String title, String subtitle, List<bool> days,
+      Function(List<bool>) onChanged) {
+    const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: List.generate(7, (index) {
+                return FilterChip(
+                  label: Text(dayNames[index]),
+                  selected: days[index],
+                  onSelected: (selected) {
+                    final newDays = List<bool>.from(days);
+                    newDays[index] = selected;
+                    onChanged(newDays);
+                  },
+                  selectedColor: Colors.blue.shade100,
+                  checkmarkColor: Colors.blue.shade700,
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressiveIncreaseTile() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '점진적 증가 설정',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '주간 증가율: ${(_progressiveIncreaseRate * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: _progressiveIncreaseRate,
+                    min: 0.01, // 1%
+                    max: 0.20, // 20%
+                    divisions: 19,
+                    label: '${(_progressiveIncreaseRate * 100).toInt()}%',
+                    onChanged: (value) {
+                      setState(() => _progressiveIncreaseRate = value);
+                      _saveSettings();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '매주 월요일에 목표가 ${(_progressiveIncreaseRate * 100).toInt()}%씩 증가합니다',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.blue.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeloadSettingsTile() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '딜로드 설정',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '연속 실패 $_consecutiveFailuresForDeload회 시',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: _consecutiveFailuresForDeload > 1
+                            ? () {
+                                setState(() => _consecutiveFailuresForDeload--);
+                                _saveSettings();
+                              }
+                            : null,
+                        color: _consecutiveFailuresForDeload > 1
+                            ? Colors.red
+                            : Colors.grey,
+                      ),
+                      Text(
+                        '$_consecutiveFailuresForDeload',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: _consecutiveFailuresForDeload < 5
+                            ? () {
+                                setState(() => _consecutiveFailuresForDeload++);
+                                _saveSettings();
+                              }
+                            : null,
+                        color: _consecutiveFailuresForDeload < 5
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '목표 감소율: ${(_deloadRate * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: _deloadRate,
+                    min: 0.05, // 5%
+                    max: 0.30, // 30%
+                    divisions: 25,
+                    label: '${(_deloadRate * 100).toInt()}%',
+                    onChanged: (value) {
+                      setState(() => _deloadRate = value);
+                      _saveSettings();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '연속 실패 시 목표가 ${(_deloadRate * 100).toInt()}% 감소하여 부담을 줄입니다',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyResetTile() {
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '주간 리셋 설정',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '리셋 요일: ${dayNames[_weeklyResetDay]}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: List.generate(7, (index) {
+                return FilterChip(
+                  label: Text(dayNames[index]),
+                  selected: _weeklyResetDay == index,
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() => _weeklyResetDay = index);
+                      _saveSettings();
+                    }
+                  },
+                  selectedColor: Colors.blue.shade100,
+                  checkmarkColor: Colors.blue.shade700,
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '매주 ${dayNames[_weeklyResetDay]}에 목표가 초기값으로 리셋됩니다',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.green.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ),
       ),
     );
