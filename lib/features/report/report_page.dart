@@ -83,9 +83,24 @@ class _ReportPageState extends ConsumerState<ReportPage> {
       print(
           '🔍 데이터 로드 시작: ${start.year}-${start.month} ~ ${end.year}-${end.month}');
 
-      // Firebase에서 실제 데이터 로드 (사용자 인증 없이)
+      // 사용자 인증 확인
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ 사용자 인증이 필요합니다.');
+        setState(() {
+          _events = {};
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final uid = user.uid;
+      print('👤 사용자 UID: $uid');
+
+      // Firebase에서 사용자별 데이터 로드
       final habitsQuery = await FirebaseFirestore.instance
           .collection('habits')
+          .where('uid', isEqualTo: uid)
           .where('date', isGreaterThanOrEqualTo: _getDateId(start))
           .where('date', isLessThanOrEqualTo: _getDateId(end))
           .get();
@@ -94,6 +109,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
 
       final workoutsQuery = await FirebaseFirestore.instance
           .collection('workouts')
+          .where('uid', isEqualTo: uid)
           .where('date', isGreaterThanOrEqualTo: _getDateId(start))
           .where('date', isLessThanOrEqualTo: _getDateId(end))
           .get();
@@ -158,9 +174,9 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         if (granted) {
           // 달리기 운동 데이터 가져오기
           final runningWorkouts = await health.getHealthDataFromTypes(
-            start,
-            end,
-            [HealthDataType.WORKOUT],
+            types: [HealthDataType.WORKOUT],
+            startTime: start,
+            endTime: end,
           );
 
           // 달리기 운동만 필터링
@@ -206,9 +222,19 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     try {
       final daysInMonth = end.difference(start).inDays + 1;
 
-      // Firebase에서 실제 통계 계산 (사용자 인증 없이)
+      // 사용자 인증 확인
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ 통계 계산을 위한 사용자 인증이 필요합니다.');
+        return;
+      }
+
+      final uid = user.uid;
+
+      // Firebase에서 사용자별 통계 계산
       final habitsQuery = await FirebaseFirestore.instance
           .collection('habits')
+          .where('uid', isEqualTo: uid)
           .where('date', isGreaterThanOrEqualTo: _getDateId(start))
           .where('date', isLessThanOrEqualTo: _getDateId(end))
           .get();
@@ -221,6 +247,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
 
       final workoutsQuery = await FirebaseFirestore.instance
           .collection('workouts')
+          .where('uid', isEqualTo: uid)
           .where('date', isGreaterThanOrEqualTo: _getDateId(start))
           .where('date', isLessThanOrEqualTo: _getDateId(end))
           .get();
@@ -230,7 +257,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
       _workoutCompletionRate =
           daysInMonth > 0 ? (_totalWorkouts / daysInMonth) * 100 : 0;
 
-      print('📊 실제 통계: 습관 $_totalHabits회, 운동(통합) $_totalWorkouts회');
+      print('📊 사용자별 통계: 습관 $_totalHabits회, 운동(통합) $_totalWorkouts회');
     } catch (e) {
       print('❌ 통계 계산 실패: $e');
     }
@@ -281,8 +308,70 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     }
   }
 
+  Widget _buildAuthRequiredView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.lock_outline,
+              size: 80,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '로그인이 필요합니다',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '리포트를 보려면 먼저 로그인해주세요.\n개인 데이터를 안전하게 보호합니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                // 로그인 페이지로 이동하는 로직 추가 가능
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('로그인 기능을 구현해주세요'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.login),
+              label: const Text('로그인하기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 사용자 인증 상태 확인
+    final user = FirebaseAuth.instance.currentUser;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('📊 리포트'),
@@ -290,19 +379,21 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 오늘 요약
-                  _buildTodaySummary(),
+      body: user == null
+          ? _buildAuthRequiredView()
+          : _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 오늘 요약
+                      _buildTodaySummary(),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                  // 월간 달력
+                      // 월간 달력
                   _buildMonthlyCalendar(),
 
                   const SizedBox(height: 24),
