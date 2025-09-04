@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../common/services/firestore_service.dart';
+import '../../widgets/app_bar_with_notifications.dart';
 
 final _labelProvider = StateProvider<String?>((ref) => null);
 final _kcalProvider = StateProvider<int>((ref) => 0);
@@ -28,11 +29,7 @@ class MealPage extends ConsumerWidget {
     final kcal = ref.watch(_kcalProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('🍽️ 식사 관리'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
+      appBar: const AppBarWithNotifications(title: '식사 관리'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

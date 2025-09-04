@@ -9,6 +9,7 @@ import 'package:health/health.dart';
 import '../running/running_analysis_page.dart';
 import 'day_details_page.dart';
 import '../healthkit_test_page.dart';
+import '../../widgets/app_bar_with_notifications.dart';
 
 /// 리포트 페이지 - 달력 중심의 통합 시스템
 class ReportPage extends ConsumerStatefulWidget {
@@ -379,12 +380,7 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('📊 리포트'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: const AppBarWithNotifications(title: '리포트'),
       body: user == null
           ? _buildAuthRequiredView()
           : _isLoading

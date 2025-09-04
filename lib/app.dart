@@ -8,8 +8,7 @@ import 'features/workout/workout_page.dart';
 import 'features/meals/meal_page.dart';
 import 'features/report/report_page.dart';
 import 'features/settings/settings_page.dart';
-import 'features/health/health_test_page.dart';
-import 'features/running/running_analysis_page.dart';
+import 'features/home/home_page.dart';
 import 'providers/auth_provider.dart';
 
 class HabitFitApp extends ConsumerWidget {
@@ -76,32 +75,91 @@ class _HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<_HomeShell> {
-  int _idx = 0;
+  int _idx = 2; // Start with Home page (index 2)
   final _pages = const [
     HabitPage(),
     WorkoutPage(),
+    HomePage(),
     MealPage(),
     ReportPage(),
-    SettingsPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: _pages[_idx],
+      body: _pages[_idx],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.check_circle_outline, 'Habit'),
+                _buildNavItem(1, Icons.fitness_center_outlined, 'Workout'),
+                _buildNavItem(2, Icons.home_outlined, 'Home'),
+                _buildNavItem(3, Icons.restaurant_outlined, 'Meals'),
+                _buildNavItem(4, Icons.assessment_outlined, 'Report'),
+              ],
+            ),
+          ),
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _idx,
-        onDestinationSelected: (i) => setState(() => _idx = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.check_circle), label: 'Habit'),
-          NavigationDestination(
-              icon: Icon(Icons.fitness_center), label: 'Workout'),
-          NavigationDestination(icon: Icon(Icons.restaurant), label: 'Meals'),
-          NavigationDestination(icon: Icon(Icons.assessment), label: 'Report'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'User'),
-        ],
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _idx == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => _idx = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blue : Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.white : Colors.grey.shade600,
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Colors.blue : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

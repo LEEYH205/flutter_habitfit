@@ -49,8 +49,14 @@ A Flutter-based habit tracking and fitness app with HealthKit integration and AI
   - **📊 시각적 피드백**: 목표 달성률을 프로그레스 바로 실시간 표시
   - **💡 설정 가이드**: 각 옵션에 대한 툴팁과 설명으로 사용자 편의성 향상
 
-**⚠️ CURRENT ISSUES:**
-- **컴파일 에러**: `settings_page.dart`에서 구조적 에러 발생 (SingleChildScrollView 매개변수 문제)
+**✅ UI/UX 리뉴얼 완료:**
+- **모던한 디자인**: 이미지 기반의 깔끔한 카드 기반 UI로 완전 리뉴얼
+- **통합 AppBar**: 모든 페이지에 노티 알람 버튼과 유저 프로필 통합
+- **하단 탭 재구성**: Habit, Workout, Home, Meals, Report 순서로 변경
+- **Home 페이지**: 앱 시작 시 기본 페이지로 설정
+- **Notifications 페이지**: 모든 알람을 최신순으로 표시하는 전용 페이지
+
+**⚠️ KNOWN ISSUES:**
 - **타입 캐스트 에러**: `type 'int' is not a subtype of type 'String'` in analytics service
 - FCM (Firebase Cloud Messaging): 시뮬레이터에서는 APNS 토큰 오류 (실제 기기에서는 정상)
 - Remote Config: 기본값으로 작동 중 (Firebase Console 설정 필요)

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../common/services/firestore_service.dart';
 import '../../common/services/remote_config_service.dart';
 import '../../common/services/local_notification_service.dart';
+import '../../widgets/app_bar_with_notifications.dart';
 import 'pose_estimator.dart';
 import 'pose_overlay.dart';
 import 'pushup_detector.dart';
@@ -399,49 +400,45 @@ class _WorkoutPageState extends ConsumerState<WorkoutPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('💪 운동 관리'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        actions: [
-          // 운동 타입 선택 드롭다운
-          DropdownButton<String>(
-            value: _selectedExercise,
-            dropdownColor: Colors.white,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-            underline: Container(),
-            icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-            items: _exerciseSettings.keys.map((String key) {
-              return DropdownMenuItem<String>(
-                value: key,
-                child: Text(
-                  _exerciseSettings[key]!['name'],
-                  style: const TextStyle(color: Colors.black),
-                ),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  _selectedExercise = newValue;
-                  // 운동 타입 변경 시 해당 운동의 PushUpDetector만 초기화
-                  if (_selectedExercise == 'pushup') {
-                    _pushUpDetector.reset();
-                  }
-                  // 카운터는 독립적으로 유지됨 (초기화하지 않음)
-                });
-                // 운동 타입 변경 시 목표 재로드
-                _loadUserGoals();
-              }
-            },
-          ),
-          const SizedBox(width: 16),
-        ],
+      appBar: AppBarWithNotifications(
+        title: '운동 관리',
+        showNotifications: true,
+        showProfile: true,
       ),
       body: Stack(
         children: [
           Column(
             children: [
+              // 운동 타입 선택
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('운동 타입: '),
+                    DropdownButton<String>(
+                      value: _selectedExercise,
+                      items: _exerciseSettings.keys.map((String key) {
+                        return DropdownMenuItem<String>(
+                          value: key,
+                          child: Text(_exerciseSettings[key]!['name']!),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedExercise = newValue;
+                            if (_selectedExercise == 'pushup') {
+                              _pushUpDetector.reset();
+                            }
+                          });
+                          _loadUserGoals();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
               Expanded(child: preview),
               const SizedBox(height: 8),
               Row(

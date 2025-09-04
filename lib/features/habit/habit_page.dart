@@ -6,6 +6,7 @@ import '../../common/services/local_notification_service.dart';
 import '../../models/habit.dart';
 import '../../services/habit_service.dart';
 import '../../widgets/habit_dialog.dart';
+import '../../widgets/app_bar_with_notifications.dart';
 
 final _habitsProvider = StateProvider<List<Habit>>((ref) => []);
 final _habitCompletionsProvider = StateProvider<Map<String, bool>>((ref) => {});
@@ -306,21 +307,13 @@ class _HabitPageState extends ConsumerState<HabitPage> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('✅ 습관 관리'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-        ),
+        appBar: const AppBarWithNotifications(title: '습관 관리'),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('✅ 습관 관리'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
+      appBar: const AppBarWithNotifications(title: '습관 관리'),
       body: Stack(
         children: [
           Padding(
