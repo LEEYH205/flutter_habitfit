@@ -211,17 +211,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildStepCountSection() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStepCountCard(),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStepCountCard(),
-        ),
-      ],
-    );
+    return _buildStepCountCard();
   }
 
   Widget _buildStepCountCard() {
