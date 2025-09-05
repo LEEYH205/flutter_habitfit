@@ -1,7 +1,10 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geocoding/geocoding.dart' as geo;
 import '../../services/health_kit_service.dart';
 
 /// 달리기 운동 상세 페이지
@@ -36,6 +39,9 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
   // 마커와 폴리라인 상태 관리
   List<Marker> _routeMarkers = [];
   List<Polyline> _routePolylines = [];
+
+  // 위치 정보 캐시
+  static final Map<String, String> _locationCache = {};
 
   @override
   void initState() {
@@ -172,7 +178,30 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
           : Column(
               children: [
                 // 운동 요약 카드
-                _buildWorkoutSummaryCard(),
+                FutureBuilder<Widget>(
+                  future: _buildWorkoutSummaryCard(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return snapshot.data!;
+                    } else {
+                      return Container(
+                        margin: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue[400]!, Colors.blue[600]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      );
+                    }
+                  },
+                ),
 
                 // 탭 컨트롤러
                 Container(
@@ -208,7 +237,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
   }
 
   /// 운동 요약 카드
-  Widget _buildWorkoutSummaryCard() {
+  Future<Widget> _buildWorkoutSummaryCard() async {
     final workout = widget.workout;
     final healthKitData = widget.healthKitData;
 
@@ -256,7 +285,20 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
     // 날짜 형식: 9월 4일 (목) 시작시간 ~ 끝시간
     final dateString =
-        '${startTime.month}월 ${startTime.day}일 ($weekday) ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} ~ ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+        '${startTime.month}월 ${startTime.day}일 ($weekday) ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} - ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+
+    // 위치 정보 (시 단위) - 실제 위치 데이터에서 가져오기
+    String locationString = '알수없음';
+
+    // HealthKit 데이터에서 위치 정보 확인
+    if (healthKitData != null && healthKitData['location'] != null) {
+      locationString = healthKitData['location'] as String;
+    } else if (_workoutRoute != null && _workoutRoute!.points.isNotEmpty) {
+      // GPS 데이터가 있으면 실제 역지오코딩으로 위치 정보 가져오기
+      final firstPoint = _workoutRoute!.points.first;
+      locationString =
+          await _getShortAreaName(firstPoint.latitude, firstPoint.longitude);
+    }
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -286,6 +328,21 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
               color: Colors.white,
             ),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _getLocationIcon(size: 16, color: Colors.white70),
+              const SizedBox(width: 4),
+              Text(
+                locationString,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           // 첫 번째 행: 거리, 시간, 칼로리
@@ -475,26 +532,26 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                   if (_runningDynamics!.strideLength != null)
                     _buildMetricRow(
                         '평균 보폭',
-                        '${(_runningDynamics!.strideLength! * 100).toStringAsFixed(0)}cm',
+                        '${_runningDynamics!.strideLength!.toStringAsFixed(1)}m',
                         Icons.directions_run),
-                  if (_runningDynamics!.cadence != null)
+                  if (_runningDynamics!.groundContactTime != null)
                     _buildMetricRow(
-                        '평균 케이던스',
-                        '${_runningDynamics!.cadence!.toStringAsFixed(1)}spm',
-                        Icons.speed),
-                  if (_runningDynamics!.power != null)
-                    _buildMetricRow('평균 파워',
-                        '${_runningDynamics!.power!.toInt()}W', Icons.flash_on),
+                        '평균 지면 접촉 시간',
+                        '${_runningDynamics!.groundContactTime!.toInt()}ms',
+                        Icons.timer),
                   if (_runningDynamics!.verticalOscillation != null)
                     _buildMetricRow(
                         '수직 진폭',
                         '${_runningDynamics!.verticalOscillation!.toStringAsFixed(1)}cm',
                         Icons.trending_up),
-                  if (_runningDynamics!.groundContactTime != null)
+                  if (_runningDynamics!.power != null)
+                    _buildMetricRow('평균 파워',
+                        '${_runningDynamics!.power!.toInt()}W', Icons.flash_on),
+                  if (_runningDynamics!.cadence != null)
                     _buildMetricRow(
-                        '지면 접촉 시간',
-                        '${_runningDynamics!.groundContactTime!.toInt()}ms',
-                        Icons.timer),
+                        '평균 케이던스',
+                        '${_runningDynamics!.cadence!.toStringAsFixed(1)}spm',
+                        Icons.speed),
                 ],
               ),
             ),
@@ -880,7 +937,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '$zoneName (${zone.time.inMinutes}분)',
+                              '$zoneName (${_formatDurationHoursMinutes(zone.time.inSeconds)})',
                               style: const TextStyle(fontSize: 12),
                             ),
                           ],
@@ -1076,7 +1133,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
             style: const TextStyle(fontSize: 16),
           ),
           Text(
-            _formatDuration(zone.time.inSeconds),
+            _formatDurationHoursMinutes(zone.time.inSeconds),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
@@ -1614,5 +1671,62 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     final minutes = (seconds % 3600) ~/ 60;
     final remainingSeconds = seconds % 60;
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  /// 지속시간을 시:분 형식으로 포맷팅
+  String _formatDurationHoursMinutes(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  }
+
+  /// 위/경도 -> "서울특별시 강남구" 같은 짧은 지역명
+  Future<String> _getShortAreaName(double lat, double lng) async {
+    // 캐시 키 생성 (소수점 3자리로 라운딩하여 캐시 효율성 증대)
+    final cacheKey = '${lat.toStringAsFixed(3)},${lng.toStringAsFixed(3)}';
+
+    // 캐시에서 먼저 확인
+    if (_locationCache.containsKey(cacheKey)) {
+      return _locationCache[cacheKey]!;
+    }
+
+    try {
+      final placemarks = await geo.placemarkFromCoordinates(lat, lng,
+          localeIdentifier: "ko_KR");
+
+      if (placemarks.isEmpty) {
+        _locationCache[cacheKey] = "위치 미상";
+        return "위치 미상";
+      }
+
+      final placemark = placemarks.first;
+
+      // 시 단위만 표시 (시/도 단위)
+      final admin = (placemark.administrativeArea ?? "").trim(); // 서울특별시/경기도 등
+      final result = admin.isNotEmpty ? admin : (placemark.country ?? "위치 미상");
+
+      // 캐시에 저장
+      _locationCache[cacheKey] = result;
+      return result;
+    } catch (e) {
+      print('❌ 역지오코딩 오류: $e');
+      _locationCache[cacheKey] = "위치 미상";
+      return "위치 미상";
+    }
+  }
+
+  /// 플랫폼별 위치 아이콘 반환
+  Widget _getLocationIcon({double size = 16, Color? color}) {
+    final icon = Platform.isIOS
+        ? const Icon(CupertinoIcons.location_fill) // iOS 위치 서비스 화살표(삼각형)
+        : const Icon(Icons.north_east); // Android 대각선 화살표
+
+    return IconTheme.merge(
+      data: IconThemeData(
+        size: size,
+        color: color ?? Colors.teal,
+      ),
+      child: icon,
+    );
   }
 }

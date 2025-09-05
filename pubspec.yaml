@@ -33,6 +33,7 @@ dependencies:
   latlong2: ^0.9.0
   flutter_map: ^8.0.0
   go_router: ^14.2.7
+  geocoding: ^2.1.1
 
 
 dev_dependencies:
