@@ -135,17 +135,17 @@ class _TodayPageState extends ConsumerState<TodayPage>
             children: [
               Expanded(
                 child: KpiRing.calories(
-                  value: summary.calories.toInt().toString(),
-                  progress: summary.caloriesProgress,
-                  subtitle: '목표: 2000kcal',
+                  value: summary.activeCalories.toInt().toString(),
+                  progress: summary.activeCaloriesProgress,
+                  subtitle: '목표: 400kcal',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: KpiRing.protein(
-                  value: summary.protein.toInt().toString(),
-                  progress: summary.proteinProgress,
-                  subtitle: '목표: 150g',
+                child: KpiRing.exercise(
+                  value: '${summary.exerciseMinutes}분',
+                  progress: summary.exerciseProgress,
+                  subtitle: '목표: 30분',
                 ),
               ),
               const SizedBox(width: 12),

@@ -9,9 +9,12 @@ import 'auth_provider.dart';
 final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
   const cacheKey = CacheKeys.todaySummary;
 
-  // 캐시 비활성화 (디버깅용)
-  print('🚨 디버깅: 캐시를 비활성화하고 항상 새로 로드합니다.');
-  await CacheService.removeCache(cacheKey);
+  // 캐시에서 먼저 확인
+  final cachedData = await CacheService.getCache<TodaySummary>(cacheKey);
+  if (cachedData != null) {
+    print('📦 Today 요약 데이터 캐시에서 로드');
+    return cachedData;
+  }
 
   // 캐시에 없으면 새로 로드
   print('🔄 Today 요약 데이터 새로 로드');
@@ -72,6 +75,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
       calories: _calculateTodayCalories(workoutsQuery.docs, runningData),
       protein: _calculateTodayProtein(), // TODO: 식사 데이터 연동 시 실제 계산
       steps: _getTodaySteps(), // TODO: HealthKit 연동 시 실제 데이터
+      activeCalories: runningData['activeCalories'] ?? 0.0,
+      exerciseMinutes: runningData['exerciseMinutes'] ?? 0,
       habitCompletionRate: totalHabitsQuery.docs.isNotEmpty
           ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
           : 0.0,
@@ -100,6 +105,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
         calories: runningData['calories'] ?? 0.0,
         protein: 0.0, // TODO: 식사 데이터 연동 시 실제 계산
         steps: _getTodaySteps(), // TODO: HealthKit 연동 시 실제 데이터
+        activeCalories: runningData['activeCalories'] ?? 0.0,
+        exerciseMinutes: runningData['exerciseMinutes'] ?? 0,
         habitCompletionRate: 0.0, // Firebase 연결 실패 시 0
       );
 
@@ -119,6 +126,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
         calories: 0.0,
         protein: 0.0,
         steps: 0,
+        activeCalories: 0.0,
+        exerciseMinutes: 0,
         habitCompletionRate: 0.0,
       );
 
@@ -141,14 +150,18 @@ Future<Map<String, dynamic>> _getTodayRunningData(DateTime today) async {
 
     print('📅 조회 기간: $startOfDay ~ $endOfDay');
 
-    // 운동 데이터 조회
-    final workouts = await healthFactory.getHealthDataFromTypes(
+    // 운동 데이터 및 활동 데이터 조회
+    final allHealthData = await healthFactory.getHealthDataFromTypes(
       startOfDay,
       endOfDay,
-      [HealthDataType.WORKOUT],
+      [
+        HealthDataType.WORKOUT,
+        HealthDataType.ACTIVE_ENERGY_BURNED, // 움직이기 칼로리
+        HealthDataType.EXERCISE_TIME, // 운동 시간
+      ],
     );
 
-    print('🏃‍♂️ HealthKit에서 ${workouts.length}개 운동 데이터 조회됨');
+    print('🏃‍♂️ HealthKit에서 ${allHealthData.length}개 건강 데이터 조회됨');
 
     // 오늘의 달리기 데이터 계산
     double totalDistance = 0.0;
@@ -156,11 +169,16 @@ Future<Map<String, dynamic>> _getTodayRunningData(DateTime today) async {
     double totalCalories = 0.0;
     int workoutCount = 0;
 
-    for (final workout in workouts) {
-      if (workout.type == HealthDataType.WORKOUT) {
+    // 움직이기 칼로리와 운동 시간 계산
+    double activeCalories = 0.0;
+    int exerciseMinutes = 0;
+
+    // 모든 건강 데이터 처리
+    for (final dataPoint in allHealthData) {
+      if (dataPoint.type == HealthDataType.WORKOUT) {
         // 운동 시간 계산
-        final startTime = workout.dateFrom;
-        final endTime = workout.dateTo;
+        final startTime = dataPoint.dateFrom;
+        final endTime = dataPoint.dateTo;
         totalDuration += endTime.difference(startTime).inMinutes;
 
         // HealthKit에서 운동 데이터는 이미 파싱된 형태로 제공됨
@@ -170,11 +188,27 @@ Future<Map<String, dynamic>> _getTodayRunningData(DateTime today) async {
         // 기본값 설정 (실제 데이터는 Journal 페이지에서 가져옴)
         totalDistance += 5.0; // 기본값
         totalCalories += 300.0; // 기본값
+      } else if (dataPoint.type == HealthDataType.ACTIVE_ENERGY_BURNED) {
+        // 움직이기 칼로리 데이터 처리
+        if (dataPoint.value is NumericHealthValue) {
+          final value = (dataPoint.value as NumericHealthValue).numericValue;
+          activeCalories += value;
+          print('🔥 움직이기 칼로리: ${value.toStringAsFixed(1)}kcal');
+        }
+      } else if (dataPoint.type == HealthDataType.EXERCISE_TIME) {
+        // 운동 시간 데이터 처리
+        if (dataPoint.value is NumericHealthValue) {
+          final value = (dataPoint.value as NumericHealthValue).numericValue;
+          exerciseMinutes += value.toInt();
+          print('⏱️ 운동 시간: ${value.toInt()}분');
+        }
       }
     }
 
     print(
         '📊 오늘의 HealthKit 데이터: 거리 ${totalDistance.toStringAsFixed(2)}km, 시간 $totalDuration분, 칼로리 ${totalCalories.toStringAsFixed(1)}kcal, 운동 $workoutCount개');
+    print('🔥 움직이기 칼로리: ${activeCalories.toStringAsFixed(1)}kcal');
+    print('⏱️ 운동 시간: $exerciseMinutes분');
 
     // 오늘 운동 데이터가 없으면 기본값 제공
     if (workoutCount == 0) {
@@ -184,6 +218,8 @@ Future<Map<String, dynamic>> _getTodayRunningData(DateTime today) async {
         'duration': 0,
         'calories': 0.0,
         'workoutCount': 0,
+        'activeCalories': activeCalories,
+        'exerciseMinutes': exerciseMinutes,
       };
     }
 
@@ -192,6 +228,8 @@ Future<Map<String, dynamic>> _getTodayRunningData(DateTime today) async {
       'duration': totalDuration,
       'calories': totalCalories,
       'workoutCount': workoutCount,
+      'activeCalories': activeCalories,
+      'exerciseMinutes': exerciseMinutes,
     };
   } catch (e) {
     print('❌ HealthKit 데이터 로드 실패: $e');

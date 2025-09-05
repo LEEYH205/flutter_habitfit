@@ -28,7 +28,7 @@ class KpiRing extends StatelessWidget {
     String? subtitle,
   }) {
     return KpiRing(
-      title: '칼로리',
+      title: '움직이기 칼로리',
       value: value,
       progress: progress,
       color: Colors.red,
@@ -38,19 +38,19 @@ class KpiRing extends StatelessWidget {
     );
   }
 
-  /// 단백질 링 생성
-  factory KpiRing.protein({
+  /// 운동 시간 링 생성
+  factory KpiRing.exercise({
     required String value,
     required double progress,
     String? subtitle,
   }) {
     return KpiRing(
-      title: '단백질',
+      title: '운동 시간',
       value: value,
       progress: progress,
       color: Colors.blue,
-      icon: Icons.fitness_center,
-      unit: 'g',
+      icon: Icons.timer,
+      unit: null, // 값에 이미 '분'이 포함되어 있음
       subtitle: subtitle,
     );
   }
@@ -125,7 +125,7 @@ class KpiRing extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // 원형 진행률 표시
           SizedBox(
             width: 80,
@@ -177,7 +177,7 @@ class KpiRing extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // 부제목
           if (subtitle != null) ...[
             const SizedBox(height: 8),

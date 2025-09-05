@@ -9,6 +9,8 @@ class TodaySummary {
   final double calories;
   final double protein;
   final int steps;
+  final double activeCalories; // 움직이기 칼로리
+  final int exerciseMinutes; // 운동 시간 (분)
   final double habitCompletionRate;
 
   const TodaySummary({
@@ -21,6 +23,8 @@ class TodaySummary {
     required this.calories,
     required this.protein,
     required this.steps,
+    required this.activeCalories,
+    required this.exerciseMinutes,
     required this.habitCompletionRate,
   });
 
@@ -31,8 +35,11 @@ class TodaySummary {
   /// 칼로리 목표 대비 진행률 (목표: 2000kcal)
   double get caloriesProgress => (calories / 2000.0).clamp(0.0, 1.0);
 
-  /// 단백질 목표 대비 진행률 (목표: 150g)
-  double get proteinProgress => (protein / 150.0).clamp(0.0, 1.0);
+  /// 운동 시간 목표 대비 진행률 (목표: 30분)
+  double get exerciseProgress => (exerciseMinutes / 30.0).clamp(0.0, 1.0);
+
+  /// 움직이기 칼로리 목표 대비 진행률 (목표: 400kcal)
+  double get activeCaloriesProgress => (activeCalories / 400.0).clamp(0.0, 1.0);
 
   /// 걸음 수 목표 대비 진행률 (목표: 10000걸음)
   double get stepsProgress => (steps / 10000.0).clamp(0.0, 1.0);
@@ -81,7 +88,7 @@ class TodaySummary {
 
   @override
   String toString() {
-    return 'TodaySummary(date: $date, habits: $completedHabits/$totalHabits, workouts: $completedWorkouts, calories: $calories, protein: $protein, steps: $steps)';
+    return 'TodaySummary(date: $date, habits: $completedHabits/$totalHabits, workouts: $completedWorkouts, calories: $calories, protein: $protein, steps: $steps, activeCalories: $activeCalories, exerciseMinutes: $exerciseMinutes)';
   }
 
   @override
@@ -97,6 +104,8 @@ class TodaySummary {
         other.calories == calories &&
         other.protein == protein &&
         other.steps == steps &&
+        other.activeCalories == activeCalories &&
+        other.exerciseMinutes == exerciseMinutes &&
         other.habitCompletionRate == habitCompletionRate;
   }
 
@@ -112,6 +121,8 @@ class TodaySummary {
       calories,
       protein,
       steps,
+      activeCalories,
+      exerciseMinutes,
       habitCompletionRate,
     );
   }
@@ -128,6 +139,8 @@ class TodaySummary {
       'calories': calories,
       'protein': protein,
       'steps': steps,
+      'activeCalories': activeCalories,
+      'exerciseMinutes': exerciseMinutes,
       'habitCompletionRate': habitCompletionRate,
     };
   }
@@ -144,6 +157,8 @@ class TodaySummary {
       calories: json['calories'].toDouble(),
       protein: json['protein'].toDouble(),
       steps: json['steps'],
+      activeCalories: (json['activeCalories'] ?? 0.0).toDouble(),
+      exerciseMinutes: json['exerciseMinutes'] ?? 0,
       habitCompletionRate: json['habitCompletionRate'].toDouble(),
     );
   }
