@@ -816,6 +816,56 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
           const SizedBox(height: 16),
 
+          // 심박수 구간별 색상 범례
+          if (_heartRateZones != null && _heartRateZones!.isNotEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '💓 심박수 구간별 경로 색상',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
+                      children: _heartRateZones!.map((zone) {
+                        final zoneNumber = _parseZoneNumber(zone.zone);
+                        final color = _getHeartRateZoneColor(zoneNumber);
+                        final zoneName = _getHeartRateZoneName(zoneNumber);
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: Colors.white, width: 1),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$zoneName (${zone.time.inMinutes}분)',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 16),
+
           // 경로 요약 카드
           Card(
             child: Padding(
@@ -1297,7 +1347,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     return null;
   }
 
-  /// 경로 마커 생성
+  /// 경로 마커 생성 (심박수 구간별 색상)
   List<Marker> _createRouteMarkers() {
     final markers = <Marker>[];
 
@@ -1307,82 +1357,29 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
       print('🗺️ 마커 생성: ${points.length}개 GPS 포인트');
 
-      // 시작점 마커
+      // 시작점 마커 (녹색)
       final startPoint = points.first.toLatLng();
       print('  📍 시작점 마커: $startPoint');
 
       markers.add(
         Marker(
           point: startPoint,
-          width: 80,
-          height: 80,
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  '시작',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.location_on,
-                color: Colors.green,
-                size: 24,
-              ),
-            ],
+          width: 20,
+          height: 20,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       );
 
-      // 중간 구간별 마커 (실제 GPS 데이터 기반)
-      for (int i = 1; i < points.length - 1; i++) {
-        final point = points[i];
-        final latLng = point.toLatLng();
-        print('  📍 중간 마커 $i: $latLng');
+      // 중간 마커는 제거 - 폴리라인만으로 경로 표시
 
-        markers.add(
-          Marker(
-            point: latLng,
-            width: 60,
-            height: 60,
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$i',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.circle,
-                  color: Colors.blue,
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      // 종료점 마커
+      // 종료점 마커 (빨간색)
       if (points.length > 1) {
         final endPoint = points.last.toLatLng();
         print('  📍 종료점 마커: $endPoint');
@@ -1390,31 +1387,15 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
         markers.add(
           Marker(
             point: endPoint,
-            width: 80,
-            height: 80,
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    '종료',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.location_on,
-                  color: Colors.red,
-                  size: 24,
-                ),
-              ],
+            width: 20,
+            height: 20,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         );
@@ -1427,31 +1408,15 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       markers.add(
         Marker(
           point: const LatLng(37.5665, 126.9780),
-          width: 80,
-          height: 80,
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  '시작',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.location_on,
-                color: Colors.green,
-                size: 24,
-              ),
-            ],
+          width: 20,
+          height: 20,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       );
@@ -1460,7 +1425,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     return markers;
   }
 
-  /// 경로 폴리라인 생성
+  /// 경로 폴리라인 생성 (심박수 구간별 색상)
   List<Polyline> _createRoutePolylines() {
     final polylines = <Polyline>[];
 
@@ -1474,19 +1439,72 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       print('  📍 첫 번째 LatLng: ${latLngPoints.first}');
       print('  📍 마지막 LatLng: ${latLngPoints.last}');
 
-      // 폴리라인 생성
-      final polyline = Polyline(
-        points: latLngPoints,
-        color: Colors.blue,
-        strokeWidth: 3,
-      );
+      // 심박수 구간 데이터가 있으면 구간별로 색상 변경
+      if (_heartRateZones != null && _heartRateZones!.isNotEmpty) {
+        print('💓 심박수 구간별 폴리라인 생성 시작');
 
-      polylines.add(polyline);
+        // 전체 운동 시간 계산
+        final totalDuration = _heartRateZones!
+            .fold<Duration>(Duration.zero, (sum, zone) => sum + zone.time);
+
+        // 각 구간별로 폴리라인 생성
+        double currentTimeRatio = 0.0;
+
+        for (int i = 0; i < _heartRateZones!.length; i++) {
+          final zone = _heartRateZones![i];
+          final zoneTimeRatio =
+              zone.time.inMilliseconds / totalDuration.inMilliseconds;
+          final nextTimeRatio = currentTimeRatio + zoneTimeRatio;
+
+          // 해당 구간의 포인트 인덱스 계산
+          final startIndex = (currentTimeRatio * latLngPoints.length).round();
+          final endIndex = (nextTimeRatio * latLngPoints.length).round();
+
+          if (startIndex < latLngPoints.length && endIndex > startIndex) {
+            final zonePoints = latLngPoints.sublist(
+                startIndex,
+                endIndex > latLngPoints.length
+                    ? latLngPoints.length
+                    : endIndex);
+
+            if (zonePoints.length > 1) {
+              final zoneNumber = _parseZoneNumber(zone.zone);
+              final zoneColor = _getHeartRateZoneColor(zoneNumber);
+
+              polylines.add(
+                Polyline(
+                  points: zonePoints,
+                  color: zoneColor,
+                  strokeWidth: 4.0, // 조금 더 굵게
+                  borderColor: Colors.white,
+                  borderStrokeWidth: 1.0, // 흰색 테두리
+                ),
+              );
+
+              print(
+                  '  💓 구간 ${zone.zone}: ${zonePoints.length}개 포인트, 색상: $zoneColor');
+            }
+          }
+
+          currentTimeRatio = nextTimeRatio;
+        }
+
+        print('✅ 심박수 구간별 폴리라인 생성 완료: ${polylines.length}개 구간');
+      } else {
+        // 심박수 구간 데이터가 없으면 기본 파란색 폴리라인
+        print('💓 심박수 구간 데이터 없음: 기본 폴리라인 생성');
+        polylines.add(
+          Polyline(
+            points: latLngPoints,
+            color: Colors.blue,
+            strokeWidth: 4.0,
+            borderColor: Colors.white,
+            borderStrokeWidth: 1.0,
+          ),
+        );
+      }
 
       print('✅ 폴리라인 생성 완료: ${polylines.length}개');
-      print('  📍 폴리라인 포인트 수: ${polyline.points.length}');
-      print('  📍 폴리라인 색상: ${polyline.color}');
-      print('  📍 폴리라인 두께: ${polyline.strokeWidth}');
     } else {
       // GPS 데이터가 없으면 샘플 경로 생성
       print('⚠️ GPS 데이터 없음: 샘플 경로 생성');
@@ -1505,11 +1523,59 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
         Polyline(
           points: samplePoints,
           color: Colors.blue,
-          strokeWidth: 3,
+          strokeWidth: 4.0,
+          borderColor: Colors.white,
+          borderStrokeWidth: 1.0,
         ),
       );
     }
 
     return polylines;
+  }
+
+  /// 심박수 구간별 색상 반환
+  Color _getHeartRateZoneColor(int zone) {
+    switch (zone) {
+      case 1: // Z1: 회복 구간 (파란색)
+        return const Color(0xFF4A90E2);
+      case 2: // Z2: 유산소 기반 (초록색)
+        return const Color(0xFF7ED321);
+      case 3: // Z3: 유산소 능력 (노란색)
+        return const Color(0xFFF5A623);
+      case 4: // Z4: 유산소 역치 (주황색)
+        return const Color(0xFFFF6B35);
+      case 5: // Z5: 무산소 능력 (빨간색)
+        return const Color(0xFFD0021B);
+      default:
+        return Colors.blue;
+    }
+  }
+
+  /// 심박수 구간별 이름 반환
+  String _getHeartRateZoneName(int zone) {
+    switch (zone) {
+      case 1:
+        return 'Z1 회복';
+      case 2:
+        return 'Z2 유산소';
+      case 3:
+        return 'Z3 능력';
+      case 4:
+        return 'Z4 역치';
+      case 5:
+        return 'Z5 무산소';
+      default:
+        return 'Z$zone';
+    }
+  }
+
+  /// 심박수 구간 문자열에서 숫자 추출
+  int _parseZoneNumber(String zoneString) {
+    // "Z1", "Z2", "Z3", "Z4", "Z5" 형태에서 숫자 추출
+    final match = RegExp(r'Z(\d+)').firstMatch(zoneString);
+    if (match != null) {
+      return int.parse(match.group(1)!);
+    }
+    return 1; // 기본값
   }
 }
