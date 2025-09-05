@@ -5,6 +5,7 @@ import '../../widgets/common/kpi_ring.dart';
 import '../../widgets/common/section_card.dart';
 import '../../widgets/common/mini_spark.dart';
 import '../../providers/today_summary_provider.dart';
+import '../../providers/user_goals_provider.dart';
 import '../../usecases/coach_usecase.dart';
 import '../habit/habit_page.dart';
 import '../workout/workout_page.dart';
@@ -36,6 +37,7 @@ class _TodayPageState extends ConsumerState<TodayPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('🚀 Today 페이지 로드됨 - provider 새로고침 트리거');
       ref.invalidate(todaySummaryProvider);
+      ref.invalidate(userGoalsProvider);
     });
   }
 
@@ -129,35 +131,56 @@ class _TodayPageState extends ConsumerState<TodayPage>
     return Consumer(
       builder: (context, ref, child) {
         final todaySummaryAsync = ref.watch(todaySummaryProvider);
+        final userGoalsAsync = ref.watch(userGoalsProvider);
 
         return todaySummaryAsync.when(
-          data: (summary) => Row(
-            children: [
-              Expanded(
-                child: KpiRing.calories(
-                  value: summary.activeCalories.toInt().toString(),
-                  progress: summary.activeCaloriesProgress,
-                  subtitle: '목표: 400kcal',
+          data: (summary) => userGoalsAsync.when(
+            data: (goals) => SizedBox(
+              height: 160,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: KpiRing.calories(
+                        value: summary.activeCalories.toInt().toString(),
+                        progress: summary.getActiveCaloriesProgress(
+                            goals.activeCaloriesGoal),
+                        subtitle: '목표: ${goals.activeCaloriesGoal.toInt()}kcal',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: KpiRing.exercise(
+                        value: '${summary.exerciseMinutes}분',
+                        progress: summary
+                            .getExerciseProgress(goals.exerciseMinutesGoal),
+                        subtitle: '목표: ${goals.exerciseMinutesGoal}분',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: KpiRing.habits(
+                        value: summary.habitStatusText,
+                        progress: summary.habitProgress,
+                        subtitle:
+                            '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: KpiRing.steps(
+                        value: summary.steps.toString(),
+                        progress: summary.getStepsProgress(goals.stepsGoal),
+                        subtitle: '목표: ${goals.stepsGoal}걸음',
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: KpiRing.exercise(
-                  value: '${summary.exerciseMinutes}분',
-                  progress: summary.exerciseProgress,
-                  subtitle: '목표: 30분',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: KpiRing.habits(
-                  value: summary.habitStatusText,
-                  progress: summary.habitProgress,
-                  subtitle:
-                      '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
-                ),
-              ),
-            ],
+            ),
+            loading: () => _buildKpiRingsLoading(),
+            error: (error, stack) => _buildKpiRingsError(),
           ),
           loading: () => _buildKpiRingsLoading(),
           error: (error, stack) => _buildKpiRingsError(),
@@ -168,19 +191,24 @@ class _TodayPageState extends ConsumerState<TodayPage>
 
   /// KPI 링 로딩 상태
   Widget _buildKpiRingsLoading() {
-    return Row(
-      children: List.generate(
-        3,
-        (index) => Expanded(
-          child: Container(
-            height: 120,
-            margin: EdgeInsets.only(right: index < 2 ? 12 : 0),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(),
+    return SizedBox(
+      height: 160,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(
+            4,
+            (index) => Expanded(
+              child: Container(
+                margin: EdgeInsets.only(right: index < 3 ? 12 : 0),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             ),
           ),
         ),
