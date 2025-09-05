@@ -579,7 +579,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
                   Expanded(
                     child: _buildSummaryItem(
                       '시간',
-                      '${dayLog.totalWorkoutMinutes}분',
+                      _formatDuration(dayLog.totalWorkoutMinutes),
                       Colors.purple,
                       Icons.timer,
                     ),
@@ -590,7 +590,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
                 const SizedBox(height: 12),
                 _buildSummaryItem(
                   '평균 페이스',
-                  '${dayLog.runningAveragePace.toStringAsFixed(1)}분/km',
+                  _formatPace(dayLog.runningAveragePace),
                   Colors.purple,
                   Icons.speed,
                 ),
@@ -916,6 +916,20 @@ class _JournalPageState extends ConsumerState<JournalPage>
     final avgPace = (runningData['avgPace'] ?? 0.0).toDouble();
     final calories = (runningData['calories'] ?? 0.0).toDouble();
 
+    // 시간을 시:분:초 형식으로 변환
+    final hours = duration ~/ 3600;
+    final minutes = (duration % 3600) ~/ 60;
+    final seconds = duration % 60;
+    final timeString =
+        '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    // 페이스를 분'초"/KM 형식으로 변환
+    final paceMinutes = avgPace.floor();
+    final paceSeconds = ((avgPace - paceMinutes) * 60).round();
+    final paceString = avgPace > 0
+        ? '$paceMinutes\'${paceSeconds.toString().padLeft(2, '0')}"/KM'
+        : 'N/A';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -955,7 +969,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
               Expanded(
                 child: _buildSummaryItem(
                   '시간',
-                  '$duration분',
+                  timeString,
                   Colors.blue,
                   Icons.timer,
                 ),
@@ -969,7 +983,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
                 Expanded(
                   child: _buildSummaryItem(
                     '평균 페이스',
-                    '${avgPace.toStringAsFixed(1)}분/km',
+                    paceString,
                     Colors.blue,
                     Icons.speed,
                   ),
@@ -1243,5 +1257,20 @@ class _JournalPageState extends ConsumerState<JournalPage>
     }
 
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// 지속시간을 시:분:초 형식으로 포맷팅
+  String _formatDuration(int minutes) {
+    final hours = minutes ~/ 60;
+    final remainingMinutes = minutes % 60;
+    return '${hours.toString().padLeft(2, '0')}:${remainingMinutes.toString().padLeft(2, '0')}:00';
+  }
+
+  /// 페이스를 분'초"/KM 형식으로 포맷팅
+  String _formatPace(double paceMinutes) {
+    if (paceMinutes <= 0) return 'N/A';
+    final minutes = paceMinutes.floor();
+    final seconds = ((paceMinutes - minutes) * 60).round();
+    return '$minutes\'${seconds.toString().padLeft(2, '0')}"/KM';
   }
 }

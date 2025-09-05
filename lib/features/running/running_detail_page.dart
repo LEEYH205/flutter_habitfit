@@ -156,10 +156,10 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-            '${widget.workout?.type ?? widget.healthKitData?['type'] ?? '달리기'} 상세 분석'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: const Text('달리기 상세 분석'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -215,18 +215,48 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     // HealthKit 데이터가 있으면 우선 사용, 없으면 workout 데이터 사용
     final distance =
         healthKitData?['distance']?.toDouble() ?? workout?.distance ?? 0;
-    final duration =
-        healthKitData?['duration']?.toInt() ?? workout?.duration.inMinutes ?? 0;
+    final durationSeconds =
+        healthKitData?['duration']?.toInt() ?? workout?.duration.inSeconds ?? 0;
     final calories =
         healthKitData?['calories']?.toDouble() ?? workout?.calories ?? 0;
-    final pace = distance > 0 ? duration / distance : 0;
-    final speed = distance > 0 ? distance / (duration / 60) : 0;
+
+    // 시간을 시:분:초 형식으로 변환
+    final hours = durationSeconds ~/ 3600;
+    final minutes = (durationSeconds % 3600) ~/ 60;
+    final seconds = durationSeconds % 60;
+    final timeString =
+        '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    // 페이스 계산 (분/km)
+    final paceMinutes = distance > 0 ? (durationSeconds / 60) / distance : 0;
+    final paceMinutesInt = paceMinutes.floor();
+    final paceSeconds = ((paceMinutes - paceMinutesInt) * 60).round();
+    final paceString = distance > 0
+        ? '$paceMinutesInt\'${paceSeconds.toString().padLeft(2, '0')}"/KM'
+        : 'N/A';
+
+    // 속도 계산 (km/h)
+    final speed = distance > 0 ? distance / (durationSeconds / 3600) : 0;
+
+    // 케이던스 (SPM) - 러닝 다이내믹스에서 가져오거나 기본값 사용
+    final cadence = _runningDynamics?.cadence?.round() ?? 0;
 
     // 날짜 정보 (HealthKit 데이터 또는 workout 데이터에서)
     final startTime = healthKitData?['date'] as DateTime? ??
         workout?.startTime ??
         widget.selectedDate ??
         DateTime.now();
+
+    // 종료 시간 계산
+    final endTime = startTime.add(Duration(seconds: durationSeconds));
+
+    // 요일 배열
+    final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    final weekday = weekdays[startTime.weekday - 1];
+
+    // 날짜 형식: 9월 4일 (목) 시작시간 ~ 끝시간
+    final dateString =
+        '${startTime.month}월 ${startTime.day}일 ($weekday) ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} ~ ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -249,12 +279,13 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       child: Column(
         children: [
           Text(
-            '${startTime.month}월 ${startTime.day}일 ${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')}',
+            dateString,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           // 첫 번째 행: 거리, 시간, 칼로리
@@ -266,7 +297,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                     '거리', '${distance.toStringAsFixed(2)}km', Icons.route),
               ),
               Expanded(
-                child: _buildSummaryItem('시간', '$duration분', Icons.timer),
+                child: _buildSummaryItem('시간', timeString, Icons.timer),
               ),
               Expanded(
                 child: _buildSummaryItem('칼로리', '${calories.toInt()}kcal',
@@ -280,8 +311,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Expanded(
-                child: _buildSummaryItem(
-                    '페이스', '${pace.toStringAsFixed(1)}분/km', Icons.speed),
+                child: _buildSummaryItem('페이스', paceString, Icons.speed),
               ),
               Expanded(
                 child: _buildSummaryItem(
@@ -289,11 +319,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
               ),
               Expanded(
                 child: _buildSummaryItem(
-                    '소스',
-                    healthKitData?['source'] ??
-                        workout?.source ??
-                        'Apple Watch',
-                    Icons.watch),
+                    '케이던스', cadence > 0 ? '${cadence}SPM' : 'N/A', Icons.speed),
               ),
             ],
           ),
@@ -358,8 +384,10 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                               widget.healthKitData?['date'] as DateTime)
                           .toString()
                           .substring(0, 19)),
-                  _buildInfoRow('지속 시간',
-                      '${(widget.workout?.duration.inMinutes ?? (widget.healthKitData?['duration'] as int? ?? 0) ~/ 60)}분'),
+                  _buildInfoRow(
+                      '지속 시간',
+                      _formatDuration(widget.workout?.duration.inSeconds ??
+                          (widget.healthKitData?['duration'] as int? ?? 0))),
                   _buildInfoRow('총 거리',
                       '${(widget.workout?.distance ?? widget.healthKitData?['distance'] ?? 0.0).toStringAsFixed(2)}km'),
                   _buildInfoRow('총 칼로리',
@@ -385,11 +413,11 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    _buildInfoRow('평균 페이스', '${_calculateAveragePace()}분/km'),
+                    _buildInfoRow('평균 페이스', _calculateAveragePace()),
                     _buildInfoRow('평균 속도', '${_calculateAverageSpeed()}km/h'),
-                    if (_runningDynamics!.strideLength != null)
-                      _buildInfoRow('평균 보폭',
-                          '${_runningDynamics!.strideLength!.toStringAsFixed(2)}m'),
+                    if (_runningDynamics!.cadence != null)
+                      _buildInfoRow('평균 케이던스',
+                          '${_runningDynamics!.cadence!.round()}SPM'),
                     if (_runningDynamics!.power != null)
                       _buildInfoRow(
                           '평균 파워', '${_runningDynamics!.power!.toInt()}W'),
@@ -447,7 +475,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                   if (_runningDynamics!.strideLength != null)
                     _buildMetricRow(
                         '평균 보폭',
-                        '${_runningDynamics!.strideLength!.toStringAsFixed(2)}m',
+                        '${(_runningDynamics!.strideLength! * 100).toStringAsFixed(0)}cm',
                         Icons.directions_run),
                   if (_runningDynamics!.cadence != null)
                     _buildMetricRow(
@@ -487,7 +515,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                   ),
                   const SizedBox(height: 16),
                   _buildMetricRow(
-                      '평균 페이스', '${_calculateAveragePace()}분/km', Icons.speed),
+                      '평균 페이스', _calculateAveragePace(), Icons.speed),
                   _buildMetricRow('평균 속도', '${_calculateAverageSpeed()}km/h',
                       Icons.trending_up),
                   _buildMetricRow(
@@ -988,11 +1016,14 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     final distance = widget.healthKitData?['distance']?.toDouble() ??
         widget.workout?.distance ??
         0;
-    final duration = widget.healthKitData?['duration']?.toInt() ??
-        widget.workout?.duration.inMinutes ??
+    final durationSeconds = widget.healthKitData?['duration']?.toInt() ??
+        widget.workout?.duration.inSeconds ??
         0;
     if (distance > 0) {
-      return (duration / distance).toStringAsFixed(1);
+      final paceMinutes = (durationSeconds / 60) / distance;
+      final paceMinutesInt = paceMinutes.floor();
+      final paceSeconds = ((paceMinutes - paceMinutesInt) * 60).round();
+      return '$paceMinutesInt\'${paceSeconds.toString().padLeft(2, '0')}"/KM';
     }
     return 'N/A';
   }
@@ -1002,11 +1033,11 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
     final distance = widget.healthKitData?['distance']?.toDouble() ??
         widget.workout?.distance ??
         0;
-    final duration = widget.healthKitData?['duration']?.toInt() ??
-        widget.workout?.duration.inMinutes ??
+    final durationSeconds = widget.healthKitData?['duration']?.toInt() ??
+        widget.workout?.duration.inSeconds ??
         0;
     if (distance > 0) {
-      return (distance / (duration / 60)).toStringAsFixed(1);
+      return (distance / (durationSeconds / 3600)).toStringAsFixed(1);
     }
     return 'N/A';
   }
@@ -1020,7 +1051,6 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
         widget.workout?.duration.inMinutes ??
         0;
     final pace = distance > 0 ? duration / distance : 0;
-    final speed = distance > 0 ? distance / (duration / 60) : 0;
 
     // 간단한 예시: 페이스가 빠르면 효율성이 높음
     if (pace < 5) {
@@ -1046,7 +1076,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
             style: const TextStyle(fontSize: 16),
           ),
           Text(
-            '${zone.time.inMinutes}분',
+            _formatDuration(zone.time.inSeconds),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
@@ -1108,7 +1138,6 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
   /// 운동 강도 분석 카드
   Widget _buildIntensityAnalysis() {
     final averageHeartRate = _calculateAverageHeartRate();
-    final maxHeartRate = _calculateMaxHeartRate();
 
     String intensity;
     if (averageHeartRate < 120) {
@@ -1577,5 +1606,13 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
       return int.parse(match.group(1)!);
     }
     return 1; // 기본값
+  }
+
+  /// 지속시간을 시:분:초 형식으로 포맷팅
+  String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 }
