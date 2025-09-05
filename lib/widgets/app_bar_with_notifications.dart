@@ -20,7 +20,7 @@ class AppBarWithNotifications extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     final authProvider =
-        provider.Provider.of<AuthProvider>(context, listen: false);
+        provider.Provider.of<AuthProvider>(context, listen: true);
     final currentUser = authProvider.user;
 
     return AppBar(
@@ -86,13 +86,22 @@ class AppBarWithNotifications extends StatelessWidget
                 backgroundImage: currentUser?.photoURL != null
                     ? NetworkImage(currentUser!.photoURL!)
                     : null,
-                child: currentUser?.photoURL == null
-                    ? const Icon(
-                        Icons.person,
-                        size: 20,
-                        color: Colors.grey,
+                child: authProvider.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.grey,
+                        ),
                       )
-                    : null,
+                    : currentUser?.photoURL == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 20,
+                            color: Colors.grey,
+                          )
+                        : null,
               ),
             ),
           ),

@@ -37,6 +37,12 @@ class _TodayPageState extends ConsumerState<TodayPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('🚀 Today 페이지 로드됨 - provider 새로고침 트리거');
       ref.invalidate(todaySummaryProvider);
+      // 프로필 사진 로드를 위한 추가 대기
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {}); // 프로필 사진 재렌더링 트리거
+        }
+      });
     });
   }
 

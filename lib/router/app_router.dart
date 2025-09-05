@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 import '../../features/auth/login_page.dart';
 import '../../features/today/today_page.dart';
 import '../../features/journal/journal_page.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/settings/settings_page.dart';
+import '../../features/splash/splash_screen.dart';
 import '../../providers/auth_provider.dart';
 
 /// 앱 라우터 설정
@@ -19,8 +21,22 @@ class AppRouter {
 
   static final GoRouter _router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/today',
+    initialLocation: '/splash',
     routes: [
+      // 스플래시 화면
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
+      // 메인 앱 라우트
+      GoRoute(
+        path: '/main',
+        name: 'main',
+        builder: (context, state) => _MainAppWrapper(),
+      ),
+
       // 인증 관련 라우트
       GoRoute(
         path: '/login',
@@ -86,7 +102,8 @@ class AppRouter {
     redirect: (context, state) {
       // AuthProvider가 아직 초기화되지 않은 경우 로딩 상태 유지
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authProvider =
+            provider.Provider.of<AuthProvider>(context, listen: false);
 
         // 로딩 중인 경우 리다이렉트하지 않음
         if (authProvider.isLoading) {
@@ -156,6 +173,58 @@ class AppRouter {
     final day = int.parse(dateString.substring(6, 8));
     return DateTime(year, month, day);
   }
+}
+
+/// 메인 앱 래퍼 (초기화 완료 후 메인 앱 표시)
+class _MainAppWrapper extends ConsumerWidget {
+  _MainAppWrapper();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      title: 'HabitFit MVP',
+      theme: ThemeData(
+        colorSchemeSeed: Colors.indigo,
+        useMaterial3: true,
+        fontFamily: 'Pretendard',
+      ),
+      routerConfig: _mainRouter,
+    );
+  }
+
+  final GoRouter _mainRouter = GoRouter(
+    initialLocation: '/today',
+    routes: [
+      ShellRoute(
+        builder: (context, state, child) => _MainShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/today',
+            name: 'today',
+            builder: (context, state) {
+              final action = state.uri.queryParameters['action'];
+              return TodayPage(action: action);
+            },
+          ),
+          GoRoute(
+            path: '/journal',
+            name: 'journal',
+            builder: (context, state) => const JournalPage(),
+          ),
+          GoRoute(
+            path: '/insights',
+            name: 'insights',
+            builder: (context, state) => const InsightsPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            builder: (context, state) => const SettingsPage(),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 /// 메인 셸 위젯 (하단 탭 네비게이션)
