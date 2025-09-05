@@ -22,6 +22,8 @@ class LocalNotificationService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      requestProvisionalPermission: true,
+      requestCriticalPermission: false,
     );
 
     const initSettings = InitializationSettings(
@@ -268,8 +270,8 @@ class LocalNotificationService {
         'habit_channel',
         '습관 체크',
         channelDescription: '습관 체크 리마인더',
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
+        importance: Importance.high,
+        priority: Priority.high,
         icon: '@mipmap/ic_launcher',
         color: Color(0xFF2196F3), // 파란색
       ),

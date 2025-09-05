@@ -42,6 +42,8 @@
 	<string>운동 경로와 위치 정보를 분석하기 위해 위치 서비스에 접근합니다.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>운동 경로와 위치 정보를 분석하기 위해 위치 서비스에 접근합니다.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>습관 형성 알림과 운동 리마인더를 제공하기 위해 알림 권한이 필요합니다.</string>
 	<key>GIDClientID</key>
 	<string>83611695902-golbguln6m129dr9upo8nfmav92oab08.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>

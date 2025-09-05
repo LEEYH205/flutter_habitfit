@@ -391,34 +391,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 const SizedBox(height: 24),
 
-                // 테스트 알림 버튼
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await LocalNotificationService.instance
-                          .showTestNotification();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('🔔 테스트 알림을 보냈습니다!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.notifications_active),
-                    label: const Text('알림 테스트'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+                _buildNotificationTestSection(),
               ],
             ),
           ),
@@ -867,6 +840,119 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNotificationTestSection() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        const Text(
+          '🔔 알림 테스트',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () async {
+                await LocalNotificationService.instance.showTestNotification();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🔔 테스트 알림을 보냈습니다!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.notifications_active, size: 18),
+              label: const Text('테스트 알림'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: () async {
+                // 습관 리마인더 즉시 테스트
+                await LocalNotificationService.instance
+                    .showHabitCompletionNotification(
+                        '습관 체크 시간입니다!', '오늘의 습관을 완료해보세요 🎯');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('📝 습관 리마인더 알림을 보냈습니다!'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.schedule, size: 18),
+              label: const Text('습관 리마인더'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              // 잠금 화면 알림 테스트
+              await LocalNotificationService.instance
+                  .showHabitCompletionNotification(
+                      '🔒 잠금 화면 알림 테스트', '화면이 꺼져 있어도 이 알림이 표시됩니다!');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('🔒 잠금 화면 알림을 보냈습니다!'),
+                    backgroundColor: Colors.purple,
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.screen_lock_portrait, size: 18),
+            label: const Text('잠금 화면 테스트'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          '💡 잠금 화면 알림이 표시되지 않는다면:\n   • 설정 > 알림 > HabitFit에서 권한을 확인하세요\n   • "잠금 화면에 표시"가 켜져 있는지 확인하세요',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            height: 1.4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
