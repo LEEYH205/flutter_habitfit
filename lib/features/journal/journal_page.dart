@@ -64,6 +64,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
 
         if (permissions) {
           print('✅ HealthKit 권한이 승인되었습니다');
+          /*
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -73,6 +74,7 @@ class _JournalPageState extends ConsumerState<JournalPage>
               ),
             );
           }
+          */
         } else {
           print('❌ HealthKit 권한이 거부되었습니다');
           if (mounted) {

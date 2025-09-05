@@ -115,4 +115,36 @@ class TodaySummary {
       habitCompletionRate,
     );
   }
+
+  /// JSON으로 변환
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date.millisecondsSinceEpoch,
+      'completedHabits': completedHabits,
+      'totalHabits': totalHabits,
+      'completedWorkouts': completedWorkouts,
+      'runningDistance': runningDistance,
+      'runningDuration': runningDuration,
+      'calories': calories,
+      'protein': protein,
+      'steps': steps,
+      'habitCompletionRate': habitCompletionRate,
+    };
+  }
+
+  /// JSON에서 객체 생성
+  factory TodaySummary.fromJson(Map<String, dynamic> json) {
+    return TodaySummary(
+      date: DateTime.fromMillisecondsSinceEpoch(json['date']),
+      completedHabits: json['completedHabits'],
+      totalHabits: json['totalHabits'],
+      completedWorkouts: json['completedWorkouts'],
+      runningDistance: json['runningDistance'].toDouble(),
+      runningDuration: json['runningDuration'],
+      calories: json['calories'].toDouble(),
+      protein: json['protein'].toDouble(),
+      steps: json['steps'],
+      habitCompletionRate: json['habitCompletionRate'].toDouble(),
+    );
+  }
 }

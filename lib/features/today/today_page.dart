@@ -31,6 +31,12 @@ class _TodayPageState extends ConsumerState<TodayPage>
         _handleAction(widget.action!);
       });
     }
+
+    // 디버깅: 페이지 로드 시 provider 새로고침
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🚀 Today 페이지 로드됨 - provider 새로고침 트리거');
+      ref.invalidate(todaySummaryProvider);
+    });
   }
 
   @override
