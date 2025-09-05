@@ -75,12 +75,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     true
   ]; // 일요일만
 
-  // 목표 설정
-  int _dailySquatGoal = 20;
-  int _dailyPushupGoal = 15;
-  int _dailyHabitGoal = 1;
-  double _dailyRunningGoal = 5.0; // km 단위
-
   // 고급 목표 설정
   bool _progressiveIncreaseEnabled = true;
   double _progressiveIncreaseRate = 0.05; // 5% 증가
@@ -193,11 +187,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       final weeklyHour = _prefs.getInt('weeklySummaryHour') ?? 20;
       final weeklyMinute = _prefs.getInt('weeklySummaryMinute') ?? 0;
       _weeklySummaryTime = TimeOfDay(hour: weeklyHour, minute: weeklyMinute);
-
-      _dailySquatGoal = _prefs.getInt('dailySquatGoal') ?? 20;
-      _dailyPushupGoal = _prefs.getInt('dailyPushupGoal') ?? 15;
-      _dailyHabitGoal = _prefs.getInt('dailyHabitGoal') ?? 1;
-      _dailyRunningGoal = _prefs.getDouble('dailyRunningGoal') ?? 5.0;
     });
   }
 
@@ -290,11 +279,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _prefs.setInt('dailySummaryMinute', _dailySummaryTime.minute);
     await _prefs.setInt('weeklySummaryHour', _weeklySummaryTime.hour);
     await _prefs.setInt('weeklySummaryMinute', _weeklySummaryTime.minute);
-
-    await _prefs.setInt('dailySquatGoal', _dailySquatGoal);
-    await _prefs.setInt('dailyPushupGoal', _dailyPushupGoal);
-    await _prefs.setInt('dailyHabitGoal', _dailyHabitGoal);
-    await _prefs.setDouble('dailyRunningGoal', _dailyRunningGoal);
 
     // 설정 저장 후 알림 스케줄 업데이트
     await _updateNotificationSchedules();
@@ -929,216 +913,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // 운동 목표들
-              _buildGoalTile(
-                '스쿼트 목표',
-                '일일 스쿼트 횟수 목표',
-                _dailySquatGoal,
-                Icons.fitness_center,
-                Colors.red,
-                (value) {
-                  setState(() => _dailySquatGoal = value);
-                  _saveSettings();
-                },
-              ),
-              _buildGoalTile(
-                '푸시업 목표',
-                '일일 푸시업 횟수 목표',
-                _dailyPushupGoal,
-                Icons.accessibility,
-                Colors.blue,
-                (value) {
-                  setState(() => _dailyPushupGoal = value);
-                  _saveSettings();
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // 습관 목표
-              _buildGoalTile(
-                '습관 목표',
-                '일일 습관 완료 목표',
-                _dailyHabitGoal,
-                Icons.check_circle,
-                Colors.green,
-                (value) {
-                  setState(() => _dailyHabitGoal = value);
-                  _saveSettings();
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // 러닝 목표
-              _buildGoalTile(
-                '러닝 목표',
-                '일일 러닝 거리 목표 (km)',
-                _dailyRunningGoal,
-                Icons.directions_run,
-                Colors.orange,
-                (value) {
-                  setState(() => _dailyRunningGoal = value);
-                  _saveSettings();
-                },
-                isDouble: true,
-              ),
-
-              // 목표 달성률 표시
-              const SizedBox(height: 20),
-              const Text(
-                '목표 달성 현황',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildGoalProgressCard('스쿼트', _dailySquatGoal, 15, Colors.red),
-              _buildGoalProgressCard('푸시업', _dailyPushupGoal, 8, Colors.blue),
-              _buildGoalProgressCard('습관', _dailyHabitGoal, 2, Colors.green),
-              _buildGoalProgressCard(
-                  '러닝', _dailyRunningGoal, 3.5, Colors.orange,
-                  isDouble: true),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildGoalTile(String title, String subtitle, dynamic value,
-      IconData icon, Color color, Function(dynamic) onChanged,
-      {bool isDouble = false}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: color.withOpacity(0.7),
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.remove, color: color, size: 16),
-                onPressed: () {
-                  final newValue =
-                      isDouble ? (value as double) - 0.5 : (value as int) - 1;
-                  if ((isDouble && newValue >= 0) ||
-                      (!isDouble && newValue >= 0)) {
-                    onChanged(newValue);
-                  }
-                },
-              ),
-              SizedBox(
-                width: 60,
-                child: Text(
-                  isDouble ? '${value.toStringAsFixed(1)}' : value.toString(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: color.withOpacity(0.7),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.add, color: color, size: 16),
-                onPressed: () {
-                  final newValue =
-                      isDouble ? (value as double) + 0.5 : (value as int) + 1;
-                  onChanged(newValue);
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGoalProgressCard(
-      String title, dynamic goal, dynamic current, Color color,
-      {bool isDouble = false}) {
-    final progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: color.withOpacity(0.7),
-                ),
-              ),
-              Text(
-                isDouble
-                    ? '${current.toStringAsFixed(1)}/${goal.toStringAsFixed(1)}'
-                    : '$current/$goal',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey.shade300,
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${(progress * 100).toStringAsFixed(1)}% 달성',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
       ),
     );
   }

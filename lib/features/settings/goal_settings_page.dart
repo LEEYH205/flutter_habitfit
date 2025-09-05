@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/app_bar_with_notifications.dart';
-import '../../widgets/common/section_card.dart';
-import '../../models/user_goals.dart';
 import '../../providers/user_goals_provider.dart';
 
 /// 목표 설정 페이지
@@ -20,6 +19,12 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
       TextEditingController();
   final TextEditingController _stepsController = TextEditingController();
 
+  // 운동 목표 변수들
+  int _dailySquatGoal = 20;
+  int _dailyPushupGoal = 15;
+  int _dailyHabitGoal = 1;
+  double _dailyRunningGoal = 5.0;
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +32,17 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
     _activeCaloriesController.text = '400';
     _exerciseMinutesController.text = '30';
     _stepsController.text = '10000';
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _dailySquatGoal = prefs.getInt('dailySquatGoal') ?? 20;
+      _dailyPushupGoal = prefs.getInt('dailyPushupGoal') ?? 15;
+      _dailyHabitGoal = prefs.getInt('dailyHabitGoal') ?? 1;
+      _dailyRunningGoal = prefs.getDouble('dailyRunningGoal') ?? 5.0;
+    });
   }
 
   @override
@@ -81,133 +97,103 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
                 const SizedBox(height: 24),
 
                 // 움직이기 칼로리 목표
-                SectionCard(
-                  title: '',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '움직이기 칼로리',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _activeCaloriesController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                hintText: '400',
-                                suffixText: 'kcal',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '현재: ${goals.activeCaloriesGoal.toInt()}kcal',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildGoalTile(
+                  '움직이기 칼로리',
+                  '일일 칼로리 소모 목표',
+                  goals.activeCaloriesGoal.toDouble(),
+                  Icons.local_fire_department,
+                  Colors.red,
+                  (value) {
+                    _activeCaloriesController.text = value.toInt().toString();
+                  },
+                  isDouble: true,
                 ),
 
                 const SizedBox(height: 16),
 
                 // 운동 시간 목표
-                SectionCard(
-                  title: '',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '운동 시간',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _exerciseMinutesController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                hintText: '30',
-                                suffixText: '분',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '현재: ${goals.exerciseMinutesGoal}분',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildGoalTile(
+                  '운동 시간',
+                  '일일 운동 시간 목표',
+                  goals.exerciseMinutesGoal.toDouble(),
+                  Icons.timer,
+                  Colors.blue,
+                  (value) {
+                    _exerciseMinutesController.text = value.toInt().toString();
+                  },
+                  isDouble: true,
                 ),
 
                 const SizedBox(height: 16),
 
                 // 걸음 수 목표
-                SectionCard(
-                  title: '',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '걸음 수',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _stepsController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                hintText: '10000',
-                                suffixText: '걸음',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '현재: ${goals.stepsGoal}걸음',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildGoalTile(
+                  '걸음 수',
+                  '일일 걸음 수 목표',
+                  goals.stepsGoal.toDouble(),
+                  Icons.directions_walk,
+                  Colors.green,
+                  (value) {
+                    _stepsController.text = value.toInt().toString();
+                  },
+                  isDouble: true,
                 ),
 
                 const SizedBox(height: 32),
+// 운동 목표들
+                _buildGoalTile(
+                  '스쿼트 목표',
+                  '일일 스쿼트 횟수 목표',
+                  _dailySquatGoal,
+                  Icons.fitness_center,
+                  Colors.red,
+                  (value) {
+                    setState(() => _dailySquatGoal = value);
+                    _saveGoals();
+                  },
+                ),
+                _buildGoalTile(
+                  '푸시업 목표',
+                  '일일 푸시업 횟수 목표',
+                  _dailyPushupGoal,
+                  Icons.accessibility,
+                  Colors.blue,
+                  (value) {
+                    setState(() => _dailyPushupGoal = value);
+                    _saveGoals();
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 습관 목표
+                _buildGoalTile(
+                  '습관 목표',
+                  '일일 습관 완료 목표',
+                  _dailyHabitGoal,
+                  Icons.check_circle,
+                  Colors.green,
+                  (value) {
+                    setState(() => _dailyHabitGoal = value);
+                    _saveGoals();
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 러닝 목표
+                _buildGoalTile(
+                  '러닝 목표',
+                  '일일 러닝 거리 목표 (km)',
+                  _dailyRunningGoal,
+                  Icons.directions_run,
+                  Colors.orange,
+                  (value) {
+                    setState(() => _dailyRunningGoal = value);
+                    _saveGoals();
+                  },
+                  isDouble: true,
+                ),
 
                 // 저장 버튼
                 SizedBox(
@@ -304,6 +290,13 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
     }
 
     try {
+      // 운동 목표 변수들 저장
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('dailySquatGoal', _dailySquatGoal);
+      await prefs.setInt('dailyPushupGoal', _dailyPushupGoal);
+      await prefs.setInt('dailyHabitGoal', _dailyHabitGoal);
+      await prefs.setDouble('dailyRunningGoal', _dailyRunningGoal);
+
       await updateUserGoal(
         activeCaloriesGoal: activeCalories,
         exerciseMinutesGoal: exerciseMinutes,
@@ -344,6 +337,83 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('기본값으로 설정되었습니다. 저장 버튼을 눌러주세요.'),
+      ),
+    );
+  }
+
+  Widget _buildGoalTile(String title, String subtitle, dynamic value,
+      IconData icon, Color color, Function(dynamic) onChanged,
+      {bool isDouble = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color.withOpacity(0.7),
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.remove, color: color, size: 16),
+                onPressed: () {
+                  final newValue =
+                      isDouble ? (value as double) - 0.5 : (value as int) - 1;
+                  if ((isDouble && newValue >= 0) ||
+                      (!isDouble && newValue >= 0)) {
+                    onChanged(newValue);
+                  }
+                },
+              ),
+              SizedBox(
+                width: 60,
+                child: Text(
+                  isDouble ? '${value.toStringAsFixed(1)}' : value.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color.withOpacity(0.7),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add, color: color, size: 16),
+                onPressed: () {
+                  final newValue =
+                      isDouble ? (value as double) + 0.5 : (value as int) + 1;
+                  onChanged(newValue);
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../../widgets/common/section_card.dart';
 import '../../providers/day_log_provider.dart';
 import '../../models/day_log.dart';
 import '../../services/health_kit_service.dart';
+import '../../providers/user_goals_provider.dart';
 import '../running/running_detail_page.dart';
 
 /// Journal 페이지 - 기록/편집 중심: "이 날 뭘 했지?"
@@ -367,6 +368,10 @@ class _JournalPageState extends ConsumerState<JournalPage>
 
               // 습관 섹션
               _buildHabitsSection(dayLog),
+              const SizedBox(height: 16),
+
+              // 목표 달성 현황
+              _buildGoalProgressSection(dayLog),
               const SizedBox(height: 16),
 
               // 운동 섹션
@@ -1274,5 +1279,114 @@ class _JournalPageState extends ConsumerState<JournalPage>
     final minutes = paceMinutes.floor();
     final seconds = ((paceMinutes - minutes) * 60).round();
     return '$minutes\'${seconds.toString().padLeft(2, '0')}"/KM';
+  }
+
+  /// 목표 달성 현황 섹션
+  Widget _buildGoalProgressSection(DayLog dayLog) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final userGoalsAsync = ref.watch(userGoalsProvider);
+
+        return userGoalsAsync.when(
+          data: (goals) {
+            // 현재 날짜의 건강 데이터 계산
+            // DayLog에서 직접 데이터를 가져올 수 없으므로 HealthKit 데이터 사용
+            final currentSteps = 0; // TODO: HealthKit에서 실제 걸음 수 데이터 가져오기
+            final currentCalories = dayLog.totalBurnedCalories;
+            final currentExerciseMinutes =
+                dayLog.totalWorkoutMinutes.toDouble();
+
+            return SectionCard(
+              title: '목표 달성 현황',
+              child: Column(
+                children: [
+                  _buildGoalProgressCard(
+                    '걸음 수',
+                    goals.stepsGoal.toDouble(),
+                    currentSteps.toDouble(),
+                    Colors.green,
+                    isDouble: true,
+                  ),
+                  _buildGoalProgressCard(
+                    '움직이기 칼로리',
+                    goals.activeCaloriesGoal,
+                    currentCalories,
+                    Colors.red,
+                    isDouble: true,
+                  ),
+                  _buildGoalProgressCard(
+                    '운동 시간',
+                    goals.exerciseMinutesGoal.toDouble(),
+                    currentExerciseMinutes.toDouble(),
+                    Colors.blue,
+                    isDouble: true,
+                  ),
+                ],
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (error, stack) => const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+
+  /// 목표 달성 현황 카드
+  Widget _buildGoalProgressCard(
+      String title, dynamic goal, dynamic current, Color color,
+      {bool isDouble = false}) {
+    final progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: color.withOpacity(0.7),
+                ),
+              ),
+              Text(
+                isDouble
+                    ? '${current.toStringAsFixed(1)}/${goal.toStringAsFixed(1)}'
+                    : '$current/$goal',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${(progress * 100).toStringAsFixed(1)}% 달성',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
