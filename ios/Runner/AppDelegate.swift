@@ -72,6 +72,10 @@ import GoogleSignIn
     case "requestHealthKitPermissions":
       // 앱 시작 시 기본 권한만 요청
       requestBasicPermissions(result: result)
+
+    case "checkHealthKitPermissions":
+      // HealthKit 권한 상태 확인
+      checkHealthKitPermissions(result: result)
       
     case "requestReportPermissions":
       // 달력 클릭 시 리포트 관련 권한 요청
@@ -294,6 +298,42 @@ import GoogleSignIn
     }
   }
   
+  /// HealthKit 권한 상태 확인
+  private func checkHealthKitPermissions(result: @escaping FlutterResult) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result(false)
+      return
+    }
+
+    print("🔍 iOS: HealthKit 권한 상태 확인 시작")
+
+    let typesToRead: Set<HKObjectType> = [
+      // 기본 운동 데이터
+      HKObjectType.workoutType(),
+      HKObjectType.quantityType(forIdentifier: .heartRate)!,
+      HKObjectType.quantityType(forIdentifier: .stepCount)!,
+      HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+    ]
+
+    // 권한 상태 확인
+    let authorizationStatus = healthStore.authorizationStatus(for: HKObjectType.workoutType())
+
+    switch authorizationStatus {
+    case .sharingAuthorized:
+      print("✅ iOS: HealthKit 권한이 이미 승인되어 있습니다")
+      result(true)
+    case .sharingDenied:
+      print("❌ iOS: HealthKit 권한이 거부되어 있습니다")
+      result(false)
+    case .notDetermined:
+      print("⚠️ iOS: HealthKit 권한이 아직 결정되지 않았습니다")
+      result(false)
+    @unknown default:
+      print("⚠️ iOS: HealthKit 권한 상태를 알 수 없습니다")
+      result(false)
+    }
+  }
+
   /// 러닝 기록 클릭 시 Apple Watch 고급 권한 요청
   private func requestRunningPermissions(result: @escaping FlutterResult) {
     guard HKHealthStore.isHealthDataAvailable() else {
@@ -499,12 +539,58 @@ import GoogleSignIn
         healthStore.execute(workoutQuery)
     }
 
+    private func queryWorkoutRoute(for workout: HKWorkout, completion: @escaping ([[String: Any]]?) -> Void) {
+        print("🔍 HealthKit: 운동 경로 데이터 조회 시작")
+
+        let routeType = HKSeriesType.workoutRoute()
+
+        // HKAnchoredObjectQuery로 경로 샘플 조회
+        let routeQuery = HKAnchoredObjectQuery(type: routeType, predicate: HKQuery.predicateForObjects(from: workout), anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] query, samples, deletedObjects, anchor, error in
+            if let error = error {
+                print("❌ HealthKit: 경로 데이터 조회 오류 - \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+
+            print("🔍 HealthKit: 경로 쿼리 결과 - 샘플 수: \(samples?.count ?? 0)")
+
+            guard let routes = samples as? [HKWorkoutRoute], let route = routes.first else {
+                print("⚠️ HealthKit: 해당 운동에 경로 데이터가 없습니다")
+                print("🔍 HealthKit: 조회된 샘플 타입: \(type(of: samples?.first))")
+                completion(nil)
+                return
+            }
+
+            print("✅ HealthKit: 경로 데이터 발견 - 경로 ID: \(route.uuid)")
+            print("🔍 HealthKit: 경로 시작 시간: \(route.startDate)")
+            print("🔍 HealthKit: 경로 종료 시간: \(route.endDate)")
+
+            // 3. 경로의 위치 데이터 조회
+            self?.getLocationsForRoute(route: route, completion: completion)
+        }
+
+        healthStore.execute(routeQuery)
+    }
+
     private func getRouteForWorkout(workout: HKWorkout, completion: @escaping ([[String: Any]]?) -> Void) {
         print("🔍 HealthKit: 운동 경로 조회 시작 - 운동 ID: \(workout.uuid)")
 
-        // 권한 확인 및 요청 (HKWorkoutTypeIdentifier도 함께 요청해야 함)
+        // 권한 상태 확인 후 요청 (이미 승인된 경우 생략)
         let routeType = HKSeriesType.workoutRoute()
         let workoutType = HKObjectType.workoutType()
+
+        // 권한 상태 먼저 확인
+        let routeAuthStatus = healthStore.authorizationStatus(for: routeType)
+        let workoutAuthStatus = healthStore.authorizationStatus(for: workoutType)
+
+        if routeAuthStatus == .sharingAuthorized && workoutAuthStatus == .sharingAuthorized {
+            print("✅ HealthKit: 경로 권한이 이미 승인되어 있습니다")
+            // 권한이 이미 승인되었으므로 경로 데이터 조회 진행
+            self.queryWorkoutRoute(for: workout, completion: completion)
+            return
+        }
+
+        print("🔄 HealthKit: 경로 권한 요청 시작...")
         healthStore.requestAuthorization(toShare: nil, read: [routeType, workoutType]) { [weak self] success, error in
             if let error = error {
                 print("❌ HealthKit: 경로 권한 요청 오류 - \(error.localizedDescription)")
@@ -519,33 +605,9 @@ import GoogleSignIn
             }
             
             print("✅ HealthKit: 경로 권한 승인됨")
-            
-            // HKAnchoredObjectQuery로 경로 샘플 조회 (블로그 예제 기반)
-            let routeQuery = HKAnchoredObjectQuery(type: routeType, predicate: HKQuery.predicateForObjects(from: workout), anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] query, samples, deletedObjects, anchor, error in
-                if let error = error {
-                    print("❌ HealthKit: 경로 데이터 조회 오류 - \(error.localizedDescription)")
-                    completion(nil)
-                    return
-                }
-                
-                print("🔍 HealthKit: 경로 쿼리 결과 - 샘플 수: \(samples?.count ?? 0)")
 
-                guard let routes = samples as? [HKWorkoutRoute], let route = routes.first else {
-                    print("⚠️ HealthKit: 해당 운동에 경로 데이터가 없습니다")
-                    print("🔍 HealthKit: 조회된 샘플 타입: \(type(of: samples?.first))")
-                    completion(nil)
-                    return
-                }
-                
-                print("✅ HealthKit: 경로 데이터 발견 - 경로 ID: \(route.uuid)")
-                print("🔍 HealthKit: 경로 시작 시간: \(route.startDate)")
-                print("🔍 HealthKit: 경로 종료 시간: \(route.endDate)")
-
-                // 3. 경로의 위치 데이터 조회
-                self?.getLocationsForRoute(route: route, completion: completion)
-            }
-
-            self?.healthStore.execute(routeQuery)
+            // 권한 승인 후 경로 데이터 조회
+            self?.queryWorkoutRoute(for: workout, completion: completion)
         }
     }
 

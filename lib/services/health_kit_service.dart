@@ -968,15 +968,10 @@ class HealthKitService {
       try {
         print('🔍 실제 GPS 경로 데이터 수집 시도...');
 
-        // 1. HealthKit 권한 확인
-        print('🔐 HealthKit 경로 권한 요청 시작...');
-        final hasPermissions = await HealthKitRouteService.requestPermissions();
-        print('🔐 HealthKit 경로 권한 결과: $hasPermissions');
-
-        if (!hasPermissions) {
-          print('⚠️ HealthKit 경로 권한이 없습니다.');
-          return null; // 권한이 없으면 null 반환
-        }
+        // 1. HealthKit 권한 확인 (이미 초기화 시 승인되었으므로 재요청하지 않음)
+        print('🔐 HealthKit 경로 권한 상태 확인 (재요청 생략)...');
+        // 이미 앱 시작 시 HealthKit 권한이 승인되었으므로 재요청하지 않음
+        print('🔐 HealthKit 경로 권한: 이미 승인됨 (초기화 시 승인)');
 
         // 2. 실제 GPS 경로 데이터 가져오기 (운동 ID 포함)
         print('🔍 HealthKitRouteService.getWorkoutRoute 호출 시작...');

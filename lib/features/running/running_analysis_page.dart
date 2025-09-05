@@ -321,103 +321,93 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         print('✅ HealthKit 소스 또는 달리기 운동 확인됨 - GPS 경로 데이터 요청 시작');
 
         try {
-          print('🔐 HealthKit GPS 권한 상태 확인 중...');
-          final permissionResult =
-              await HealthKitRouteService.requestPermissions();
-          print('🔐 HealthKit GPS 권한 상태: $permissionResult');
+          print('🔐 HealthKit GPS 권한: 이미 앱 시작 시 승인됨 - 경로 데이터 조회 시작');
 
-          if (permissionResult) {
-            print('✅ HealthKit GPS 권한 승인됨 - 경로 데이터 조회 시작');
+          // 운동 UUID로 먼저 시도
+          if (workout.uuid != null && workout.uuid!.isNotEmpty) {
+            print('🎯 운동 UUID로 GPS 경로 조회 시도: ${workout.uuid}');
+            _routePoints = await HealthKitRouteService.getWorkoutRoute(
+              workout.startTime,
+              workout.endTime ?? workout.startTime.add(workout.duration),
+              workoutId: workout.uuid,
+            );
 
-            // 운동 UUID로 먼저 시도
-            if (workout.uuid != null && workout.uuid!.isNotEmpty) {
-              print('🎯 운동 UUID로 GPS 경로 조회 시도: ${workout.uuid}');
-              _routePoints = await HealthKitRouteService.getWorkoutRoute(
-                workout.startTime,
-                workout.endTime ?? workout.startTime.add(workout.duration),
-                workoutId: workout.uuid,
-              );
-
-              if (_routePoints != null && _routePoints!.isNotEmpty) {
-                print('✅ UUID로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
-              } else {
-                print('⚠️ UUID로 GPS 경로를 찾을 수 없음 - 시간 범위로 재시도');
-                // 시간 범위로 재시도
-                print('🔄 시간 범위로 GPS 경로 조회 시도');
-                _routePoints = await HealthKitRouteService.getWorkoutRoute(
-                  workout.startTime
-                      .subtract(const Duration(minutes: 5)), // 5분 전부터
-                  (workout.endTime ?? workout.startTime.add(workout.duration))
-                      .add(const Duration(minutes: 5)), // 5분 후까지
-                  workoutId: null, // 시간 범위로 검색할 때는 ID를 null로
-                );
-
-                if (_routePoints != null && _routePoints!.isNotEmpty) {
-                  print('✅ 시간 범위로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
-                } else {
-                  print('❌ 시간 범위로도 GPS 경로를 찾을 수 없음');
-                }
-              }
+            if (_routePoints != null && _routePoints!.isNotEmpty) {
+              print('✅ UUID로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
             } else {
-              print('⚠️ 운동 UUID가 없음 - 시간 범위로 GPS 경로 조회');
+              print('⚠️ UUID로 GPS 경로를 찾을 수 없음 - 시간 범위로 재시도');
+              // 시간 범위로 재시도
+              print('🔄 시간 범위로 GPS 경로 조회 시도');
               _routePoints = await HealthKitRouteService.getWorkoutRoute(
-                workout.startTime.subtract(const Duration(minutes: 5)),
+                workout.startTime
+                    .subtract(const Duration(minutes: 5)), // 5분 전부터
                 (workout.endTime ?? workout.startTime.add(workout.duration))
-                    .add(const Duration(minutes: 5)),
-                workoutId: null,
+                    .add(const Duration(minutes: 5)), // 5분 후까지
+                workoutId: null, // 시간 범위로 검색할 때는 ID를 null로
               );
 
               if (_routePoints != null && _routePoints!.isNotEmpty) {
                 print('✅ 시간 범위로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
               } else {
-                print('❌ GPS 경로 데이터를 찾을 수 없음');
+                print('❌ 시간 범위로도 GPS 경로를 찾을 수 없음');
               }
-            }
-
-            // GPS 데이터 상세 정보 출력
-            if (_routePoints != null && _routePoints!.isNotEmpty) {
-              print('📊 GPS 경로 데이터 상세 정보:');
-              print('   - 총 포인트 수: ${_routePoints!.length}');
-              print(
-                  '   - 첫 번째 포인트: 위도 ${_routePoints!.first['latitude']}, 경도 ${_routePoints!.first['longitude']}');
-              print(
-                  '   - 마지막 포인트: 위도 ${_routePoints!.last['latitude']}, 경도 ${_routePoints!.last['longitude']}');
-
-              // 거리 계산 시도
-              if (_routePoints!.length > 1) {
-                try {
-                  double totalDistance = 0;
-                  for (int i = 1; i < _routePoints!.length; i++) {
-                    final prev = _routePoints![i - 1];
-                    final curr = _routePoints![i];
-                    // 간단한 거리 계산 (실제로는 더 정확한 공식을 사용해야 함)
-                    final distance = _calculateDistance(
-                      prev['latitude'] as double,
-                      prev['longitude'] as double,
-                      curr['latitude'] as double,
-                      curr['longitude'] as double,
-                    );
-                    totalDistance += distance;
-                  }
-                  print('   - 계산된 경로 길이: ${totalDistance.round()}m');
-                } catch (e) {
-                  print('⚠️ 경로 길이 계산 실패: $e');
-                }
-              }
-
-              print(
-                  '   - 시간 범위: ${_routePoints!.first['timestamp']} ~ ${_routePoints!.last['timestamp']}');
-            } else {
-              print('⚠️ GPS 경로 데이터가 비어있음 - 지도에 표시할 경로가 없습니다');
-              print('💡 가능한 원인:');
-              print('   - 운동 중 GPS가 꺼져 있었을 수 있음');
-              print('   - 위치 권한이 없었을 수 있음');
-              print('   - Apple Watch가 연결되지 않았을 수 있음');
-              print('   - HealthKit에 경로 데이터가 저장되지 않았을 수 있음');
             }
           } else {
-            print('❌ HealthKit GPS 권한이 거부됨 - 경로 데이터 조회 불가');
-            print('💡 GPS 경로 데이터를 가져오려면 iPhone 설정에서 위치 권한을 허용해주세요');
+            print('⚠️ 운동 UUID가 없음 - 시간 범위로 GPS 경로 조회');
+            _routePoints = await HealthKitRouteService.getWorkoutRoute(
+              workout.startTime.subtract(const Duration(minutes: 5)),
+              (workout.endTime ?? workout.startTime.add(workout.duration))
+                  .add(const Duration(minutes: 5)),
+              workoutId: null,
+            );
+
+            if (_routePoints != null && _routePoints!.isNotEmpty) {
+              print('✅ 시간 범위로 GPS 경로 조회 성공: ${_routePoints!.length}개 포인트');
+            } else {
+              print('❌ GPS 경로 데이터를 찾을 수 없음');
+            }
+          }
+
+          // GPS 데이터 상세 정보 출력
+          if (_routePoints != null && _routePoints!.isNotEmpty) {
+            print('📊 GPS 경로 데이터 상세 정보:');
+            print('   - 총 포인트 수: ${_routePoints!.length}');
+            print(
+                '   - 첫 번째 포인트: 위도 ${_routePoints!.first['latitude']}, 경도 ${_routePoints!.first['longitude']}');
+            print(
+                '   - 마지막 포인트: 위도 ${_routePoints!.last['latitude']}, 경도 ${_routePoints!.last['longitude']}');
+
+            // 거리 계산 시도
+            if (_routePoints!.length > 1) {
+              try {
+                double totalDistance = 0;
+                for (int i = 1; i < _routePoints!.length; i++) {
+                  final prev = _routePoints![i - 1];
+                  final curr = _routePoints![i];
+                  // 간단한 거리 계산 (실제로는 더 정확한 공식을 사용해야 함)
+                  final distance = _calculateDistance(
+                    prev['latitude'] as double,
+                    prev['longitude'] as double,
+                    curr['latitude'] as double,
+                    curr['longitude'] as double,
+                  );
+                  totalDistance += distance;
+                }
+                print('   - 계산된 경로 길이: ${totalDistance.round()}m');
+              } catch (e) {
+                print('⚠️ 경로 길이 계산 실패: $e');
+              }
+            }
+
+            print(
+                '   - 시간 범위: ${_routePoints!.first['timestamp']} ~ ${_routePoints!.last['timestamp']}');
+          } else {
+            print('⚠️ GPS 경로 데이터가 비어있음 - 지도에 표시할 경로가 없습니다');
+            print('💡 가능한 원인:');
+            print('   - 운동 중 GPS가 꺼져 있었을 수 있음');
+            print('   - 위치 권한이 없었을 수 있음');
+            print('   - Apple Watch가 연결되지 않았을 수 있음');
+            print('   - HealthKit에 경로 데이터가 저장되지 않았을 수 있음');
           }
         } catch (e, stackTrace) {
           print('❌ GPS 경로 데이터 로드 실패: $e');

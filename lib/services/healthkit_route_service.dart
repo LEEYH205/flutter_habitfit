@@ -6,11 +6,23 @@ class HealthKitRouteService {
   static const MethodChannel _channel =
       MethodChannel('healthkit_route_channel');
 
-  /// HealthKit 권한 요청
+  /// HealthKit 권한 요청 (권한 상태 확인 후 요청)
   static Future<bool> requestPermissions() async {
     try {
+      // 먼저 권한 상태를 확인
+      print('🔍 HealthKit 권한 상태 확인 중...');
+      final bool statusResult =
+          await _channel.invokeMethod('checkHealthKitPermissions');
+
+      if (statusResult) {
+        print('✅ HealthKit 권한이 이미 승인되어 있습니다');
+        return true;
+      }
+
+      print('🔄 HealthKit 권한 요청 시작...');
       final bool result =
           await _channel.invokeMethod('requestHealthKitPermissions');
+      print('🔐 HealthKit 권한 요청 결과: $result');
       return result;
     } on PlatformException catch (e) {
       print('❌ HealthKit 권한 요청 실패: ${e.message}');
