@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../services/analytics_service.dart';
+import '../../widgets/app_bar_with_notifications.dart';
 import '../../services/recommendation_service.dart';
 import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
@@ -314,11 +315,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('설정'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 0,
+        appBar: const AppBarWithNotifications(
+          title: 'Settings',
+          showProfile: false,
         ),
         body: SingleChildScrollView(
           child: Padding(
@@ -389,6 +388,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ] else ...[
                   _buildNoDataCard(),
                 ],
+
+                const SizedBox(height: 24),
+
+                // 테스트 알림 버튼
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await LocalNotificationService.instance
+                          .showTestNotification();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🔔 테스트 알림을 보냈습니다!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.notifications_active),
+                    label: const Text('알림 테스트'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
