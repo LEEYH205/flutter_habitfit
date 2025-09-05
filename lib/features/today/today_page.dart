@@ -5,6 +5,7 @@ import '../../widgets/common/kpi_ring.dart';
 import '../../widgets/common/section_card.dart';
 import '../../widgets/common/mini_spark.dart';
 import '../../providers/today_summary_provider.dart';
+import '../../providers/user_goals_provider.dart';
 import '../../usecases/coach_usecase.dart';
 import '../habit/habit_page.dart';
 import '../workout/workout_page.dart';
@@ -129,35 +130,96 @@ class _TodayPageState extends ConsumerState<TodayPage>
     return Consumer(
       builder: (context, ref, child) {
         final todaySummaryAsync = ref.watch(todaySummaryProvider);
+        final userGoalsAsync = ref.watch(userGoalsProvider);
 
         return todaySummaryAsync.when(
-          data: (summary) => Row(
-            children: [
-              Expanded(
-                child: KpiRing.calories(
-                  value: summary.activeCalories.toInt().toString(),
-                  progress: summary.activeCaloriesProgress,
-                  subtitle: '목표: 400kcal',
+          data: (summary) => userGoalsAsync.when(
+            data: (goals) => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary
+                        .getActiveCaloriesProgress(goals.activeCaloriesGoal),
+                    subtitle: '목표: ${goals.activeCaloriesGoal.toInt()}kcal',
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: KpiRing.exercise(
-                  value: '${summary.exerciseMinutes}분',
-                  progress: summary.exerciseProgress,
-                  subtitle: '목표: 30분',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress:
+                        summary.getExerciseProgress(goals.exerciseMinutesGoal),
+                    subtitle: '목표: ${goals.exerciseMinutesGoal}분',
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: KpiRing.habits(
-                  value: summary.habitStatusText,
-                  progress: summary.habitProgress,
-                  subtitle:
-                      '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            loading: () => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary.getActiveCaloriesProgress(400.0),
+                    subtitle: '목표: 400kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress: summary.getExerciseProgress(30),
+                    subtitle: '목표: 30분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
+            error: (error, stack) => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary.getActiveCaloriesProgress(400.0),
+                    subtitle: '목표: 400kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress: summary.getExerciseProgress(30),
+                    subtitle: '목표: 30분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
           ),
           loading: () => _buildKpiRingsLoading(),
           error: (error, stack) => _buildKpiRingsError(),
