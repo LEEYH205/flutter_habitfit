@@ -161,7 +161,12 @@ class _SplashScreenState extends State<SplashScreen>
         HealthDataType.DISTANCE_WALKING_RUNNING,
         HealthDataType.WORKOUT,
         HealthDataType.ACTIVE_ENERGY_BURNED,
+        HealthDataType.BASAL_ENERGY_BURNED,
         HealthDataType.EXERCISE_TIME,
+        HealthDataType.FLIGHTS_CLIMBED,
+        HealthDataType.RESTING_HEART_RATE,
+        HealthDataType.HEART_RATE_VARIABILITY_SDNN,
+        HealthDataType.HEIGHT,
       ];
 
       final granted = await health.requestAuthorization(types);
