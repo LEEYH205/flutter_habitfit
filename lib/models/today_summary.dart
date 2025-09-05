@@ -35,27 +35,15 @@ class TodaySummary {
   /// 칼로리 목표 대비 진행률 (목표: 2000kcal)
   double get caloriesProgress => (calories / 2000.0).clamp(0.0, 1.0);
 
-<<<<<<< HEAD
-  /// 운동 시간 목표 대비 진행률
-  double getExerciseProgress(int goal) =>
-      (exerciseMinutes / goal.toDouble()).clamp(0.0, 1.0);
-=======
   /// 단백질 목표 대비 진행률 (목표: 100g)
   double get proteinProgress => (protein / 100.0).clamp(0.0, 1.0);
 
   /// 운동 시간 목표 대비 진행률 (목표: 30분)
   double get exerciseProgress => (exerciseMinutes / 30.0).clamp(0.0, 1.0);
->>>>>>> temp-branch
 
-  /// 움직이기 칼로리 목표 대비 진행률
-  double getActiveCaloriesProgress(double goal) =>
-      (activeCalories / goal).clamp(0.0, 1.0);
+  /// 움직이기 칼로리 목표 대비 진행률 (목표: 400kcal)
+  double get activeCaloriesProgress => (activeCalories / 400.0).clamp(0.0, 1.0);
 
-<<<<<<< HEAD
-  /// 걸음 수 목표 대비 진행률
-  double getStepsProgress(int goal) =>
-      (steps / goal.toDouble()).clamp(0.0, 1.0);
-=======
   /// 움직이기 칼로리 목표 대비 진행률 (동적 목표)
   double getActiveCaloriesProgress(double goal) =>
       (activeCalories / goal).clamp(0.0, 1.0);
@@ -66,7 +54,6 @@ class TodaySummary {
 
   /// 걸음 수 목표 대비 진행률 (목표: 10000걸음)
   double get stepsProgress => (steps / 10000.0).clamp(0.0, 1.0);
->>>>>>> temp-branch
 
   /// 걸음 수 목표 대비 진행률 (동적 목표)
   double getStepsProgress(int goal) =>

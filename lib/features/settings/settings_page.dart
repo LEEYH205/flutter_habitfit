@@ -7,11 +7,6 @@ import '../../services/analytics_service.dart';
 import '../../services/recommendation_service.dart';
 import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
-<<<<<<< HEAD
-import 'notification_settings_page.dart';
-import 'advanced_goal_settings_page.dart';
-=======
->>>>>>> temp-branch
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -113,6 +108,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isAnalyzing = false;
 
   // 프리셋 관련
+  String _selectedPreset =
+      'custom'; // 'beginner', 'intermediate', 'advanced', 'custom'
 
   @override
   void initState() {
@@ -203,7 +200,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _dailyPushupGoal = _prefs.getInt('dailyPushupGoal') ?? 15;
       _dailyHabitGoal = _prefs.getInt('dailyHabitGoal') ?? 1;
       _dailyRunningGoal = _prefs.getDouble('dailyRunningGoal') ?? 5.0;
+      _selectedPreset = _prefs.getString('selectedPreset') ?? 'custom';
     });
+  }
+
+  void _applyPreset(String preset) {
+    setState(() {
+      _selectedPreset = preset;
+
+      switch (preset) {
+        case 'beginner':
+          // 초보자 프리셋
+          _workoutNotificationsEnabled = true;
+          _habitRemindersEnabled = true;
+          _dailySummaryEnabled = true;
+          _goalAchievementEnabled = true;
+          _missedHabitReminderEnabled = false;
+          _snoozeEnabled = false;
+          _quietHoursEnabled = false;
+          _focusModeRespectEnabled = false;
+          _progressiveIncreaseEnabled = false;
+          _deloadSystemEnabled = false;
+          _restDaysEnabled = true;
+          _weeklyResetEnabled = true;
+          _dailySquatGoal = 10;
+          _dailyPushupGoal = 5;
+          _dailyHabitGoal = 1;
+          _dailyRunningGoal = 2.0;
+          break;
+
+        case 'intermediate':
+          // 중급자 프리셋
+          _workoutNotificationsEnabled = true;
+          _habitRemindersEnabled = true;
+          _dailySummaryEnabled = true;
+          _goalAchievementEnabled = true;
+          _missedHabitReminderEnabled = true;
+          _snoozeEnabled = true;
+          _quietHoursEnabled = true;
+          _focusModeRespectEnabled = true;
+          _progressiveIncreaseEnabled = true;
+          _deloadSystemEnabled = true;
+          _restDaysEnabled = true;
+          _weeklyResetEnabled = true;
+          _dailySquatGoal = 20;
+          _dailyPushupGoal = 15;
+          _dailyHabitGoal = 2;
+          _dailyRunningGoal = 5.0;
+          break;
+
+        case 'advanced':
+          // 고급자 프리셋
+          _workoutNotificationsEnabled = true;
+          _habitRemindersEnabled = true;
+          _dailySummaryEnabled = true;
+          _goalAchievementEnabled = true;
+          _missedHabitReminderEnabled = true;
+          _snoozeEnabled = true;
+          _quietHoursEnabled = true;
+          _focusModeRespectEnabled = true;
+          _progressiveIncreaseEnabled = true;
+          _deloadSystemEnabled = true;
+          _restDaysEnabled = true;
+          _weeklyResetEnabled = true;
+          _dailySquatGoal = 50;
+          _dailyPushupGoal = 30;
+          _dailyHabitGoal = 3;
+          _dailyRunningGoal = 10.0;
+          break;
+
+        case 'custom':
+          // 사용자 정의 - 현재 설정 유지
+          break;
+      }
+    });
+
+    _saveSettings();
   }
 
   Future<void> _loadSmartRecommendations() async {
@@ -288,6 +360,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         'restDays', _restDays.map((e) => e.toString()).toList());
     await _prefs.setBool('weeklyResetEnabled', _weeklyResetEnabled);
     await _prefs.setInt('weeklyResetDay', _weeklyResetDay);
+    await _prefs.setString('selectedPreset', _selectedPreset);
 
     await _prefs.setInt('habitReminderHour', _habitReminderTime.hour);
     await _prefs.setInt('habitReminderMinute', _habitReminderTime.minute);
@@ -362,6 +435,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 const SizedBox(height: 24),
 
+                // 프리셋 선택 섹션
+                _buildPresetSelectionCard(),
+
+                const SizedBox(height: 24),
+
                 // 알림 설정 섹션
                 _buildNotificationSettingsCard(),
 
@@ -411,6 +489,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           fontWeight: FontWeight.bold,
           color: Colors.blue,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile(
+      String title, String subtitle, bool value, Function(bool) onChanged) {
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      value: value,
+      onChanged: onChanged,
+      secondary: Icon(
+        value ? Icons.notifications_active : Icons.notifications_off,
+        color: value ? Colors.green : Colors.grey,
       ),
     );
   }
@@ -505,6 +597,54 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDaySelectorTile(String title, String subtitle, List<bool> days,
+      Function(List<bool>) onChanged) {
+    const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: List.generate(7, (index) {
+                return FilterChip(
+                  label: Text(dayNames[index]),
+                  selected: days[index],
+                  onSelected: (selected) {
+                    final newDays = List<bool>.from(days);
+                    newDays[index] = selected;
+                    onChanged(newDays);
+                  },
+                  selectedColor: Colors.blue.shade100,
+                  checkmarkColor: Colors.blue.withOpacity(0.7),
+                );
+              }),
+            ),
+          ],
         ),
       ),
     );
@@ -1085,51 +1225,186 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildPresetSelectionCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.settings_suggest,
+                    color: Colors.purple.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '설정 프리셋',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Tooltip(
+                  message: '운동 경험에 따라 추천되는 설정을 선택하세요',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '운동 경험에 맞는 설정을 선택하면 자동으로 최적화됩니다',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _buildPresetChip('beginner', '초보자', '🌱', '간단한 설정으로 시작'),
+                _buildPresetChip('intermediate', '중급자', '💪', '균형잡힌 설정'),
+                _buildPresetChip('advanced', '고급자', '🏆', '고급 기능 포함'),
+                _buildPresetChip('custom', '사용자 정의', '⚙️', '직접 설정'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetChip(
+      String preset, String title, String emoji, String description) {
+    final isSelected = _selectedPreset == preset;
+
+    return InkWell(
+      onTap: () => _applyPreset(preset),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.purple.shade100 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.purple.shade300 : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              emoji,
+              style: const TextStyle(fontSize: 24),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isSelected
+                    ? Colors.purple.withOpacity(0.7)
+                    : Colors.grey.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 11,
+                color:
+                    isSelected ? Colors.purple.shade600 : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildNotificationSettingsCard() {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const NotificationSettingsPage(),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.notifications,
-                      color: Colors.blue.shade600, size: 24),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '알림 설정',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.notifications,
+                    color: Colors.blue.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '알림 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const Spacer(),
-                  Icon(Icons.arrow_forward_ios,
-                      color: Colors.grey.shade600, size: 16),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '알림 종류와 시간을 설정하세요',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
                 ),
-              ),
-            ],
-          ),
+                const Spacer(),
+                Tooltip(
+                  message: '앱에서 받을 알림의 종류와 시간을 설정하세요',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildSwitchTile(
+              '운동 완료 알림',
+              '스쿼트 세션 완료 시 알림',
+              _workoutNotificationsEnabled,
+              (value) {
+                setState(() => _workoutNotificationsEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '습관 체크 리마인더',
+              '매일 설정된 시간에 습관 체크 알림',
+              _habitRemindersEnabled,
+              (value) {
+                setState(() => _habitRemindersEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '일일 운동 요약',
+              '매일 설정된 시간에 운동 요약 알림',
+              _dailySummaryEnabled,
+              (value) {
+                setState(() => _dailySummaryEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '목표 달성 축하',
+              '목표 달성 시 축하 알림',
+              _goalAchievementEnabled,
+              (value) {
+                setState(() => _goalAchievementEnabled = value);
+                _saveSettings();
+              },
+            ),
+            _buildSwitchTile(
+              '주간 운동 요약',
+              '매주 일요일에 주간 요약 알림',
+              _weeklySummaryEnabled,
+              (value) {
+                setState(() => _weeklySummaryEnabled = value);
+                _saveSettings();
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -1152,8 +1427,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-<<<<<<< HEAD
-=======
             children: [
               Row(
                 children: [
@@ -1298,35 +1571,98 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
           Row(
->>>>>>> temp-branch
             children: [
-              Row(
-                children: [
-                  Icon(Icons.flag, color: Colors.red.shade600, size: 24),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '목표 설정',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.arrow_forward_ios,
-                      color: Colors.grey.shade600, size: 16),
-                ],
+              IconButton(
+                icon: Icon(Icons.remove, color: color, size: 16),
+                onPressed: () {
+                  final newValue =
+                      isDouble ? (value as double) - 0.5 : (value as int) - 1;
+                  if ((isDouble && newValue >= 0) ||
+                      (!isDouble && newValue >= 0)) {
+                    onChanged(newValue);
+                  }
+                },
               ),
-              const SizedBox(height: 8),
+              SizedBox(
+                width: 60,
+                child: Text(
+                  isDouble ? '${value.toStringAsFixed(1)}' : value.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color.withOpacity(0.7),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add, color: color, size: 16),
+                onPressed: () {
+                  final newValue =
+                      isDouble ? (value as double) + 0.5 : (value as int) + 1;
+                  onChanged(newValue);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalProgressCard(
+      String title, dynamic goal, dynamic current, Color color,
+      {bool isDouble = false}) {
+    final progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(
-                '움직이기 칼로리, 운동 시간, 걸음 수 목표를 설정하세요',
+                title,
                 style: TextStyle(
                   fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: color.withOpacity(0.7),
+                ),
+              ),
+              Text(
+                isDouble
+                    ? '${current.toStringAsFixed(1)}/${goal.toStringAsFixed(1)}'
+                    : '$current/$goal',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                   color: Colors.grey.shade600,
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${(progress * 100).toStringAsFixed(1)}% 달성',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1335,46 +1671,100 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const AdvancedGoalSettingsPage(),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.settings, color: Colors.purple.shade600, size: 24),
-                  const SizedBox(width: 12),
-                  const Text(
-                    '고급 목표 설정',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.settings, color: Colors.purple.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  '고급 목표 설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const Spacer(),
-                  Icon(Icons.arrow_forward_ios,
-                      color: Colors.grey.shade600, size: 16),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '운동 목표와 고급 설정을 관리하세요',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
                 ),
+                const Spacer(),
+                Tooltip(
+                  message: '고급 목표 관리 기능들입니다',
+                  child: Icon(Icons.help_outline,
+                      color: Colors.grey.shade600, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 프로그레시브 증가 설정
+            _buildSwitchTile(
+              '점진적 증가 시스템',
+              '매주 목표를 자동으로 증가시킵니다',
+              _progressiveIncreaseEnabled,
+              (value) {
+                setState(() => _progressiveIncreaseEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_progressiveIncreaseEnabled) ...[
+              _buildProgressiveIncreaseTile(),
+            ],
+
+            // 딜로드 시스템
+            _buildSwitchTile(
+              '딜로드 시스템',
+              '연속 실패 시 목표를 일시적으로 감소시킵니다',
+              _deloadSystemEnabled,
+              (value) {
+                setState(() => _deloadSystemEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_deloadSystemEnabled) ...[
+              _buildDeloadSettingsTile(),
+            ],
+
+            // 휴식일 지정
+            _buildSwitchTile(
+              '휴식일 지정',
+              '특정 요일을 휴식일로 설정합니다',
+              _restDaysEnabled,
+              (value) {
+                setState(() => _restDaysEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_restDaysEnabled) ...[
+              _buildDaySelectorTile(
+                '휴식일 설정',
+                '휴식일로 설정할 요일을 선택하세요',
+                _restDays,
+                (days) {
+                  setState(() => _restDays = days);
+                  _saveSettings();
+                },
               ),
             ],
-          ),
+
+            // 주간 리셋
+            _buildSwitchTile(
+              '주간 목표 리셋',
+              '매주 특정 요일에 목표를 초기화합니다',
+              _weeklyResetEnabled,
+              (value) {
+                setState(() => _weeklyResetEnabled = value);
+                _saveSettings();
+              },
+            ),
+
+            if (_weeklyResetEnabled) ...[
+              _buildWeeklyResetTile(),
+            ],
+          ],
         ),
       ),
     );
