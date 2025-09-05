@@ -613,8 +613,14 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
 
   /// 경로 탭
   Widget _buildRouteTab() {
+    print('🗺️ _buildRouteTab 호출됨');
+    print('🗺️ _workoutRoute: $_workoutRoute');
+    print(
+        '🗺️ _workoutRoute?.points.length: ${_workoutRoute?.points.length ?? 0}');
+
     // GPS 경로 데이터가 없는 경우 메시지 표시
     if (_workoutRoute == null || _workoutRoute!.points.isEmpty) {
+      print('🗺️ GPS 경로 데이터 없음 - 메시지 표시');
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

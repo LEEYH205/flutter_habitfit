@@ -502,32 +502,51 @@ import GoogleSignIn
     private func getRouteForWorkout(workout: HKWorkout, completion: @escaping ([[String: Any]]?) -> Void) {
         print("🔍 HealthKit: 운동 경로 조회 시작 - 운동 ID: \(workout.uuid)")
 
-        // HKAnchoredObjectQuery로 경로 샘플 조회 (블로그 예제 기반)
-        let routeQuery = HKAnchoredObjectQuery(type: HKSeriesType.workoutRoute(), predicate: HKQuery.predicateForObjects(from: workout), anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] query, samples, deletedObjects, anchor, error in
-      if let error = error {
-                print("❌ HealthKit: 경로 데이터 조회 오류 - \(error.localizedDescription)")
-        completion(nil)
-        return
-      }
-      
-            print("🔍 HealthKit: 경로 쿼리 결과 - 샘플 수: \(samples?.count ?? 0)")
+        // 권한 확인 및 요청 (HKWorkoutTypeIdentifier도 함께 요청해야 함)
+        let routeType = HKSeriesType.workoutRoute()
+        let workoutType = HKObjectType.workoutType()
+        healthStore.requestAuthorization(toShare: nil, read: [routeType, workoutType]) { [weak self] success, error in
+            if let error = error {
+                print("❌ HealthKit: 경로 권한 요청 오류 - \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            if !success {
+                print("❌ HealthKit: 경로 권한이 거부되었습니다")
+                completion(nil)
+                return
+            }
+            
+            print("✅ HealthKit: 경로 권한 승인됨")
+            
+            // HKAnchoredObjectQuery로 경로 샘플 조회 (블로그 예제 기반)
+            let routeQuery = HKAnchoredObjectQuery(type: routeType, predicate: HKQuery.predicateForObjects(from: workout), anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] query, samples, deletedObjects, anchor, error in
+                if let error = error {
+                    print("❌ HealthKit: 경로 데이터 조회 오류 - \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                print("🔍 HealthKit: 경로 쿼리 결과 - 샘플 수: \(samples?.count ?? 0)")
 
-            guard let routes = samples as? [HKWorkoutRoute], let route = routes.first else {
-                print("⚠️ HealthKit: 해당 운동에 경로 데이터가 없습니다")
-                print("🔍 HealthKit: 조회된 샘플 타입: \(type(of: samples?.first))")
-          completion(nil)
-          return
+                guard let routes = samples as? [HKWorkoutRoute], let route = routes.first else {
+                    print("⚠️ HealthKit: 해당 운동에 경로 데이터가 없습니다")
+                    print("🔍 HealthKit: 조회된 샘플 타입: \(type(of: samples?.first))")
+                    completion(nil)
+                    return
+                }
+                
+                print("✅ HealthKit: 경로 데이터 발견 - 경로 ID: \(route.uuid)")
+                print("🔍 HealthKit: 경로 시작 시간: \(route.startDate)")
+                print("🔍 HealthKit: 경로 종료 시간: \(route.endDate)")
+
+                // 3. 경로의 위치 데이터 조회
+                self?.getLocationsForRoute(route: route, completion: completion)
+            }
+
+            self?.healthStore.execute(routeQuery)
         }
-        
-            print("✅ HealthKit: 경로 데이터 발견 - 경로 ID: \(route.uuid)")
-            print("🔍 HealthKit: 경로 시작 시간: \(route.startDate)")
-            print("🔍 HealthKit: 경로 종료 시간: \(route.endDate)")
-
-            // 3. 경로의 위치 데이터 조회
-            self?.getLocationsForRoute(route: route, completion: completion)
-        }
-
-        healthStore.execute(routeQuery)
     }
 
     private func getLocationsForRoute(route: HKWorkoutRoute, completion: @escaping ([[String: Any]]?) -> Void) {
