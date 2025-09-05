@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+<<<<<<< HEAD
 import '../../providers/user_goals_provider.dart';
 import '../../models/user_goals.dart';
+=======
+import '../../widgets/app_bar_with_notifications.dart';
+import '../../widgets/common/section_card.dart';
+import '../../models/user_goals.dart';
+import '../../providers/user_goals_provider.dart';
+>>>>>>> temp-branch
 
 /// 목표 설정 페이지
 class GoalSettingsPage extends ConsumerStatefulWidget {
@@ -12,17 +19,32 @@ class GoalSettingsPage extends ConsumerStatefulWidget {
 }
 
 class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
+<<<<<<< HEAD
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _activeCaloriesController;
   late TextEditingController _exerciseMinutesController;
   late TextEditingController _stepsController;
+=======
+  final TextEditingController _activeCaloriesController =
+      TextEditingController();
+  final TextEditingController _exerciseMinutesController =
+      TextEditingController();
+  final TextEditingController _stepsController = TextEditingController();
+>>>>>>> temp-branch
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _activeCaloriesController = TextEditingController();
     _exerciseMinutesController = TextEditingController();
     _stepsController = TextEditingController();
+=======
+    // 초기 로드 시 기본값 설정
+    _activeCaloriesController.text = '400';
+    _exerciseMinutesController.text = '30';
+    _stepsController.text = '10000';
+>>>>>>> temp-branch
   }
 
   @override
@@ -38,6 +60,7 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
     final userGoalsAsync = ref.watch(userGoalsProvider);
 
     return Scaffold(
+<<<<<<< HEAD
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('목표 설정'),
@@ -184,19 +207,259 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
                 ),
                 child: const Text(
                   '목표 저장',
+=======
+      appBar: const AppBarWithNotifications(title: '목표 설정'),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: userGoalsAsync.when(
+          data: (goals) {
+            // 데이터가 로드되면 컨트롤러에 값 설정
+            if (_activeCaloriesController.text == '400') {
+              _activeCaloriesController.text =
+                  goals.activeCaloriesGoal.toInt().toString();
+            }
+            if (_exerciseMinutesController.text == '30') {
+              _exerciseMinutesController.text =
+                  goals.exerciseMinutesGoal.toString();
+            }
+            if (_stepsController.text == '10000') {
+              _stepsController.text = goals.stepsGoal.toString();
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '일일 목표 설정',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '매일 달성하고 싶은 목표를 설정하세요',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 움직이기 칼로리 목표
+                SectionCard(
+                  title: '',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '움직이기 칼로리',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _activeCaloriesController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                hintText: '400',
+                                suffixText: 'kcal',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '현재: ${goals.activeCaloriesGoal.toInt()}kcal',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 운동 시간 목표
+                SectionCard(
+                  title: '',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '운동 시간',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _exerciseMinutesController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                hintText: '30',
+                                suffixText: '분',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '현재: ${goals.exerciseMinutesGoal}분',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 걸음 수 목표
+                SectionCard(
+                  title: '',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '걸음 수',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _stepsController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                hintText: '10000',
+                                suffixText: '걸음',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '현재: ${goals.stepsGoal}걸음',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // 저장 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveGoals,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text(
+                      '목표 저장',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 기본값 복원 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _resetToDefaults,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('기본값으로 복원'),
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(),
+          ),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '목표를 불러올 수 없습니다',
+>>>>>>> temp-branch
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+<<<<<<< HEAD
               ),
             ),
           ],
+=======
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(userGoalsProvider),
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ),
+          ),
+>>>>>>> temp-branch
         ),
       ),
     );
   }
 
+<<<<<<< HEAD
   Widget _buildGoalCard({
     required String title,
     required IconData icon,
@@ -288,14 +551,33 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
 
   Future<void> _saveGoals() async {
     if (!_formKey.currentState!.validate()) {
+=======
+  void _saveGoals() async {
+    final activeCalories =
+        double.tryParse(_activeCaloriesController.text) ?? 400.0;
+    final exerciseMinutes = int.tryParse(_exerciseMinutesController.text) ?? 30;
+    final steps = int.tryParse(_stepsController.text) ?? 10000;
+
+    // 입력값 검증
+    if (activeCalories <= 0 || exerciseMinutes <= 0 || steps <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('목표 값은 0보다 커야 합니다'),
+          backgroundColor: Colors.red,
+        ),
+      );
+>>>>>>> temp-branch
       return;
     }
 
     try {
+<<<<<<< HEAD
       final activeCalories = double.parse(_activeCaloriesController.text);
       final exerciseMinutes = int.parse(_exerciseMinutesController.text);
       final steps = int.parse(_stepsController.text);
 
+=======
+>>>>>>> temp-branch
       await updateUserGoal(
         activeCaloriesGoal: activeCalories,
         exerciseMinutesGoal: exerciseMinutes,
@@ -308,21 +590,49 @@ class _GoalSettingsPageState extends ConsumerState<GoalSettingsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
+<<<<<<< HEAD
             content: Text('목표가 저장되었습니다!'),
             backgroundColor: Colors.green,
           ),
         );
+=======
+            content: Text('목표가 저장되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 이전 화면으로 돌아가기
+>>>>>>> temp-branch
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+<<<<<<< HEAD
             content: Text('저장 중 오류가 발생했습니다: $e'),
+=======
+            content: Text('저장 실패: ${e.toString()}'),
+>>>>>>> temp-branch
             backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
+<<<<<<< HEAD
+=======
+
+  void _resetToDefaults() {
+    _activeCaloriesController.text = '400';
+    _exerciseMinutesController.text = '30';
+    _stepsController.text = '10000';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('기본값으로 설정되었습니다. 저장 버튼을 눌러주세요.'),
+      ),
+    );
+  }
+>>>>>>> temp-branch
 }

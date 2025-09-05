@@ -135,6 +135,7 @@ class _TodayPageState extends ConsumerState<TodayPage>
 
         return todaySummaryAsync.when(
           data: (summary) => userGoalsAsync.when(
+<<<<<<< HEAD
             data: (goals) => SizedBox(
               height: 160,
               child: SingleChildScrollView(
@@ -181,6 +182,94 @@ class _TodayPageState extends ConsumerState<TodayPage>
             ),
             loading: () => _buildKpiRingsLoading(),
             error: (error, stack) => _buildKpiRingsError(),
+=======
+            data: (goals) => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary
+                        .getActiveCaloriesProgress(goals.activeCaloriesGoal),
+                    subtitle: '목표: ${goals.activeCaloriesGoal.toInt()}kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress:
+                        summary.getExerciseProgress(goals.exerciseMinutesGoal),
+                    subtitle: '목표: ${goals.exerciseMinutesGoal}분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
+            loading: () => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary.getActiveCaloriesProgress(400.0),
+                    subtitle: '목표: 400kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress: summary.getExerciseProgress(30),
+                    subtitle: '목표: 30분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
+            error: (error, stack) => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary.getActiveCaloriesProgress(400.0),
+                    subtitle: '목표: 400kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress: summary.getExerciseProgress(30),
+                    subtitle: '목표: 30분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
+>>>>>>> temp-branch
           ),
           loading: () => _buildKpiRingsLoading(),
           error: (error, stack) => _buildKpiRingsError(),

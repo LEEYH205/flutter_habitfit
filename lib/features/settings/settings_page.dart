@@ -7,8 +7,11 @@ import '../../services/analytics_service.dart';
 import '../../services/recommendation_service.dart';
 import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
+<<<<<<< HEAD
 import 'notification_settings_page.dart';
 import 'advanced_goal_settings_page.dart';
+=======
+>>>>>>> temp-branch
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -1149,6 +1152,153 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+<<<<<<< HEAD
+=======
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.flag, color: Colors.red.shade600, size: 24),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '목표 설정',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Tooltip(
+                    message: '일일 목표를 설정하여 꾸준한 습관 형성을 돕습니다',
+                    child: Icon(Icons.help_outline,
+                        color: Colors.grey.shade600, size: 20),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.grey.shade400,
+                    size: 16,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 운동 목표들
+              _buildGoalTile(
+                '스쿼트 목표',
+                '일일 스쿼트 횟수 목표',
+                _dailySquatGoal,
+                Icons.fitness_center,
+                Colors.red,
+                (value) {
+                  setState(() => _dailySquatGoal = value);
+                  _saveSettings();
+                },
+              ),
+              _buildGoalTile(
+                '푸시업 목표',
+                '일일 푸시업 횟수 목표',
+                _dailyPushupGoal,
+                Icons.accessibility,
+                Colors.blue,
+                (value) {
+                  setState(() => _dailyPushupGoal = value);
+                  _saveSettings();
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // 습관 목표
+              _buildGoalTile(
+                '습관 목표',
+                '일일 습관 완료 목표',
+                _dailyHabitGoal,
+                Icons.check_circle,
+                Colors.green,
+                (value) {
+                  setState(() => _dailyHabitGoal = value);
+                  _saveSettings();
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // 러닝 목표
+              _buildGoalTile(
+                '러닝 목표',
+                '일일 러닝 거리 목표 (km)',
+                _dailyRunningGoal,
+                Icons.directions_run,
+                Colors.orange,
+                (value) {
+                  setState(() => _dailyRunningGoal = value);
+                  _saveSettings();
+                },
+                isDouble: true,
+              ),
+
+              // 목표 달성률 표시
+              const SizedBox(height: 20),
+              const Text(
+                '목표 달성 현황',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildGoalProgressCard('스쿼트', _dailySquatGoal, 15, Colors.red),
+              _buildGoalProgressCard('푸시업', _dailyPushupGoal, 8, Colors.blue),
+              _buildGoalProgressCard('습관', _dailyHabitGoal, 2, Colors.green),
+              _buildGoalProgressCard(
+                  '러닝', _dailyRunningGoal, 3.5, Colors.orange,
+                  isDouble: true),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoalTile(String title, String subtitle, dynamic value,
+      IconData icon, Color color, Function(dynamic) onChanged,
+      {bool isDouble = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color.withOpacity(0.7),
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+>>>>>>> temp-branch
             children: [
               Row(
                 children: [
