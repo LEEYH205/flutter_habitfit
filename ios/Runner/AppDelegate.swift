@@ -76,7 +76,11 @@ import GoogleSignIn
     case "checkHealthKitPermissions":
       // HealthKit 권한 상태 확인
       checkHealthKitPermissions(result: result)
-      
+
+    case "requestWorkoutRoutePermissions":
+      // 운동 경로(GPS) 권한 요청
+      requestWorkoutRoutePermissions(result: result)
+
     case "requestReportPermissions":
       // 달력 클릭 시 리포트 관련 권한 요청
       requestReportPermissions(result: result)
@@ -298,6 +302,45 @@ import GoogleSignIn
     }
   }
   
+  /// 운동 경로(GPS) 권한 요청
+  private func requestWorkoutRoutePermissions(result: @escaping FlutterResult) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      print("❌ iOS: HealthKit을 사용할 수 없는 기기입니다")
+      result(false)
+      return
+    }
+
+    print("🗺️ iOS: 운동 경로 권한 요청 시작")
+
+    // 운동 경로 데이터를 읽기 위한 권한 요청
+    let typesToRead: Set<HKObjectType> = [
+      // 기본 운동 데이터
+      HKObjectType.workoutType(),
+      HKObjectType.quantityType(forIdentifier: .heartRate)!,
+      HKObjectType.quantityType(forIdentifier: .stepCount)!,
+      HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+      HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+
+      // 운동 경로 데이터 (GPS 경로)
+      HKObjectType.seriesType(forIdentifier: HKWorkoutRouteTypeIdentifier)!,
+    ]
+
+    healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+      DispatchQueue.main.async {
+        if let error = error {
+          print("❌ iOS: 운동 경로 권한 요청 실패 - \(error.localizedDescription)")
+          result(false)
+        } else if success {
+          print("✅ iOS: 운동 경로 권한 승인됨")
+          result(true)
+        } else {
+          print("❌ iOS: 운동 경로 권한 거부됨")
+          result(false)
+        }
+      }
+    }
+  }
+
   /// HealthKit 권한 상태 확인
   private func checkHealthKitPermissions(result: @escaping FlutterResult) {
     guard HKHealthStore.isHealthDataAvailable() else {

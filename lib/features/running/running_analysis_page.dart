@@ -321,7 +321,22 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
         print('✅ HealthKit 소스 또는 달리기 운동 확인됨 - GPS 경로 데이터 요청 시작');
 
         try {
-          print('🔐 HealthKit GPS 권한: 이미 앱 시작 시 승인됨 - 경로 데이터 조회 시작');
+          print('🔐 HealthKit GPS 권한 확인 및 요청 시작');
+
+          // 운동 경로(GPS) 권한 요청
+          print('🗺️ 운동 경로 권한 요청 중...');
+          final bool routePermissionGranted =
+              await HealthKitRouteService.requestWorkoutRoutePermissions();
+
+          if (routePermissionGranted) {
+            print('✅ 운동 경로 권한 승인됨 - 경로 데이터 조회 시작');
+          } else {
+            print('❌ 운동 경로 권한 거부됨 - 경로 데이터 조회 불가');
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
 
           // 운동 UUID로 먼저 시도
           if (workout.uuid != null && workout.uuid!.isNotEmpty) {

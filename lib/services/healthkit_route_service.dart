@@ -30,6 +30,20 @@ class HealthKitRouteService {
     }
   }
 
+  /// 운동 경로(GPS) 권한 요청
+  static Future<bool> requestWorkoutRoutePermissions() async {
+    try {
+      print('🗺️ 운동 경로 권한 요청 시작...');
+      final bool result =
+          await _channel.invokeMethod('requestWorkoutRoutePermissions');
+      print('🗺️ 운동 경로 권한 요청 결과: $result');
+      return result;
+    } on PlatformException catch (e) {
+      print('❌ 운동 경로 권한 요청 실패: ${e.message}');
+      return false;
+    }
+  }
+
   /// 운동의 GPS 경로 데이터 가져오기
   static Future<List<Map<String, dynamic>>?> getWorkoutRoute(
     DateTime startTime,
