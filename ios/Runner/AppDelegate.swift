@@ -3,9 +3,10 @@ import UIKit
 import HealthKit
 import CoreLocation
 import GoogleSignIn
+import WatchConnectivity
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, WCSessionDelegate {
 
   private let healthStore = HKHealthStore()
   private let healthKitRouteManager = HealthKitRouteManager()
@@ -32,7 +33,8 @@ import GoogleSignIn
     // 고급 러닝 메트릭을 위한 새로운 채널
     let runningMetricsChannel = FlutterMethodChannel(name: "hk_running", binaryMessenger: controller.binaryMessenger)
     
-
+    // Watch Connectivity 채널
+    let watchConnectivityChannel = FlutterMethodChannel(name: "watch_connectivity", binaryMessenger: controller.binaryMessenger)
     
     // 메서드 호출 처리
     healthKitRouteChannel.setMethodCallHandler { [weak self] call, result in
@@ -42,6 +44,18 @@ import GoogleSignIn
     // 고급 러닝 메트릭 메서드 호출 처리
     runningMetricsChannel.setMethodCallHandler { [weak self] call, result in
       self?.handleRunningMetricsCall(call: call, result: result)
+    }
+    
+    // Watch Connectivity 메서드 호출 처리
+    watchConnectivityChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleWatchConnectivityCall(call: call, result: result)
+    }
+    
+    // Watch Connectivity 세션 초기화
+    if WCSession.isSupported() {
+      let session = WCSession.default
+      session.delegate = self
+      session.activate()
     }
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -431,6 +445,113 @@ import GoogleSignIn
       result(rows)
     }
     healthStore.execute(q)
+  }
+  
+  // MARK: - Watch Connectivity
+  
+  private func handleWatchConnectivityCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "isWatchPaired":
+      result(WCSession.default.isPaired)
+    case "isWatchAppInstalled":
+      result(WCSession.default.isWatchAppInstalled)
+    case "isWatchReachable":
+      result(WCSession.default.isReachable)
+    case "sendMessageToWatch":
+      guard let message = call.arguments as? [String: Any] else {
+        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid message", details: nil))
+        return
+      }
+      sendMessageToWatch(message: message, result: result)
+    case "sendMessageToWatchWithReply":
+      guard let args = call.arguments as? [String: Any],
+            let message = args["message"] as? [String: Any],
+            let timeoutMs = args["timeout"] as? Int else {
+        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
+        return
+      }
+      sendMessageToWatchWithReply(message: message, timeout: TimeInterval(timeoutMs) / 1000, result: result)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+  
+  private func sendMessageToWatch(message: [String: Any], result: @escaping FlutterResult) {
+    guard WCSession.default.isReachable else {
+      result(FlutterError(code: "WATCH_NOT_REACHABLE", message: "Watch is not reachable", details: nil))
+      return
+    }
+    
+    WCSession.default.sendMessage(message, replyHandler: nil) { error in
+      DispatchQueue.main.async {
+        if error != nil {
+          result(FlutterError(code: "SEND_ERROR", message: error.localizedDescription, details: nil))
+        } else {
+          result(nil)
+        }
+      }
+    }
+  }
+  
+  private func sendMessageToWatchWithReply(message: [String: Any], timeout: TimeInterval, result: @escaping FlutterResult) {
+    guard WCSession.default.isReachable else {
+      result(FlutterError(code: "WATCH_NOT_REACHABLE", message: "Watch is not reachable", details: nil))
+      return
+    }
+    
+    WCSession.default.sendMessage(message, replyHandler: { reply in
+      DispatchQueue.main.async {
+        result(reply)
+      }
+    }) { error in
+      DispatchQueue.main.async {
+        result(FlutterError(code: "SEND_ERROR", message: error.localizedDescription, details: nil))
+      }
+    }
+  }
+  
+  // MARK: - WCSessionDelegate
+  
+  func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    if let error = error {
+      print("Watch Connectivity activation failed: \(error.localizedDescription)")
+    } else {
+      print("Watch Connectivity activated successfully")
+    }
+  }
+  
+  func sessionDidBecomeInactive(_ session: WCSession) {
+    print("Watch Connectivity session became inactive")
+  }
+  
+  func sessionDidDeactivate(_ session: WCSession) {
+    print("Watch Connectivity session deactivated")
+    session.activate()
+  }
+  
+  func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+    print("Received message from Watch: \(message)")
+    
+    // Flutter로 메시지 전달
+    DispatchQueue.main.async {
+      let controller = self.window?.rootViewController as! FlutterViewController
+      let channel = FlutterMethodChannel(name: "watch_connectivity", binaryMessenger: controller.binaryMessenger)
+      channel.invokeMethod("onWatchMessage", arguments: message)
+    }
+  }
+  
+  func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+    print("Received message from Watch with reply: \(message)")
+    
+    // Flutter로 메시지 전달
+    DispatchQueue.main.async {
+      let controller = self.window?.rootViewController as! FlutterViewController
+      let channel = FlutterMethodChannel(name: "watch_connectivity", binaryMessenger: controller.binaryMessenger)
+      channel.invokeMethod("onWatchMessage", arguments: message)
+    }
+    
+    // 기본 응답
+    replyHandler(["status": "received"])
   }
   
 // MARK: - HealthKit Route Manager

@@ -877,7 +877,7 @@ class _RunningDetailPageState extends ConsumerState<RunningDetailPage>
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.habitfit_mvp',
+                      userAgentPackageName: 'com.lyh205.habitfit',
                       maxZoom: 19,
                       tileProvider: NetworkTileProvider(),
                       minZoom: 1,
