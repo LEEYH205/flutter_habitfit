@@ -1,0 +1,23 @@
+{
+  "name": "Food Classification Model (MobileNetV3Large)",
+  "version": "1.0.0",
+  "description": "MobileNetV3Large 기반 음식 분류 모델",
+  "architecture": "MobileNetV3Large",
+  "input_shape": [
+    1,
+    224,
+    224,
+    3
+  ],
+  "output_shape": [
+    1,
+    25
+  ],
+  "classes": 25,
+  "model_size_mb": 3.15,
+  "quantization": "Default",
+  "created_at": "2025-09-10",
+  "framework": "TensorFlow Lite",
+  "training_data": "ImageNet Pretrained",
+  "backbone": "MobileNetV3Large"
+}

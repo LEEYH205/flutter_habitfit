@@ -152,3 +152,21 @@ coverage/
 
 # FVM Version Cache
 .fvm/
+
+# Machine Learning Datasets
+.tensorflow_food101/
+training_scripts/*.h5
+training_scripts/*.png
+training_scripts/training_history.png
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
