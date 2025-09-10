@@ -23,6 +23,61 @@ class MealAIService {
   Map<String, dynamic> _nutritionDatabase = {};
   final bool _isWeb = kIsWeb;
 
+  // 2단계 파이프라인을 위한 다중클래스 모델 (향후 추가)
+  dynamic _multiclassInterpreter;
+  final List<String> _multiclassLabels = [];
+
+  /// 라벨을 파일에서 읽기 (Food-101 지원)
+  Future<List<String>> _loadLabels() async {
+    // Food-101 라벨 파일들 시도
+    const labelPaths = [
+      'assets/models/food_labels.txt', // 새로운 MobileNetV3 모델
+      'assets/models/food_labels_multiclass.txt', // 기존 다중클래스 모델
+    ];
+
+    for (final path in labelPaths) {
+      try {
+        final content = await rootBundle.loadString(path);
+        final lines = content
+            .split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        if (lines.isNotEmpty) {
+          print('🏷️ 라벨 로드 성공: $path (${lines.length}개)');
+          print('   예시: ${lines.take(5).toList()}');
+          return lines;
+        }
+      } catch (e) {
+        print('⚠️ 라벨 로드 실패: $path - $e');
+      }
+    }
+    print('⚠️ 모든 라벨 파일 로드 실패, 폴백 사용');
+    return [
+      'apple_pie',
+      'pizza',
+      'hamburger',
+      'sushi',
+      'pasta'
+    ]; // Food-101 기본 폴백
+  }
+
+  /// 영양소 데이터베이스에서 다중클래스 라벨 생성
+  Future<void> _loadMulticlassLabels() async {
+    try {
+      final nutritionData = _nutritionDatabase;
+      _multiclassLabels.clear();
+      _multiclassLabels.addAll(nutritionData.keys.toList()..sort());
+      print('🍽️ 다중클래스 라벨 로드 완료: ${_multiclassLabels.length}개');
+      print('   예시: ${_multiclassLabels.take(5).toList()}');
+    } catch (e) {
+      print('❌ 다중클래스 라벨 로드 실패: $e');
+      // 기본 라벨로 폴백
+      _multiclassLabels
+          .addAll(['pizza', 'hamburger', 'sushi', 'pasta', 'salad']);
+    }
+  }
+
   /// 모델 초기화
   Future<void> initialize() async {
     try {
@@ -32,22 +87,35 @@ class MealAIService {
       } else {
         // 모바일에서는 TensorFlow Lite 모델 로드
         _interpreter = await tflite.Interpreter.fromAsset(_modelPath);
-        print('📊 모델 입력 크기: ${_interpreter!.getInputTensor(0).shape}');
-        print('📊 모델 출력 크기: ${_interpreter!.getOutputTensor(0).shape}');
+
+        // 입력/출력 텐서 타입 및 크기 확인
+        final inputTensor = _interpreter!.getInputTensor(0);
+        final outputTensor = _interpreter!.getOutputTensor(0);
+        print('📊 입력 텐서: type=${inputTensor.type}, shape=${inputTensor.shape}');
+        print(
+            '📊 출력 텐서: type=${outputTensor.type}, shape=${outputTensor.shape}');
+
+        // 입력 텐서 크기 조정 및 할당
+        _interpreter!.resizeInputTensor(0, [1, 224, 224, 3]);
+        _interpreter!.allocateTensors();
+        print('✅ 입력 텐서 크기 조정 및 할당 완료');
       }
 
-      // 라벨 로드
-      final labelsData = await rootBundle.loadString(_labelsPath);
-      _labels =
-          labelsData.split('\n').where((label) => label.isNotEmpty).toList();
+      // 라벨 로드: 파일에서 읽기 (다중클래스 지원)
+      _labels = await _loadLabels();
+      print('🏷️ 라벨: $_labels');
 
       // 영양소 데이터베이스 로드
       final nutritionData = await rootBundle.loadString(_nutritionDbPath);
       _nutritionDatabase = json.decode(nutritionData);
 
+      // 다중클래스 라벨 로드
+      await _loadMulticlassLabels();
+
       print('🍽️ Meal AI Service 초기화 완료');
       print('🏷️ 라벨 개수: ${_labels.length}');
       print('🍎 영양소 DB 개수: ${_nutritionDatabase.length}');
+      print('🍽️ 다중클래스 라벨 개수: ${_multiclassLabels.length}');
     } catch (e) {
       print('❌ Meal AI Service 초기화 실패: $e');
       // 초기화 실패해도 기본 기능은 사용 가능
@@ -72,29 +140,52 @@ class MealAIService {
               (batch) => batch.expand((row) => row.expand((pixel) => pixel)))
           .toList();
 
-      // 모델 추론 실행
-      final output =
-          List.filled(1 * _labels.length, 0.0).reshape([1, _labels.length]);
-      _interpreter!.run(flattenedInput.reshape([1, 224, 224, 3]), output);
+      // 출력 클래스 수를 모델에서 읽어옴
+      final outputTensor = _interpreter!.getOutputTensor(0);
+      final numClasses = outputTensor.shape.last;
+      print('📊 출력 텐서 shape: ${outputTensor.shape}');
+      print('📊 계산된 클래스 수: $numClasses');
+      print('📊 라벨 수: ${_labels.length}');
 
-      // 결과 파싱
-      final predictions = output[0] as List<double>;
-      final maxIndex =
-          predictions.indexOf(predictions.reduce((a, b) => a > b ? a : b));
-      final confidence = predictions[maxIndex];
+      // 출력 버퍼 준비 [1, N]
+      final output = List.filled(numClasses, 0.0).reshape([1, numClasses]);
 
-      final foodName = _labels[maxIndex];
-      final nutrition = _getNutritionInfo(foodName);
+      // ★ setTensor/getTensor 쓰지 마세요 - run 사용
+      final input = flattenedInput.reshape([1, 224, 224, 3]);
+      _interpreter!.run(input, output);
+
+      final predictions = (output[0] as List).cast<double>();
+      print('🔍 예측: ${predictions.take(5).toList()}...');
+
+      // top-1 선택
+      int selectedIndex = 0;
+      double best = -1e9;
+      for (int i = 0; i < predictions.length; i++) {
+        if (predictions[i] > best) {
+          best = predictions[i];
+          selectedIndex = i;
+        }
+      }
+      final selectedLabel = _labels[selectedIndex];
+      final confidence = predictions[selectedIndex]; // softmax라면 0~1
+
+      print(
+          '🎯 선택: $selectedLabel (${(confidence * 100).toStringAsFixed(1)}%)');
+
+      // 다중클래스 분류 결과 그대로 사용
+      final finalFoodName = selectedLabel;
+
+      final nutrition = _getNutritionInfo(finalFoodName);
 
       return FoodAnalysisResult(
-        foodName: foodName,
+        foodName: finalFoodName,
         confidence: confidence,
         calories: nutrition['calories'] ?? 0,
         protein: nutrition['protein'] ?? 0.0,
         carbs: nutrition['carbs'] ?? 0.0,
         fat: nutrition['fat'] ?? 0.0,
         alternativeSuggestions:
-            _getAlternativeSuggestions(foodName, predictions),
+            _getAlternativeSuggestions(finalFoodName, predictions),
       );
     } catch (e) {
       print('❌ 음식 분석 실패: $e');
@@ -151,24 +242,54 @@ class MealAIService {
   }
 
   /// 이미지 전처리 (224x224 RGB로 리사이즈 및 정규화) - 4차원 배열 반환
+  /// 중앙 크롭으로 정사각형 이미지 만들기
+  img.Image _centerCropSquare(img.Image src) {
+    final s = src.width < src.height ? src.width : src.height;
+    final x = (src.width - s) ~/ 2;
+    final y = (src.height - s) ~/ 2;
+    return img.copyCrop(src, x: x, y: y, width: s, height: s);
+  }
+
   Future<List<List<List<List<double>>>>> _preprocessImage(
       File imageFile) async {
     try {
+      print('🖼️ 이미지 전처리 시작: ${imageFile.path}');
+
       // 1. 이미지 파일 읽기
       final imageBytes = await imageFile.readAsBytes();
+      print('📁 이미지 크기: ${imageBytes.length} bytes');
+
+      if (imageBytes.isEmpty) {
+        throw Exception('이미지 파일이 비어있습니다.');
+      }
+
       final image = img.decodeImage(imageBytes);
 
       if (image == null) {
-        throw Exception('이미지를 디코딩할 수 없습니다.');
+        throw Exception('이미지를 디코딩할 수 없습니다. 지원되지 않는 형식일 수 있습니다.');
       }
 
-      // 2. 224x224로 리사이즈
+      print('✅ 이미지 형식: ${image.format}');
+
+      print('✅ 이미지 디코딩 성공: ${image.width}x${image.height}');
+
+      // 2. EXIF 회전 보정
+      final orientedImage = img.bakeOrientation(image);
+      print('✅ EXIF 회전 보정 완료: ${orientedImage.width}x${orientedImage.height}');
+
+      // 3. 중앙 크롭으로 정사각형 만들기
+      final croppedImage = _centerCropSquare(orientedImage);
+      print('✅ 중앙 크롭 완료: ${croppedImage.width}x${croppedImage.height}');
+
+      // 3. 224x224로 리사이즈
       final resizedImage = img.copyResize(
-        image,
+        croppedImage,
         width: 224,
         height: 224,
         interpolation: img.Interpolation.linear,
       );
+
+      print('✅ 이미지 리사이즈 완료: ${resizedImage.width}x${resizedImage.height}');
 
       // 3. RGB로 변환 및 정규화 (0-1 범위) - 4차원 배열로 변환 [1, 224, 224, 3]
       final List<List<List<List<double>>>> processedImage = [];
@@ -179,11 +300,18 @@ class MealAIService {
       for (int y = 0; y < 224; y++) {
         final List<List<double>> row = [];
         for (int x = 0; x < 224; x++) {
-          final pixel = resizedImage.getPixel(x, y);
-          final r = pixel.r / 255.0;
-          final g = pixel.g / 255.0;
-          final b = pixel.b / 255.0;
-          row.add([r, g, b]); // [R, G, B]
+          try {
+            final pixel = resizedImage.getPixel(x, y);
+            // MobileNetV3 스타일 정규화 [-1, 1]
+            final r = (pixel.r / 127.5) - 1.0;
+            final g = (pixel.g / 127.5) - 1.0;
+            final b = (pixel.b / 127.5) - 1.0;
+            row.add([r, g, b]); // [R, G, B]
+          } catch (pixelError) {
+            print('⚠️ 픽셀 접근 에러 at ($x, $y): $pixelError');
+            // 에러 시 기본값 사용 ([-1, 1] 범위)
+            row.add([0.0, 0.0, 0.0]);
+          }
         }
         batch.add(row);
       }
@@ -192,12 +320,13 @@ class MealAIService {
 
       return processedImage;
     } catch (e) {
-      print('이미지 전처리 실패: $e');
-      // 실패 시 더미 데이터 반환 [1, 224, 224, 3]
+      print('❌ 이미지 전처리 실패: $e');
+      print('스택 트레이스: ${StackTrace.current}');
+      // 실패 시 더미 데이터 반환 [1, 224, 224, 3] ([-1, 1] 범위)
       return List.generate(
           1,
           (_) => List.generate(
-              224, (_) => List.generate(224, (_) => [0.5, 0.5, 0.5])));
+              224, (_) => List.generate(224, (_) => [0.0, 0.0, 0.0])));
     }
   }
 
@@ -215,6 +344,60 @@ class MealAIService {
       'carbs': 50.0,
       'fat': 10.0,
     };
+  }
+
+  /// 다중클래스 모델 초기화 (향후 구현)
+  Future<void> initializeMulticlassModel() async {
+    try {
+      // TODO: 다중클래스 모델 파일 로드
+      // const multiclassModelPath = 'assets/models/food_classification_multiclass.tflite';
+      // _multiclassInterpreter = await Interpreter.fromAsset(multiclassModelPath);
+
+      print('🍽️ 다중클래스 모델 초기화 (현재 미구현)');
+      print('   라벨 개수: ${_multiclassLabels.length}');
+    } catch (e) {
+      print('❌ 다중클래스 모델 초기화 실패: $e');
+    }
+  }
+
+  /// 2단계: 다중클래스 모델로 구체적인 음식 분류
+  Future<String> _classifySpecificFood(
+      List<List<List<List<double>>>> inputImage) async {
+    try {
+      if (_multiclassInterpreter == null || _multiclassLabels.isEmpty) {
+        // 다중클래스 모델이 없으면 기본값 반환
+        return '피자';
+      }
+
+      // 4차원 배열을 1차원으로 평탄화
+      final flattenedInput = inputImage
+          .expand(
+              (batch) => batch.expand((row) => row.expand((pixel) => pixel)))
+          .toList();
+
+      // 다중클래스 모델 추론
+      final input = flattenedInput.reshape([1, 224, 224, 3]);
+      final output = List.filled(_multiclassLabels.length, 0.0)
+          .reshape([1, _multiclassLabels.length]);
+      _multiclassInterpreter!.run(input, output);
+
+      // 결과 파싱
+      final predictions = List<double>.from(output[0]);
+      final maxIndex =
+          predictions.indexOf(predictions.reduce((a, b) => a > b ? a : b));
+      final confidence = predictions[maxIndex];
+
+      print('🍕 다중클래스 분류 결과:');
+      print('   예측값: ${predictions.take(5).toList()}');
+      print('   선택된 인덱스: $maxIndex');
+      print('   선택된 음식: ${_multiclassLabels[maxIndex]}');
+      print('   신뢰도: ${(confidence * 100).toStringAsFixed(1)}%');
+
+      return _multiclassLabels[maxIndex];
+    } catch (e) {
+      print('❌ 다중클래스 분류 실패: $e');
+      return '피자'; // 기본값
+    }
   }
 
   /// 대안 제안 (유사한 음식들)
