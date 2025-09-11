@@ -4,9 +4,20 @@ Food-101 데이터셋을 사용한 MobileNetV3 Large 기반 음식 분류 모델
 최적화된 학습 파이프라인과 TensorFlow Lite 변환
 """
 
-import tensorflow as tf
-import numpy as np
 import os
+import tensorflow as tf
+
+# TF 2.15 Apple Silicon 충돌 우회 설정
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+os.environ["TF_DISABLE_MLIR_OPTIMIZATIONS"] = "1"
+tf.config.optimizer.set_jit(False)
+tf.config.optimizer.set_experimental_options({
+    "remapping": False,            # 핵심: remapper 충돌 방지
+    "layout_optimizer": False,
+    "constant_folding": False
+})
+
+import numpy as np
 import json
 import pathlib
 from datetime import datetime
@@ -141,7 +152,7 @@ def create_mobilenetv3_model(num_classes, stage=1):
     
     model = tf.keras.Model(inputs, outputs)
     
-    # 컴파일
+    # 컴파일 (안정적인 Adam 옵티마이저 사용)
     if stage == 1:
         optimizer = tf.keras.optimizers.Adam(LEARNING_RATE_STAGE1)
     else:
@@ -351,35 +362,27 @@ def main():
             batch=BATCH_SIZE
         )
         
-        # 학습된 모델이 있는지 확인
-        stage1_model_path = output_dir / "best_stage1.h5"
-        stage2_model_path = output_dir / "best_stage2.h5"
+        # 항상 새로운 모델 학습 (기존 모델 호환성 문제로 인해)
+        print("🚀 새로운 모델 학습을 시작합니다...")
         
-        if stage1_model_path.exists() and stage2_model_path.exists():
-            print("📁 기존 학습된 모델을 불러옵니다...")
-            model_stage1 = tf.keras.models.load_model(stage1_model_path)
-            model_stage2 = tf.keras.models.load_model(stage2_model_path)
-            model_final = model_stage2
-            print("✅ 모델 로드 완료!")
-        else:
-            print("🚀 새로운 모델 학습을 시작합니다...")
-            
-            # 2. 1단계 학습 (고정된 백본)
-            model_stage1, history1 = train_model_stage1(train_ds, val_ds, len(class_names), output_dir)
-            
-            # 1단계 모델 저장
-            model_stage1.save(stage1_model_path)
-            print(f"✅ 1단계 모델 저장됨: {stage1_model_path}")
-            
-            # 3. 2단계 학습 (미세튜닝)
-            model_stage2, history2 = train_model_stage2(model_stage1, train_ds, val_ds, output_dir)
-            
-            # 2단계 모델 저장
-            model_stage2.save(stage2_model_path)
-            print(f"✅ 2단계 모델 저장됨: {stage2_model_path}")
-            
-            # 최종 모델
-            model_final = model_stage2
+        # 2. 1단계 학습 (고정된 백본)
+        model_stage1, history1 = train_model_stage1(train_ds, val_ds, len(class_names), output_dir)
+        
+        # 1단계 모델 저장
+        stage1_model_path = output_dir / "best_stage1.h5"
+        model_stage1.save(stage1_model_path)
+        print(f"✅ 1단계 모델 저장됨: {stage1_model_path}")
+        
+        # 3. 2단계 학습 (미세튜닝)
+        model_stage2, history2 = train_model_stage2(model_stage1, train_ds, val_ds, output_dir)
+        
+        # 2단계 모델 저장
+        stage2_model_path = output_dir / "best_stage2.h5"
+        model_stage2.save(stage2_model_path)
+        print(f"✅ 2단계 모델 저장됨: {stage2_model_path}")
+        
+        # 최종 모델
+        model_final = model_stage2
         
         # 4. TensorFlow Lite 변환
         tflite_path, model_size = convert_to_tflite(model_final, train_ds, class_names, output_dir)

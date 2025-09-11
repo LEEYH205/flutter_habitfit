@@ -31,8 +31,11 @@ cup_cakes
 deviled_eggs
 donuts
 dumplings
+edamame
 eggs_benedict
 escargots
+falafel
+filet_mignon
 fish_and_chips
 foie_gras
 french_fries
