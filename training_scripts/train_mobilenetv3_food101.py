@@ -253,12 +253,21 @@ def convert_to_tflite(model, train_ds, class_names, output_dir):
     """TensorFlow Lite 모델로 변환"""
     print("\n🔄 TensorFlow Lite 변환 중...")
     
-    # FP16 양자화
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.target_spec.supported_types = [tf.float16]
+    # SavedModel 형식으로 먼저 저장 후 변환
+    import tempfile
+    import os
     
-    tflite_model = converter.convert()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        saved_model_path = os.path.join(temp_dir, "saved_model")
+        model.save(saved_model_path, save_format='tf')
+        print(f"✅ SavedModel 저장됨: {saved_model_path}")
+        
+        # FP16 양자화
+        converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_path)
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        converter.target_spec.supported_types = [tf.float16]
+        
+        tflite_model = converter.convert()
     
     # 모델 저장
     tflite_path = output_dir / "food_classification.tflite"

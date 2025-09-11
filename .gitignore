@@ -172,3 +172,5 @@ env.bak/
 venv.bak/
 
 .venv-tf215/
+*.h5
+*.tflite

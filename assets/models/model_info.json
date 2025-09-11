@@ -1,0 +1,24 @@
+{
+  "name": "Food Classification Model (MobileNetV3 Large)",
+  "version": "3.0.0",
+  "description": "Food-101 데이터로 학습된 MobileNetV3 Large 기반 음식 분류 모델",
+  "architecture": "MobileNetV3Large",
+  "input_shape": [
+    1,
+    224,
+    224,
+    3
+  ],
+  "output_shape": [
+    1,
+    98
+  ],
+  "classes": 98,
+  "model_size_mb": 6.74,
+  "quantization": "FP16",
+  "created_at": "2025-09-10",
+  "framework": "TensorFlow Lite",
+  "training_data": "Food-101 Dataset",
+  "accuracy": "Pre-trained (ImageNet)",
+  "note": "This is a pre-trained model. For better accuracy, use the trained model from best_stage2.h5"
+}
