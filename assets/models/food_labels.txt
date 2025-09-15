@@ -31,11 +31,8 @@ cup_cakes
 deviled_eggs
 donuts
 dumplings
-edamame
 eggs_benedict
 escargots
-falafel
-filet_mignon
 fish_and_chips
 foie_gras
 french_fries
@@ -99,3 +96,6 @@ takoyaki
 tiramisu
 tuna_tartare
 waffles
+beef_wellington
+chicken_parmesan
+lobster_thermidor

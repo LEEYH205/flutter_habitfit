@@ -1151,6 +1151,274 @@ class HealthKitService {
     }
     return 0;
   }
+
+  /// 워치로 운동 데이터 쓰기 (HealthKit에 저장)
+  Future<bool> writeWorkoutToHealthKit({
+    required String workoutType,
+    required DateTime startTime,
+    required DateTime endTime,
+    double? distance, // km
+    double? calories,
+    int? heartRate,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      print('⌚ 워치로 운동 데이터 쓰기 시작');
+      print('📊 운동 타입: $workoutType');
+      print('⏰ 시간: $startTime ~ $endTime');
+      print('📏 거리: ${distance?.toStringAsFixed(2)}km');
+      print('🔥 칼로리: ${calories?.toStringAsFixed(0)}kcal');
+
+      if (!_isInitialized) {
+        final initialized = await initialize();
+        if (!initialized) return false;
+      }
+
+      // HealthKit에 운동 데이터 저장
+      final workoutData = {
+        'workoutType': workoutType,
+        'startTime': startTime.millisecondsSinceEpoch,
+        'endTime': endTime.millisecondsSinceEpoch,
+        'distance': distance,
+        'calories': calories,
+        'heartRate': heartRate,
+        'metadata': metadata ?? {},
+      };
+
+      // HealthKit에 운동 세션 저장
+      final success = await _health.writeHealthData(
+        workoutData,
+        HealthDataType.WORKOUT,
+        startTime,
+        endTime,
+      );
+
+      if (success) {
+        print('✅ 워치에 운동 데이터 저장 성공');
+
+        // 추가 데이터도 저장 (거리, 칼로리, 심박수)
+        if (distance != null) {
+          await _health.writeHealthData(
+            distance * 1000, // km를 m로 변환
+            HealthDataType.DISTANCE_WALKING_RUNNING,
+            startTime,
+            endTime,
+          );
+        }
+
+        if (calories != null) {
+          await _health.writeHealthData(
+            calories,
+            HealthDataType.ACTIVE_ENERGY_BURNED,
+            startTime,
+            endTime,
+          );
+        }
+
+        if (heartRate != null) {
+          await _health.writeHealthData(
+            heartRate,
+            HealthDataType.HEART_RATE,
+            startTime,
+            endTime,
+          );
+        }
+
+        return true;
+      } else {
+        print('❌ 워치에 운동 데이터 저장 실패');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 데이터 쓰기 오류: $e');
+      return false;
+    }
+  }
+
+  /// 워치로 실시간 심박수 데이터 쓰기
+  Future<bool> writeHeartRateToWatch(int heartRate) async {
+    try {
+      print('💓 워치로 실시간 심박수 쓰기: ${heartRate}BPM');
+
+      final now = DateTime.now();
+      final success = await _health.writeHealthData(
+        heartRate,
+        HealthDataType.HEART_RATE,
+        now,
+        now.add(Duration(seconds: 1)),
+      );
+
+      if (success) {
+        print('✅ 워치에 심박수 데이터 저장 성공');
+        return true;
+      } else {
+        print('❌ 워치에 심박수 데이터 저장 실패');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 심박수 쓰기 오류: $e');
+      return false;
+    }
+  }
+
+  /// 워치로 걸음 수 데이터 쓰기
+  Future<bool> writeStepsToWatch(int steps, DateTime timestamp) async {
+    try {
+      print('👟 워치로 걸음 수 쓰기: $steps걸음');
+
+      final success = await _health.writeHealthData(
+        steps,
+        HealthDataType.STEPS,
+        timestamp,
+        timestamp.add(Duration(minutes: 1)),
+      );
+
+      if (success) {
+        print('✅ 워치에 걸음 수 데이터 저장 성공');
+        return true;
+      } else {
+        print('❌ 워치에 걸음 수 데이터 저장 실패');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 걸음 수 쓰기 오류: $e');
+      return false;
+    }
+  }
+
+  /// 워치로 칼로리 데이터 쓰기
+  Future<bool> writeCaloriesToWatch(double calories, DateTime timestamp) async {
+    try {
+      print('🔥 워치로 칼로리 쓰기: ${calories.toStringAsFixed(0)}kcal');
+
+      final success = await _health.writeHealthData(
+        calories,
+        HealthDataType.ACTIVE_ENERGY_BURNED,
+        timestamp,
+        timestamp.add(Duration(minutes: 1)),
+      );
+
+      if (success) {
+        print('✅ 워치에 칼로리 데이터 저장 성공');
+        return true;
+      } else {
+        print('❌ 워치에 칼로리 데이터 저장 실패');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 칼로리 쓰기 오류: $e');
+      return false;
+    }
+  }
+
+  /// 워치 연결 상태 확인
+  Future<bool> checkWatchConnection() async {
+    try {
+      print('⌚ 워치 연결 상태 확인 중...');
+
+      // Apple Watch 감지 상태 확인
+      if (!_appleWatchDetected) {
+        await _detectAppleWatch();
+      }
+
+      if (_appleWatchDetected) {
+        print('✅ Apple Watch 연결됨');
+        return true;
+      } else {
+        print('❌ Apple Watch 연결되지 않음');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 연결 상태 확인 오류: $e');
+      return false;
+    }
+  }
+
+  /// 워치로 운동 시작 알림 전송
+  Future<bool> sendWorkoutStartNotificationToWatch({
+    required String workoutType,
+    required DateTime startTime,
+  }) async {
+    try {
+      print('⌚ 워치로 운동 시작 알림 전송');
+
+      // 워치 연결 확인
+      final isConnected = await checkWatchConnection();
+      if (!isConnected) {
+        print('❌ 워치가 연결되지 않아 알림을 보낼 수 없습니다');
+        return false;
+      }
+
+      // HealthKit에 운동 시작 이벤트 저장
+      final success = await _health.writeHealthData(
+        {
+          'workoutType': workoutType,
+          'startTime': startTime.millisecondsSinceEpoch,
+          'status': 'started',
+        },
+        HealthDataType.WORKOUT,
+        startTime,
+        startTime.add(Duration(seconds: 1)),
+      );
+
+      if (success) {
+        print('✅ 워치에 운동 시작 알림 전송 성공');
+        return true;
+      } else {
+        print('❌ 워치에 운동 시작 알림 전송 실패');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 운동 시작 알림 오류: $e');
+      return false;
+    }
+  }
+
+  /// 워치로 운동 종료 알림 전송
+  Future<bool> sendWorkoutEndNotificationToWatch({
+    required String workoutType,
+    required DateTime endTime,
+    required Duration duration,
+    double? distance,
+    double? calories,
+  }) async {
+    try {
+      print('⌚ 워치로 운동 종료 알림 전송');
+
+      // 워치 연결 확인
+      final isConnected = await checkWatchConnection();
+      if (!isConnected) {
+        print('❌ 워치가 연결되지 않아 알림을 보낼 수 없습니다');
+        return false;
+      }
+
+      // HealthKit에 운동 종료 이벤트 저장
+      final success = await _health.writeHealthData(
+        {
+          'workoutType': workoutType,
+          'endTime': endTime.millisecondsSinceEpoch,
+          'duration': duration.inSeconds,
+          'distance': distance,
+          'calories': calories,
+          'status': 'completed',
+        },
+        HealthDataType.WORKOUT,
+        endTime,
+        endTime.add(Duration(seconds: 1)),
+      );
+
+      if (success) {
+        print('✅ 워치에 운동 종료 알림 전송 성공');
+        return true;
+      } else {
+        print('❌ 워치에 운동 종료 알림 전송 실패');
+        return false;
+      }
+    } catch (e) {
+      print('❌ 워치 운동 종료 알림 오류: $e');
+      return false;
+    }
+  }
 }
 
 /// 운동 데이터 모델

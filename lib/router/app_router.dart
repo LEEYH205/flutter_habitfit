@@ -8,6 +8,10 @@ import '../../features/journal/journal_page.dart';
 import '../../features/insights/insights_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/watch/watch_test_page.dart';
+import '../../features/bug_report/bug_report_page.dart';
+import '../../features/user_level/user_level_page.dart';
+import '../../features/points/points_page.dart';
 import '../../providers/auth_provider.dart';
 
 /// 앱 라우터 설정
@@ -93,6 +97,34 @@ class AppRouter {
             path: '/settings',
             name: 'settings',
             builder: (context, state) => const SettingsPage(),
+          ),
+
+          // Watch 테스트 페이지
+          GoRoute(
+            path: '/watch-test',
+            name: 'watch-test',
+            builder: (context, state) => const WatchTestPage(),
+          ),
+
+          // 버그 리포트 페이지
+          GoRoute(
+            path: '/bug-report',
+            name: 'bug-report',
+            builder: (context, state) => const BugReportPage(),
+          ),
+
+          // 사용자 레벨 페이지
+          GoRoute(
+            path: '/user-level',
+            name: 'user-level',
+            builder: (context, state) => const UserLevelPage(),
+          ),
+
+          // 포인트 페이지
+          GoRoute(
+            path: '/points',
+            name: 'points',
+            builder: (context, state) => const PointsPage(),
           ),
         ],
       ),
@@ -220,6 +252,26 @@ class _MainAppWrapper extends ConsumerWidget {
             path: '/settings',
             name: 'settings',
             builder: (context, state) => const SettingsPage(),
+          ),
+          GoRoute(
+            path: '/watch-test',
+            name: 'watch-test',
+            builder: (context, state) => const WatchTestPage(),
+          ),
+          GoRoute(
+            path: '/bug-report',
+            name: 'bug-report',
+            builder: (context, state) => const BugReportPage(),
+          ),
+          GoRoute(
+            path: '/user-level',
+            name: 'user-level',
+            builder: (context, state) => const UserLevelPage(),
+          ),
+          GoRoute(
+            path: '/points',
+            name: 'points',
+            builder: (context, state) => const PointsPage(),
           ),
         ],
       ),
