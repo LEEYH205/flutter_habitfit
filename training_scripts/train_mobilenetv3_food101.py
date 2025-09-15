@@ -270,11 +270,12 @@ def convert_to_tflite(model, train_ds, class_names, output_dir):
     
     with tempfile.TemporaryDirectory() as temp_dir:
         saved_model_path = os.path.join(temp_dir, "saved_model")
-        model.save(saved_model_path, save_format='tf')
-        print(f"✅ SavedModel 저장됨: {saved_model_path}")
+        # Keras 3 호환: .keras 확장자 사용
+        model.save(saved_model_path + ".keras")
+        print(f"✅ Keras 모델 저장됨: {saved_model_path}.keras")
         
-        # FP16 양자화
-        converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_path)
+        # FP16 양자화 (직접 from_keras_model 사용)
+        converter = tf.lite.TFLiteConverter.from_keras_model(model)
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.target_spec.supported_types = [tf.float16]
         

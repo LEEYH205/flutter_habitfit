@@ -12,7 +12,7 @@ import numpy as np
 def main():
     print('🔄 TensorFlow 2.x 호환 방식으로 TFLite 변환...')
 
-    # Food-101 클래스 이름
+    # Food-101 클래스 이름 (101개) - TFDS 순서
     class_names = [
         'apple_pie', 'baby_back_ribs', 'baklava', 'beef_carpaccio', 'beef_tartare',
         'beet_salad', 'beignets', 'bibimbap', 'bread_pudding', 'breakfast_burrito',
@@ -35,6 +35,9 @@ def main():
         'spring_rolls', 'steak', 'strawberry_shortcake', 'sushi', 'tacos',
         'takoyaki', 'tiramisu', 'tuna_tartare', 'waffles'
     ]
+    
+    # 3개 클래스 추가 (Food-101 완전한 101개)
+    class_names.extend(['beef_wellington', 'chicken_parmesan', 'lobster_thermidor'])
 
     # 1. 간단한 모델 생성 (TFLite 호환)
     print('🏗️ TFLite 호환 모델 생성 중...')
