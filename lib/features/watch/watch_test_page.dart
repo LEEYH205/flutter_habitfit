@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/watch_workout_widget.dart';
+import '../../widgets/watch_app_widget.dart';
 
 /// 워치 연동 테스트 페이지
 class WatchTestPage extends StatefulWidget {
@@ -35,6 +36,46 @@ class _WatchTestPageState extends State<WatchTestPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // Apple Watch 앱 시뮬레이션
+            Container(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text(
+                    'Apple Watch 앱 시뮬레이션',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Center(
+                    child: Builder(
+                      builder: (context) {
+                        print('📱 Watch 테스트 페이지에서 WatchAppWidget 로드 중...');
+                        return WatchAppWidget();
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '위젯을 통해 Apple Watch와의 실시간 통신을 테스트할 수 있습니다.\n'
+                    'Watch 앱이 설치되지 않은 경우 시뮬레이션 모드로 작동합니다.\n\n'
+                    '💡 시뮬레이션 모드에서는 실제 운동 데이터가 생성되어 테스트할 수 있습니다.\n'
+                    '🔄 앱에서 워치로, 워치에서 앱으로 데이터 전송을 시뮬레이션합니다.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+
+            Divider(),
+
             // 워치 연동 위젯
             WatchWorkoutWidget(
               workoutType: _selectedWorkoutType,

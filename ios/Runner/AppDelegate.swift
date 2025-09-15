@@ -3,12 +3,14 @@ import UIKit
 import HealthKit
 import CoreLocation
 import GoogleSignIn
+import WatchConnectivity
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, WCSessionDelegate {
 
   private let healthStore = HKHealthStore()
   private let healthKitRouteManager = HealthKitRouteManager()
+  private var session: WCSession?
   
   override func application(
     _ application: UIApplication,
@@ -32,7 +34,8 @@ import GoogleSignIn
     // 고급 러닝 메트릭을 위한 새로운 채널
     let runningMetricsChannel = FlutterMethodChannel(name: "hk_running", binaryMessenger: controller.binaryMessenger)
     
-
+    // Watch Connectivity 채널
+    let watchConnectivityChannel = FlutterMethodChannel(name: "watch_connectivity", binaryMessenger: controller.binaryMessenger)
     
     // 메서드 호출 처리
     healthKitRouteChannel.setMethodCallHandler { [weak self] call, result in
@@ -42,6 +45,18 @@ import GoogleSignIn
     // 고급 러닝 메트릭 메서드 호출 처리
     runningMetricsChannel.setMethodCallHandler { [weak self] call, result in
       self?.handleRunningMetricsCall(call: call, result: result)
+    }
+    
+    // Watch Connectivity 메서드 호출 처리
+    watchConnectivityChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleWatchConnectivityCall(call: call, result: result)
+    }
+    
+    // Watch Connectivity 초기화
+    if WCSession.isSupported() {
+      session = WCSession.default
+      session?.delegate = self
+      session?.activate()
     }
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -236,6 +251,267 @@ import GoogleSignIn
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+  
+  // MARK: - Watch Connectivity 처리
+  
+  private func handleWatchConnectivityCall(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "initialize":
+      // Watch Connectivity 초기화는 이미 AppDelegate 초기화 시에 완료됨
+      result(true)
+      
+    case "isWatchConnected":
+      result(session?.isReachable ?? false)
+      
+    case "getWatchConnectionState":
+      guard let session = session else { 
+        result("지원되지 않음")
+        return
+      }
+      
+      switch session.activationState {
+      case .activated:
+        result(session.isReachable ? "연결됨" : "연결 안됨")
+      case .inactive:
+        result("비활성화")
+      case .notActivated:
+        result("활성화되지 않음")
+      @unknown default:
+        result("알 수 없음")
+      }
+      
+    case "sendWorkoutDataToWatch":
+      guard let args = call.arguments as? [String: Any],
+            let workoutType = args["workoutType"] as? String,
+            let startTimeMs = args["startTime"] as? Int64,
+            let endTimeMs = args["endTime"] as? Int64,
+            let calories = args["calories"] as? Double,
+            let distance = args["distance"] as? Double,
+            let heartRate = args["heartRate"] as? Double else {
+        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
+        return
+      }
+      
+      let startTime = Date(timeIntervalSince1970: TimeInterval(startTimeMs) / 1000)
+      let endTime = Date(timeIntervalSince1970: TimeInterval(endTimeMs) / 1000)
+      
+      let message: [String: Any] = [
+        "type": "workout_data",
+        "workoutType": workoutType,
+        "startTime": startTime.timeIntervalSince1970,
+        "endTime": endTime.timeIntervalSince1970,
+        "calories": calories,
+        "distance": distance,
+        "heartRate": heartRate
+      ]
+      session?.sendMessage(message, replyHandler: nil, errorHandler: { error in
+        print("❌ Failed to send workout data to watch: \(error.localizedDescription)")
+      })
+      result(true)
+      
+    case "sendRealTimeDataToWatch":
+      guard let args = call.arguments as? [String: Any],
+            let heartRate = args["heartRate"] as? Double,
+            let steps = args["steps"] as? Int,
+            let calories = args["calories"] as? Double else {
+        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
+        return
+      }
+      
+      let message: [String: Any] = [
+        "type": "realtime_data",
+        "heartRate": heartRate,
+        "steps": steps,
+        "calories": calories,
+        "timestamp": Date().timeIntervalSince1970
+      ]
+      session?.sendMessage(message, replyHandler: nil, errorHandler: { error in
+        print("❌ Failed to send real-time data to watch: \(error.localizedDescription)")
+      })
+      result(true)
+      
+    case "sendWorkoutStartToWatch":
+      guard let args = call.arguments as? [String: Any],
+            let workoutType = args["workoutType"] as? String else {
+        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
+        return
+      }
+      
+      let message: [String: Any] = [
+        "type": "workout_start",
+        "workoutType": workoutType,
+        "timestamp": Date().timeIntervalSince1970
+      ]
+      session?.sendMessage(message, replyHandler: nil, errorHandler: { error in
+        print("❌ Failed to send workout start to watch: \(error.localizedDescription)")
+      })
+      result(true)
+      
+    case "sendWorkoutEndToWatch":
+      guard let args = call.arguments as? [String: Any],
+            let workoutType = args["workoutType"] as? String,
+            let duration = args["duration"] as? Int,
+            let calories = args["calories"] as? Double else {
+        result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments", details: nil))
+        return
+      }
+      
+      let message: [String: Any] = [
+        "type": "workout_end",
+        "workoutType": workoutType,
+        "duration": duration,
+        "calories": calories,
+        "timestamp": Date().timeIntervalSince1970
+      ]
+      session?.sendMessage(message, replyHandler: nil, errorHandler: { error in
+        print("❌ Failed to send workout end to watch: \(error.localizedDescription)")
+      })
+      result(true)
+      
+    case "sendWorkoutPauseToWatch":
+      let message: [String: Any] = [
+        "type": "workout_pause",
+        "timestamp": Date().timeIntervalSince1970
+      ]
+      session?.sendMessage(message, replyHandler: nil, errorHandler: { error in
+        print("❌ Failed to send workout pause to watch: \(error.localizedDescription)")
+      })
+      result(true)
+      
+    case "sendWorkoutResumeToWatch":
+      let message: [String: Any] = [
+        "type": "workout_resume",
+        "timestamp": Date().timeIntervalSince1970
+      ]
+      session?.sendMessage(message, replyHandler: nil, errorHandler: { error in
+        print("❌ Failed to send workout resume to watch: \(error.localizedDescription)")
+      })
+      result(true)
+      
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+  
+  // MARK: - WCSessionDelegate
+  
+  func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    if let error = error {
+      print("❌ Watch 연결 활성화 실패: \(error.localizedDescription)")
+    } else {
+      print("✅ Watch 연결 활성화 성공")
+    }
+  }
+  
+  func sessionDidBecomeInactive(_ session: WCSession) {
+    print("⚠️ Watch 세션이 비활성화됨")
+  }
+  
+  func sessionDidDeactivate(_ session: WCSession) {
+    print("⚠️ Watch 세션이 비활성화됨")
+    session.activate()
+  }
+  
+  func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+    DispatchQueue.main.async {
+      self.handleWatchMessage(message)
+    }
+  }
+  
+  private func handleWatchMessage(_ message: [String: Any]) {
+    guard let type = message["type"] as? String else { return }
+    
+    switch type {
+    case "workout_start":
+      handleWorkoutStart(message)
+    case "workout_end":
+      handleWorkoutEnd(message)
+    case "workout_pause":
+      handleWorkoutPause(message)
+    case "workout_resume":
+      handleWorkoutResume(message)
+    case "heart_rate_update":
+      handleHeartRateUpdate(message)
+    case "steps_update":
+      handleStepsUpdate(message)
+    default:
+      print("⚠️ 알 수 없는 Watch 메시지 타입: \(type)")
+    }
+  }
+  
+  private func handleWorkoutStart(_ message: [String: Any]) {
+    guard let workoutType = message["workoutType"] as? String else { return }
+    
+    print("🏃‍♂️ Watch에서 운동 시작: \(workoutType)")
+    
+    // Flutter에 알림 전송
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WatchWorkoutStarted"),
+      object: nil,
+      userInfo: ["workoutType": workoutType]
+    )
+  }
+  
+  private func handleWorkoutEnd(_ message: [String: Any]) {
+    guard let workoutType = message["workoutType"] as? String,
+          let duration = message["duration"] as? Double,
+          let calories = message["calories"] as? Double else { return }
+    
+    print("🏁 Watch에서 운동 종료: \(workoutType), \(duration)초, \(calories)칼로리")
+    
+    // Flutter에 알림 전송
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WatchWorkoutEnded"),
+      object: nil,
+      userInfo: [
+        "workoutType": workoutType,
+        "duration": duration,
+        "calories": calories
+      ]
+    )
+  }
+  
+  private func handleWorkoutPause(_ message: [String: Any]) {
+    print("⏸️ Watch에서 운동 일시정지")
+    
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WatchWorkoutPaused"),
+      object: nil
+    )
+  }
+  
+  private func handleWorkoutResume(_ message: [String: Any]) {
+    print("▶️ Watch에서 운동 재개")
+    
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WatchWorkoutResumed"),
+      object: nil
+    )
+  }
+  
+  private func handleHeartRateUpdate(_ message: [String: Any]) {
+    guard let heartRate = message["heartRate"] as? Double else { return }
+    
+    print("💓 Watch 심박수 업데이트: \(heartRate)BPM")
+    
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WatchHeartRateUpdated"),
+      object: nil,
+      userInfo: ["heartRate": heartRate]
+    )
+  }
+  
+  private func handleStepsUpdate(_ message: [String: Any]) {
+    guard let steps = message["steps"] as? Int else { return }
+    
+    print("👟 Watch 걸음수 업데이트: \(steps)걸음")
+    
+    NotificationCenter.default.post(
+      name: NSNotification.Name("WatchStepsUpdated"),
+      object: nil,
+      userInfo: ["steps": steps]
+    )
   }
   
   

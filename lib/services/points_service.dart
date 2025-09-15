@@ -342,8 +342,8 @@ class PointsService {
         final streak = context['streak'] ?? 1;
         final isFirstTime = context['isFirstTime'] ?? false;
 
-        if (streak > 1) {
-          basePoints += (streak - 1) * 5;
+        if ((streak as int) > 1) {
+          basePoints += ((streak) - 1) * 5;
         }
         if (isFirstTime) {
           basePoints += 20;
@@ -354,8 +354,8 @@ class PointsService {
         final duration = context['duration'] ?? 0;
         final calories = context['calories'] ?? 0.0;
 
-        basePoints += (duration ~/ 10) * 5; // 10분당 5포인트
-        basePoints += (calories ~/ 100) * 10; // 100칼로리당 10포인트
+        basePoints += ((duration as int) ~/ 10) * 5; // 10분당 5포인트
+        basePoints += ((calories as double) ~/ 100) * 10; // 100칼로리당 10포인트
         break;
 
       case PointType.goalAchieved:

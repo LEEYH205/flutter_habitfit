@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder.WatchKit.InterfaceBuilder" version="3.0" toolsVersion="21507" targetRuntime="watchOS" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Agc-eQ-Idu">
+    <device id="watch44" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBPluginWatchKit" version="21507"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--HabitFit Watch App-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <controller identifier="Agc-eQ-Idu" customClass="HabitFitWatchApp" customModule="HabitFitWatchApp" customModuleProvider="target" sceneMemberID="viewController">
+                    <rect key="frame" x="0.0" y="0.0" width="184" height="224"/>
+                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                    <items>
+                        <group layout="vertical" spacing="4" alignment="center" id="Bcu-d3-hBY">
+                            <rect key="frame" x="0.0" y="0.0" width="184" height="224"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <items>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="HabitFit" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="GJd-Yh-Rct">
+                                    <rect key="frame" x="0.0" y="0.0" width="184" height="16"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <fontDescription key="fontDescription" type="system" weight="medium" pointSize="13"/>
+                                    <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="달리기" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="8bC-Xf-3dX">
+                                    <rect key="frame" x="0.0" y="20" width="184" height="16"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <fontDescription key="fontDescription" type="system" weight="medium" pointSize="13"/>
+                                    <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="00:00" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="kIf-cE-rFG">
+                                    <rect key="frame" x="0.0" y="40" width="184" height="24"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <fontDescription key="fontDescription" type="system" weight="medium" pointSize="20"/>
+                                    <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
+                                <group layout="horizontal" spacing="8" alignment="center" id="Lqs-jc-QoQ">
+                                    <rect key="frame" x="0.0" y="68" width="184" height="20"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <items>
+                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="💓 0 BPM" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="MfN-2b-8kK">
+                                            <rect key="frame" x="0.0" y="0.0" width="60" height="20"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                            <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                            <nil key="highlightedColor"/>
+                                        </label>
+                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="👟 0 걸음" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="9dL-3f-4hJ">
+                                            <rect key="frame" x="68" y="0.0" width="60" height="20"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                            <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                            <nil key="highlightedColor"/>
+                                        </label>
+                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="🔥 0 칼로리" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="3kL-7g-9mN">
+                                            <rect key="frame" x="136" y="0.0" width="48" height="20"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                            <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                            <nil key="highlightedColor"/>
+                                        </label>
+                                    </items>
+                                </group>
+                                <group layout="horizontal" spacing="12" alignment="center" id="7tR-5h-2kL">
+                                    <rect key="frame" x="0.0" y="92" width="184" height="44"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <items>
+                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="VfG-8h-3dE">
+                                            <rect key="frame" x="0.0" y="0.0" width="80" height="44"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <state key="normal" title="시작">
+                                                <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                <color key="backgroundColor" red="0.0" green="0.8" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGBColorSpace"/>
+                                            </state>
+                                            <connections>
+                                                <action selector="startStopButtonTapped" destination="Agc-eQ-Idu" id="8xK-9f-2hL"/>
+                                            </connections>
+                                        </button>
+                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="9mN-4k-7pQ">
+                                            <rect key="frame" x="92" y="0.0" width="92" height="44"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <state key="normal" title="일시정지">
+                                                <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                <color key="backgroundColor" red="1" green="0.5" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGBColorSpace"/>
+                                            </state>
+                                            <connections>
+                                                <action selector="pauseResumeButtonTapped" destination="Agc-eQ-Idu" id="2hL-5k-8mN"/>
+                                            </connections>
+                                        </button>
+                                    </items>
+                                </group>
+                            </items>
+                        </group>
+                    </items>
+                    <connections>
+                        <outlet property="workoutTypeLabel" destination="8bC-Xf-3dX" id="workoutTypeLabel"/>
+                        <outlet property="durationLabel" destination="kIf-cE-rFG" id="durationLabel"/>
+                        <outlet property="heartRateLabel" destination="MfN-2b-8kK" id="heartRateLabel"/>
+                        <outlet property="stepsLabel" destination="9dL-3f-4hJ" id="stepsLabel"/>
+                        <outlet property="caloriesLabel" destination="3kL-7g-9mN" id="caloriesLabel"/>
+                        <outlet property="startStopButton" destination="VfG-8h-3dE" id="startStopButton"/>
+                        <outlet property="pauseResumeButton" destination="9mN-4k-7pQ" id="pauseResumeButton"/>
+                    </connections>
+                </controller>
+                <point key="canvasLocation" x="52.173913043478262" y="52.67857142857143"/>
+            </objects>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="AppIcon" width="88" height="88"/>
+    </resources>
+</document>

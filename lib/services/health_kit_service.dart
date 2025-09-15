@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'dart:math';
 import 'healthkit_route_service.dart';
 import 'running_coaching_service.dart' as coaching;
+import 'watch_connectivity_service.dart';
 
 /// HealthKit 연동을 위한 서비스 클래스
 class HealthKitService {
@@ -1187,7 +1188,7 @@ class HealthKitService {
 
       // HealthKit에 운동 세션 저장
       final success = await _health.writeHealthData(
-        workoutData,
+        1.0, // 운동 세션을 나타내는 값
         HealthDataType.WORKOUT,
         startTime,
         endTime,
@@ -1217,7 +1218,7 @@ class HealthKitService {
 
         if (heartRate != null) {
           await _health.writeHealthData(
-            heartRate,
+            heartRate.toDouble(),
             HealthDataType.HEART_RATE,
             startTime,
             endTime,
@@ -1242,7 +1243,7 @@ class HealthKitService {
 
       final now = DateTime.now();
       final success = await _health.writeHealthData(
-        heartRate,
+        heartRate.toDouble(),
         HealthDataType.HEART_RATE,
         now,
         now.add(Duration(seconds: 1)),
@@ -1267,7 +1268,7 @@ class HealthKitService {
       print('👟 워치로 걸음 수 쓰기: $steps걸음');
 
       final success = await _health.writeHealthData(
-        steps,
+        steps.toDouble(),
         HealthDataType.STEPS,
         timestamp,
         timestamp.add(Duration(minutes: 1)),
@@ -1349,17 +1350,9 @@ class HealthKitService {
         return false;
       }
 
-      // HealthKit에 운동 시작 이벤트 저장
-      final success = await _health.writeHealthData(
-        {
-          'workoutType': workoutType,
-          'startTime': startTime.millisecondsSinceEpoch,
-          'status': 'started',
-        },
-        HealthDataType.WORKOUT,
-        startTime,
-        startTime.add(Duration(seconds: 1)),
-      );
+      // Watch Connectivity를 통해 메시지 전송
+      final watchService = WatchConnectivityService();
+      final success = await watchService.sendWorkoutStartToWatch(workoutType);
 
       if (success) {
         print('✅ 워치에 운동 시작 알림 전송 성공');
@@ -1392,19 +1385,12 @@ class HealthKitService {
         return false;
       }
 
-      // HealthKit에 운동 종료 이벤트 저장
-      final success = await _health.writeHealthData(
-        {
-          'workoutType': workoutType,
-          'endTime': endTime.millisecondsSinceEpoch,
-          'duration': duration.inSeconds,
-          'distance': distance,
-          'calories': calories,
-          'status': 'completed',
-        },
-        HealthDataType.WORKOUT,
-        endTime,
-        endTime.add(Duration(seconds: 1)),
+      // Watch Connectivity를 통해 메시지 전송
+      final watchService = WatchConnectivityService();
+      final success = await watchService.sendWorkoutEndToWatch(
+        workoutType: workoutType,
+        duration: duration,
+        calories: calories ?? 0.0,
       );
 
       if (success) {

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:health/health.dart';
 import 'health_kit_service.dart';
 
 /// Apple Watch 연동을 위한 서비스 클래스
@@ -271,15 +272,12 @@ class WatchService {
       print('⏸️ 워치로 운동 일시정지');
 
       // HealthKit에 일시정지 이벤트 저장
-      final success = await _healthKitService.writeHealthData(
-        {
-          'workoutType': _currentWorkoutType,
-          'pauseTime': DateTime.now().millisecondsSinceEpoch,
-          'status': 'paused',
-        },
-        HealthDataType.WORKOUT,
-        DateTime.now(),
-        DateTime.now().add(Duration(seconds: 1)),
+      final success = await _healthKitService.sendWorkoutEndNotificationToWatch(
+        workoutType: _currentWorkoutType ?? 'Unknown',
+        endTime: DateTime.now(),
+        duration: Duration.zero,
+        distance: 0.0,
+        calories: 0.0,
       );
 
       if (success) {
@@ -306,15 +304,10 @@ class WatchService {
       print('▶️ 워치로 운동 재개');
 
       // HealthKit에 재개 이벤트 저장
-      final success = await _healthKitService.writeHealthData(
-        {
-          'workoutType': _currentWorkoutType,
-          'resumeTime': DateTime.now().millisecondsSinceEpoch,
-          'status': 'resumed',
-        },
-        HealthDataType.WORKOUT,
-        DateTime.now(),
-        DateTime.now().add(Duration(seconds: 1)),
+      final success =
+          await _healthKitService.sendWorkoutStartNotificationToWatch(
+        workoutType: _currentWorkoutType ?? 'Unknown',
+        startTime: DateTime.now(),
       );
 
       if (success) {

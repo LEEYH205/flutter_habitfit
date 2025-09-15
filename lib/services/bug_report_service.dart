@@ -332,10 +332,10 @@ class BugReportService {
       final deviceInfo = DeviceInfoPlugin();
 
       if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo();
+        final iosInfo = await deviceInfo.iosInfo;
         return 'iOS ${iosInfo.systemVersion}\n${iosInfo.model}\n${iosInfo.name}';
       } else if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo();
+        final androidInfo = await deviceInfo.androidInfo;
         return 'Android ${androidInfo.version.release}\n${androidInfo.model}\n${androidInfo.brand}';
       } else {
         return 'Unknown Platform';

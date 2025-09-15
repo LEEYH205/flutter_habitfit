@@ -79,7 +79,7 @@ class UserLevelService {
       }
 
       if (metadata != null) {
-        updateData['metadata'] = metadata;
+        updateData['metadata'] = metadata.toString();
       }
 
       await _firestore
