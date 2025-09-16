@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/bug_report_service.dart';
 
 /// 버그 리포트 페이지
@@ -86,7 +87,6 @@ class _BugReportPageState extends State<BugReportPage> {
 
       if (success) {
         _showSuccessDialog();
-        _clearForm();
       } else {
         _showErrorDialog('전송에 실패했습니다. 나중에 다시 시도해주세요.');
       }
@@ -114,10 +114,17 @@ class _BugReportPageState extends State<BugReportPage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(); // 다이얼로그만 닫기
+              _clearForm(); // 폼 초기화
             },
-            child: const Text('확인'),
+            child: const Text('새 보고서 작성'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // 다이얼로그 닫기
+              context.go('/settings'); // 설정 페이지로 직접 이동
+            },
+            child: const Text('완료'),
           ),
         ],
       ),
@@ -195,6 +202,45 @@ class _BugReportPageState extends State<BugReportPage> {
     }
   }
 
+  Widget _buildWebhookStatus() {
+    final isConfigured = _bugReportService.isWebhookConfigured();
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isConfigured ? Colors.green.shade50 : Colors.red.shade50,
+        border: Border.all(
+          color: isConfigured ? Colors.green : Colors.red,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isConfigured ? Icons.check_circle : Icons.error,
+            color: isConfigured ? Colors.green : Colors.red,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              isConfigured
+                  ? '✅ Discord 웹훅 연결됨 - 버그 리포트 시스템 활성화'
+                  : '❌ Discord 웹훅 미설정 - 버그 리포트 시스템 비활성화',
+              style: TextStyle(
+                color:
+                    isConfigured ? Colors.green.shade700 : Colors.red.shade700,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -218,6 +264,9 @@ class _BugReportPageState extends State<BugReportPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 웹훅 상태 표시
+              _buildWebhookStatus(),
+              const SizedBox(height: 16),
               // 보고서 타입 선택
               Card(
                 child: Padding(

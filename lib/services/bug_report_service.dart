@@ -11,8 +11,9 @@ class BugReportService {
   factory BugReportService() => _instance;
   BugReportService._internal();
 
-  // 디스코드 웹훅 URL (실제 사용 시 환경변수로 관리)
-  static const String _discordWebhookUrl = 'YOUR_DISCORD_WEBHOOK_URL_HERE';
+  // 디스코드 웹훅 URL
+  static const String _discordWebhookUrl =
+      'https://discord.com/api/webhooks/1417307825020993566/kM49f32GkLktopMr4dzbHv4q6b17UhxnCgUyavAMRPWSNjqw2BV010w0Js7v4IWqoYGD';
 
   /// 버그 리포트 전송
   Future<bool> sendBugReport({
@@ -347,7 +348,7 @@ class BugReportService {
 
   /// 웹훅 URL 유효성 검사
   bool isWebhookConfigured() {
-    return _discordWebhookUrl != 'YOUR_DISCORD_WEBHOOK_URL_HERE' &&
+    return _discordWebhookUrl.contains('discord.com/api/webhooks') &&
         _discordWebhookUrl.isNotEmpty;
   }
 
