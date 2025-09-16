@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'config_service.dart';
 
 /// 디스코드 웹훅을 통한 버그 리포트 서비스
 class BugReportService {
@@ -11,9 +12,13 @@ class BugReportService {
   factory BugReportService() => _instance;
   BugReportService._internal();
 
-  // 디스코드 웹훅 URL
-  static const String _discordWebhookUrl =
-      'https://discord.com/api/webhooks/1417307825020993566/kM49f32GkLktopMr4dzbHv4q6b17UhxnCgUyavAMRPWSNjqw2BV010w0Js7v4IWqoYGD';
+  // 디스코드 웹훅 URL을 동적으로 가져오는 메서드
+  static String get _discordWebhookUrl => _getDiscordWebhookUrl();
+
+  // 웹훅 URL을 안전하게 가져오는 메서드
+  static String _getDiscordWebhookUrl() {
+    return ConfigService.getDiscordWebhookUrl();
+  }
 
   /// 버그 리포트 전송
   Future<bool> sendBugReport({
@@ -348,8 +353,7 @@ class BugReportService {
 
   /// 웹훅 URL 유효성 검사
   bool isWebhookConfigured() {
-    return _discordWebhookUrl.contains('discord.com/api/webhooks') &&
-        _discordWebhookUrl.isNotEmpty;
+    return ConfigService.isWebhookConfigured();
   }
 
   /// 테스트 메시지 전송

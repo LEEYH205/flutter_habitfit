@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:intl/date_symbol_data_local.dart';
+import 'services/config_service.dart';
 
 import 'firebase_options.dart';
 import 'app.dart';
@@ -30,6 +31,9 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // 앱 설정 초기화
+  await ConfigService.initialize();
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
