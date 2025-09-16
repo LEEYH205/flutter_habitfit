@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 /// 랭킹 타입
 enum RankingType {
@@ -78,7 +79,7 @@ class UserRanking {
   /// 이전 기간 대비 변화량을 사용자 친화적 형태로 포맷
   String get formattedScoreChange {
     if (scoreChange == 0) return '변화 없음';
-    
+
     final prefix = scoreChange > 0 ? '+' : '';
     switch (category) {
       case RankingCategory.totalPoints:
@@ -226,8 +227,9 @@ class RankingStats {
           ? UserRanking.fromMap(map['currentUserRanking'])
           : null,
       topRankings: (map['topRankings'] as List<dynamic>?)
-          ?.map((rankingMap) => UserRanking.fromMap(rankingMap))
-          .toList() ?? [],
+              ?.map((rankingMap) => UserRanking.fromMap(rankingMap))
+              .toList() ??
+          [],
       lastUpdated: _parseDateTime(map['lastUpdated']),
     );
   }
@@ -350,7 +352,7 @@ class Club {
 
   int get memberCount => memberIds.length;
   bool get isFull => memberCount >= maxMembers;
-  
+
   bool isOwner(String userId) => ownerId == userId;
   bool isAdmin(String userId) => adminIds.contains(userId) || isOwner(userId);
   bool isMember(String userId) => memberIds.contains(userId);
@@ -517,5 +519,3 @@ enum ClubMemberRole {
   final String displayName;
   final String value;
 }
-
-import 'package:flutter/material.dart';

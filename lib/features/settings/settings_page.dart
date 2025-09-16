@@ -19,6 +19,7 @@ import 'goal_settings_page.dart';
 import 'notification_settings_page.dart';
 import 'advanced_goal_settings_page.dart';
 import '../running_coach/running_coach_page.dart';
+import '../ranking/ranking_page.dart';
 import '../watch/watch_test_page.dart';
 import '../bug_report/bug_report_page.dart';
 import '../points/points_page.dart';
@@ -396,6 +397,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 // 러닝 코치 섹션
                 _buildSectionHeader('🏃‍♂️ 러닝 코치'),
                 _buildRunningCoachCard(),
+
+                const SizedBox(height: 24),
+
+                // 랭킹 섹션
+                _buildSectionHeader('🏆 랭킹 & 친구'),
+                _buildRankingCard(),
 
                 const SizedBox(height: 24),
 
@@ -1578,6 +1585,143 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildCoachFeature(IconData icon, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRankingCard() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.purple.shade600, Colors.purple.shade400],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const RankingPage(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.leaderboard,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '랭킹 & 친구',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            '친구들과 함께 경쟁하세요',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _buildRankingFeature(Icons.emoji_events, '주간/월간'),
+                    const SizedBox(width: 20),
+                    _buildRankingFeature(Icons.people, '친구 랭킹'),
+                    const SizedBox(width: 20),
+                    _buildRankingFeature(Icons.group, '클럽 기능'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.white, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '포인트, 습관 완성률, 러닝 거리 등 다양한 카테고리별 랭킹',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRankingFeature(IconData icon, String label) {
     return Column(
       children: [
         Icon(icon, color: Colors.white, size: 20),
