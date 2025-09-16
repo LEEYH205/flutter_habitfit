@@ -7,6 +7,10 @@ import '../../services/analytics_service.dart';
 import '../../widgets/app_bar_with_notifications.dart';
 import '../../services/recommendation_service.dart';
 import '../../services/user_cleanup_service.dart';
+import '../../services/habit_service.dart';
+import '../../models/habit.dart';
+import '../../services/cache_service.dart';
+import '../../providers/today_summary_provider.dart';
 import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
 import 'notification_settings_page.dart';
@@ -29,6 +33,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // 사용자 정보
   User? _currentUser;
+
+  // 서비스
+  final HabitService _habitService = HabitService();
+  bool _isAddingHabit = false;
+  final Set<String> _addingHabits = <String>{}; // 추가 중인 습관 제목들
 
   // 알림 설정
   bool _workoutNotificationsEnabled = true;
@@ -767,59 +776,78 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 12),
             ..._habitSuggestions.take(3).map((suggestion) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.purple.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.purple.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      suggestion.emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            suggestion.title,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Text(
-                            suggestion.description,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+              return InkWell(
+                onTap: () => _addSuggestedHabit(suggestion),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.purple.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        suggestion.emoji,
+                        style: const TextStyle(fontSize: 24),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${(suggestion.relevanceScore * 100).toInt()}%',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.purple.withOpacity(0.7),
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              suggestion.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              suggestion.description,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${(suggestion.relevanceScore * 100).toInt()}%',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.purple.withOpacity(0.7),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _isAddingHabit
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.purple.shade400,
+                              ),
+                            )
+                          : Icon(
+                              Icons.add_circle_outline,
+                              color: Colors.purple.shade400,
+                              size: 20,
+                            ),
+                    ],
+                  ),
                 ),
               );
             }),
@@ -1380,5 +1408,97 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
     );
+  }
+
+  /// 제안된 습관을 실제 습관으로 추가
+  Future<void> _addSuggestedHabit(HabitSuggestion suggestion) async {
+    if (_currentUser == null ||
+        _isAddingHabit ||
+        _addingHabits.contains(suggestion.title)) return;
+
+    // 중복 추가 방지 (이중 체크)
+    setState(() {
+      _isAddingHabit = true;
+      _addingHabits.add(suggestion.title);
+    });
+
+    try {
+      // 습관 추가 (HabitService의 addHabit 메서드 사용)
+      final habitId = await _habitService.addHabit(
+        title: suggestion.title,
+        description: suggestion.description,
+        emoji: suggestion.emoji,
+      );
+
+      if (habitId == null) {
+        throw Exception('습관 추가에 실패했습니다.');
+      }
+
+      // 성공 스낵바 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('${suggestion.emoji} ${suggestion.title} 습관이 추가되었습니다!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: '확인',
+              textColor: Colors.white,
+              onPressed: () {
+                // 스낵바 닫기
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
+          ),
+        );
+      }
+
+      // 습관 제안 목록에서 제거 (중복 추가 방지)
+      if (mounted) {
+        setState(() {
+          _habitSuggestions.removeWhere((s) => s.title == suggestion.title);
+        });
+      }
+
+      // Today 페이지 캐시 무효화 (습관 개수 업데이트를 위해)
+      _invalidateTodayCache();
+    } catch (e) {
+      // 에러 스낵바 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('습관 추가 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      print('❌ 제안된 습관 추가 실패: $e');
+    } finally {
+      // 작업 완료 후 플래그 리셋
+      if (mounted) {
+        setState(() {
+          _isAddingHabit = false;
+          _addingHabits.remove(suggestion.title);
+        });
+      }
+    }
+  }
+
+  /// Today 페이지 캐시 무효화 (습관 개수 업데이트를 위해)
+  void _invalidateTodayCache() {
+    try {
+      // 캐시 서비스에서 Today 요약 캐시 제거
+      CacheService.removeCache(CacheKeys.todaySummary);
+
+      // Riverpod provider 무효화
+      ref.invalidate(todaySummaryProvider);
+
+      print('✅ Today 캐시 무효화 완료');
+    } catch (e) {
+      print('❌ Today 캐시 무효화 실패: $e');
+    }
   }
 }

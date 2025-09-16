@@ -204,6 +204,11 @@ class _HabitPageState extends ConsumerState<HabitPage> {
       final success = await _habitService.deleteHabit(habit.id);
       if (success) {
         await _loadHabitData(); // 데이터 새로고침
+
+        // Today 페이지 캐시 무효화 (습관 개수 업데이트를 위해)
+        CacheService.removeCache(CacheKeys.todaySummary);
+        ref.invalidate(todaySummaryProvider);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

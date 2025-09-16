@@ -28,7 +28,7 @@ class KpiRing extends StatelessWidget {
     String? subtitle,
   }) {
     return KpiRing(
-      title: '움직이기 칼로리',
+      title: '움직이기',
       value: value,
       progress: progress,
       color: Colors.red,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'analytics_service.dart';
+import 'habit_service.dart';
 
 /// 목표 조정 제안 모델
 class GoalAdjustment {
@@ -45,6 +46,7 @@ class RecommendationService {
   RecommendationService._internal();
 
   final AnalyticsService _analyticsService = AnalyticsService();
+  final HabitService _habitService = HabitService();
 
   /// 최적 시간 추천
   Future<TimeOfDay?> recommendOptimalTime(String uid, String habitType) async {
@@ -176,8 +178,14 @@ class RecommendationService {
       final pattern = await _analyticsService.getUserPattern(uid);
       if (pattern == null) {
         print('⚠️ 사용자 패턴 데이터 없음');
-        return _getDefaultHabitSuggestions();
+        return await _filterExistingHabits(uid, _getDefaultHabitSuggestions());
       }
+
+      // 기존 습관 목록 가져오기 (중복 방지용)
+      final existingHabits = await _habitService.getUserHabits();
+      final existingTitles =
+          existingHabits.map((h) => h.title.toLowerCase()).toSet();
+      print('🔍 기존 습관 ${existingHabits.length}개: ${existingTitles.join(', ')}');
 
       final suggestions = <HabitSuggestion>[];
 
@@ -226,14 +234,55 @@ class RecommendationService {
       // 기본 추천 습관들 추가
       suggestions.addAll(_getDefaultHabitSuggestions());
 
-      // 관련성 점수 순으로 정렬
-      suggestions.sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
+      // 기존 습관과 중복되지 않는 제안만 필터링
+      final filteredSuggestions = suggestions.where((suggestion) {
+        final suggestionTitle = suggestion.title.toLowerCase();
+        final isDuplicate = existingTitles.any((existingTitle) {
+          // 완전 일치 또는 유사한 제목 체크
+          return existingTitle == suggestionTitle ||
+              existingTitle.contains(suggestionTitle.split(' ').first) ||
+              suggestionTitle.contains(existingTitle.split(' ').first);
+        });
+        return !isDuplicate;
+      }).toList();
 
-      print('✅ 새로운 습관 추천 완료: ${suggestions.length}개');
-      return suggestions.take(5).toList(); // 상위 5개만 반환
+      // 관련성 점수 순으로 정렬
+      filteredSuggestions
+          .sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
+
+      print(
+          '✅ 새로운 습관 추천 완료: 전체 ${suggestions.length}개 → 필터링 후 ${filteredSuggestions.length}개');
+      return filteredSuggestions.take(5).toList(); // 상위 5개만 반환
     } catch (e) {
       print('❌ 새로운 습관 추천 실패: $e');
-      return _getDefaultHabitSuggestions();
+      return await _filterExistingHabits(uid, _getDefaultHabitSuggestions());
+    }
+  }
+
+  /// 기존 습관과 중복되지 않는 제안만 필터링
+  Future<List<HabitSuggestion>> _filterExistingHabits(
+      String uid, List<HabitSuggestion> suggestions) async {
+    try {
+      final existingHabits = await _habitService.getUserHabits();
+      final existingTitles =
+          existingHabits.map((h) => h.title.toLowerCase()).toSet();
+
+      final filteredSuggestions = suggestions.where((suggestion) {
+        final suggestionTitle = suggestion.title.toLowerCase();
+        final isDuplicate = existingTitles.any((existingTitle) {
+          return existingTitle == suggestionTitle ||
+              existingTitle.contains(suggestionTitle.split(' ').first) ||
+              suggestionTitle.contains(existingTitle.split(' ').first);
+        });
+        return !isDuplicate;
+      }).toList();
+
+      print(
+          '🔍 중복 필터링: 전체 ${suggestions.length}개 → 필터링 후 ${filteredSuggestions.length}개');
+      return filteredSuggestions;
+    } catch (e) {
+      print('❌ 중복 필터링 실패: $e');
+      return suggestions; // 실패 시 원본 반환
     }
   }
 
