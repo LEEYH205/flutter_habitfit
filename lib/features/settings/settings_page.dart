@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../services/analytics_service.dart';
 import '../../widgets/app_bar_with_notifications.dart';
@@ -1443,11 +1444,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
             action: SnackBarAction(
-              label: '확인',
+              label: '습관 보기',
               textColor: Colors.white,
               onPressed: () {
                 // 스낵바 닫기
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                // Today 페이지로 이동하면서 습관 섹션으로 스크롤
+                context.go('/today?action=habits');
               },
             ),
           ),
