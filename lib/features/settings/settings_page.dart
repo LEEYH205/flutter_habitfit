@@ -18,6 +18,7 @@ import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
 import 'notification_settings_page.dart';
 import 'advanced_goal_settings_page.dart';
+import '../running_coach/running_coach_page.dart';
 import '../watch/watch_test_page.dart';
 import '../bug_report/bug_report_page.dart';
 import '../points/points_page.dart';
@@ -389,6 +390,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   },
                   child: _buildAdvancedNotificationCard(),
                 ),
+
+                const SizedBox(height: 24),
+
+                // 러닝 코치 섹션
+                _buildSectionHeader('🏃‍♂️ 러닝 코치'),
+                _buildRunningCoachCard(),
 
                 const SizedBox(height: 24),
 
@@ -1450,6 +1457,143 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   /// 안전한 습관 페이지 네비게이션
+  Widget _buildRunningCoachCard() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade600, Colors.blue.shade400],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const RunningCoachPage(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.directions_run,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '러닝 개인 코치',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'AI 기반 맞춤형 훈련 계획',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _buildCoachFeature(Icons.event, '이벤트 목표'),
+                    const SizedBox(width: 20),
+                    _buildCoachFeature(Icons.schedule, '체계적 계획'),
+                    const SizedBox(width: 20),
+                    _buildCoachFeature(Icons.analytics, '진도 분석'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.white, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '기초체력, 존2, LSD, VO2 Max 등 체계적인 훈련 프로그램',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoachFeature(IconData icon, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _navigateToHabitsSafely() {
     try {
       // 먼저 스낵바 닫기 (현재 context가 유효한 동안)
