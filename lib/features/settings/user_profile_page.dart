@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart' as auth;
 import '../../services/cache_service.dart';
 
@@ -65,7 +66,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop();
+          // 로그인 페이지로 이동
+          context.go('/login');
         }
       } catch (e) {
         if (mounted) {
@@ -112,7 +114,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop();
+          // 로그인 페이지로 이동
+          context.go('/login');
         }
       } catch (e) {
         if (mounted) {
