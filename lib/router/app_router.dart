@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart' as provider;
-import 'package:provider/provider.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/today/today_page.dart';
 import '../../features/journal/journal_page.dart';
@@ -11,9 +10,8 @@ import '../../features/settings/settings_page.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/watch/watch_test_page.dart';
 import '../../features/bug_report/bug_report_page.dart';
-import '../../features/user_level/user_level_page.dart';
+import '../../features/user_level/user_membership_page.dart';
 import '../../features/points/points_page.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/auth_provider.dart' as auth;
 
 /// 탭 인덱스 관리 (간단한 방향성 계산용)
@@ -259,7 +257,7 @@ class AppRouter {
           GoRoute(
             path: '/user-level',
             name: 'user-level',
-            builder: (context, state) => const UserLevelPage(),
+            builder: (context, state) => const UserMembershipPage(),
           ),
 
           // 포인트 페이지
@@ -277,7 +275,7 @@ class AppRouter {
       // AuthProvider가 아직 초기화되지 않은 경우 로딩 상태 유지
       try {
         final authProvider =
-            provider.Provider.of<AuthProvider>(context, listen: false);
+            provider.Provider.of<auth.AuthProvider>(context, listen: false);
 
         // 로딩 중인 경우 리다이렉트하지 않음
         if (authProvider.isLoading) {
@@ -507,7 +505,7 @@ class _MainAppWrapper extends ConsumerWidget {
           GoRoute(
             path: '/user-level',
             name: 'user-level',
-            builder: (context, state) => const UserLevelPage(),
+            builder: (context, state) => const UserMembershipPage(),
           ),
           GoRoute(
             path: '/points',

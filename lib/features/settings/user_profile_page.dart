@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart' as auth;
 import '../../services/cache_service.dart';
 import '../../router/app_router.dart';
+import '../../widgets/app_bar_with_notifications.dart';
+import '../user_level/user_membership_page.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -156,16 +157,34 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('👤 사용자 프로필'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+      appBar: const AppBarWithNotifications(
+        title: '👤 사용자 프로필',
+        showProfile: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 24),
+
+            // 멤버십 섹션
+            _buildSectionHeader('👑 멤버십'),
+            _buildSettingTile(
+              icon: Icons.account_circle,
+              title: '멤버십',
+              subtitle: '현재 레벨 확인 및 프리미엄 업그레이드',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const UserMembershipPage(),
+                  ),
+                );
+              },
+              textColor: Colors.purple,
+            ),
+
             const SizedBox(height: 24),
 
             // 계정 설정 섹션

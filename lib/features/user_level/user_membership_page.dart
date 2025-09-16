@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_level.dart';
 import '../../services/user_level_service.dart';
+import '../../widgets/app_bar_with_notifications.dart';
 
-/// 사용자 레벨 페이지
-class UserLevelPage extends ConsumerStatefulWidget {
-  const UserLevelPage({super.key});
+/// 멤버십 페이지
+class UserMembershipPage extends ConsumerStatefulWidget {
+  const UserMembershipPage({super.key});
 
   @override
-  ConsumerState<UserLevelPage> createState() => _UserLevelPageState();
+  ConsumerState<UserMembershipPage> createState() => _UserMembershipPageState();
 }
 
-class _UserLevelPageState extends ConsumerState<UserLevelPage> {
+class _UserMembershipPageState extends ConsumerState<UserMembershipPage> {
   final UserLevelService _userLevelService = UserLevelService();
 
   UserLevel? _userLevel;
@@ -45,10 +46,10 @@ class _UserLevelPageState extends ConsumerState<UserLevelPage> {
         });
       }
     } catch (e) {
-      print('❌ 사용자 레벨 로드 오류: $e');
+      print('❌ 멤버십 로드 오류: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('사용자 레벨을 불러오는데 실패했습니다: $e'),
+          content: Text('멤버십 정보를 불러오는데 실패했습니다: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -140,6 +141,10 @@ class _UserLevelPageState extends ConsumerState<UserLevelPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
+        appBar: AppBarWithNotifications(
+          title: '👑 멤버십',
+          showProfile: false,
+        ),
         body: Center(
           child: CircularProgressIndicator(),
         ),
@@ -147,61 +152,55 @@ class _UserLevelPageState extends ConsumerState<UserLevelPage> {
     }
 
     if (_userLevel == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('사용자 레벨'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
+      return const Scaffold(
+        appBar: AppBarWithNotifications(
+          title: '👑 멤버십',
+          showProfile: false,
         ),
-        body: const Center(
-          child: Text('사용자 레벨 정보를 불러올 수 없습니다.'),
+        body: Center(
+          child: Text('멤버십 정보를 불러올 수 없습니다.'),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('👤 사용자 레벨'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        leading: const Icon(Icons.account_circle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadUserLevel,
-            tooltip: '새로고침',
-          ),
-        ],
+      appBar: const AppBarWithNotifications(
+        title: '👑 멤버십',
+        showProfile: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 현재 레벨 카드
-            _buildCurrentLevelCard(),
+      body: RefreshIndicator(
+        onRefresh: _loadUserLevel,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 현재 레벨 카드
+              _buildCurrentLevelCard(),
 
-            const SizedBox(height: 16),
-
-            // 혜택 및 제한사항
-            _buildBenefitsAndLimitationsCard(),
-
-            const SizedBox(height: 16),
-
-            // 업그레이드 옵션
-            if (_upgradeOptions.isNotEmpty) ...[
-              _buildUpgradeOptionsSection(),
               const SizedBox(height: 16),
+
+              // 혜택 및 제한사항
+              _buildBenefitsAndLimitationsCard(),
+
+              const SizedBox(height: 16),
+
+              // 업그레이드 옵션
+              if (_upgradeOptions.isNotEmpty) ...[
+                _buildUpgradeOptionsSection(),
+                const SizedBox(height: 16),
+              ],
+
+              // 레벨 통계
+              _buildStatsCard(),
+
+              const SizedBox(height: 16),
+
+              // 레벨 정보 안내
+              _buildLevelInfoCard(),
             ],
-
-            // 레벨 통계
-            _buildStatsCard(),
-
-            const SizedBox(height: 16),
-
-            // 레벨 정보 안내
-            _buildLevelInfoCard(),
-          ],
+          ),
         ),
       ),
     );
@@ -545,7 +544,7 @@ class _UserLevelPageState extends ConsumerState<UserLevelPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '레벨 통계',
+              '멤버십 통계',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -608,7 +607,7 @@ class _UserLevelPageState extends ConsumerState<UserLevelPage> {
                 Icon(Icons.info, color: Colors.blue),
                 SizedBox(width: 8),
                 Text(
-                  '레벨 안내',
+                  '멤버십 안내',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,
