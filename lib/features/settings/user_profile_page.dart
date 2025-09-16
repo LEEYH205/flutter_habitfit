@@ -173,7 +173,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             _buildSettingTile(
               icon: Icons.account_circle,
               title: '멤버십',
-              subtitle: '현재 레벨 확인 및 프리미엄 업그레이드',
+              subtitle: '멤버십 가입',
               onTap: () {
                 Navigator.push(
                   context,

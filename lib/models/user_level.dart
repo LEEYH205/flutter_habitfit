@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// 사용자 레벨 타입
 enum UserLevelType {
   free('무료', 'free', 0),
-  premium('유료개월', 'premium', 1),
+  premium('멤버십', 'premium', 1),
   coach('코치', 'coach', 2),
   admin('관리자', 'admin', 3);
 
