@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:health/health.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../common/services/fcm_service.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../common/services/remote_config_service.dart';
@@ -135,11 +136,22 @@ class _SplashScreenState extends State<SplashScreen>
         _progress = 1.0;
       });
 
-      // 잠시 대기 후 메인 앱으로 전환
+      // 잠시 대기 후 인증 상태 확인하여 적절한 화면으로 전환
       await Future.delayed(const Duration(seconds: 1));
 
       if (mounted) {
-        context.go('/main');
+        // Firebase Auth 상태 확인
+        final currentUser = FirebaseAuth.instance.currentUser;
+
+        if (currentUser != null) {
+          print('✅ 로그인된 사용자 감지: ${currentUser.email}');
+          print('🏠 메인 화면으로 이동');
+          context.go('/main');
+        } else {
+          print('❌ 로그인되지 않은 상태');
+          print('🔐 로그인 화면으로 이동');
+          context.go('/login');
+        }
       }
     } catch (e) {
       print('❌ 앱 초기화 실패: $e');

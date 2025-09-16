@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart' as provider;
+import 'package:provider/provider.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/today/today_page.dart';
 import '../../features/journal/journal_page.dart';
@@ -13,6 +14,7 @@ import '../../features/bug_report/bug_report_page.dart';
 import '../../features/user_level/user_level_page.dart';
 import '../../features/points/points_page.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider.dart' as auth;
 
 /// 탭 인덱스 관리 (간단한 방향성 계산용)
 class _TabManager {

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
+import '../services/cache_service.dart';
 
 /// 인증 상태를 관리하는 Provider
 class AuthProvider extends ChangeNotifier {
@@ -29,6 +31,9 @@ class AuthProvider extends ChangeNotifier {
   void _init() {
     _isLoading = true;
     notifyListeners();
+
+    // 개발 모드에서 자동 로그아웃 옵션 (개발 편의용)
+    _checkDebugModeAutoSignOut();
 
     // Firebase Auth 상태 변경 감지
     _authService.user.listen((User? user) {
@@ -121,6 +126,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> signOut() async {
     try {
       _setLoading(true);
+
+      // 캐시 먼저 정리
+      await CacheService.clearAllCache();
+      print('🗑️ 로그아웃 시 모든 캐시 정리 완료');
+
       await _authService.signOut();
       _clearError();
       return true;
@@ -166,6 +176,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> deleteAccount() async {
     try {
       _setLoading(true);
+
+      // 캐시 먼저 정리
+      await CacheService.clearAllCache();
+      print('🗑️ 계정 삭제 시 모든 캐시 정리 완료');
+
       await _authService.deleteAccount();
       _clearError();
       return true;
@@ -254,6 +269,29 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// 개발 모드에서 자동 로그아웃 확인 (개발 편의용)
+  void _checkDebugModeAutoSignOut() {
+    // 개발 모드가 아니면 무시
+    if (!kDebugMode) return;
+
+    // 환경변수나 설정으로 자동 로그아웃 여부 결정
+    // 기본값: true (앱 재설치 테스트를 위해 임시로 활성화)
+    const bool autoSignOutInDebug = false; // 이 값을 false로 변경하면 개발 모드에서 로그인 상태 유지
+
+    if (autoSignOutInDebug && _authService.currentUser != null) {
+      print('🔧 개발 모드: 자동 로그아웃 실행');
+      Future.microtask(() async {
+        await CacheService.clearAllCache();
+        await _authService.signOut();
+        print('✅ 개발 모드: 자동 로그아웃 완료');
+      });
+    } else if (kDebugMode && _authService.currentUser != null) {
+      print('🔧 개발 모드: 로그인 상태 유지됨 (${_authService.currentUser?.email})');
+      print(
+          '💡 자동 로그아웃을 원하면 AuthProvider._checkDebugModeAutoSignOut()에서 autoSignOutInDebug를 true로 변경하세요');
+    }
   }
 }
 

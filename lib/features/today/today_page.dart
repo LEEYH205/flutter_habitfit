@@ -7,6 +7,7 @@ import '../../widgets/common/mini_spark.dart';
 import '../../providers/today_summary_provider.dart';
 import '../../providers/user_goals_provider.dart';
 import '../../usecases/coach_usecase.dart';
+import '../../services/cache_service.dart';
 import '../habit/habit_page.dart';
 import '../workout/workout_page.dart';
 import '../meals/meal_page.dart';
@@ -33,10 +34,13 @@ class _TodayPageState extends ConsumerState<TodayPage>
       });
     }
 
-    // 디버깅: 페이지 로드 시 provider 새로고침
+    // 페이지 로드 시 provider 새로고침 및 캐시 확인
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('🚀 Today 페이지 로드됨 - provider 새로고침 트리거');
-      ref.invalidate(todaySummaryProvider);
+
+      // 캐시가 비어있거나 오래된 경우 강제 새로고침
+      _checkAndRefreshIfNeeded();
+
       // 프로필 사진 로드를 위한 추가 대기
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -655,5 +659,28 @@ class _TodayPageState extends ConsumerState<TodayPage>
       'DEC'
     ];
     return months[month - 1];
+  }
+
+  /// 캐시 상태 확인 및 필요시 강제 새로고침
+  Future<void> _checkAndRefreshIfNeeded() async {
+    try {
+      // TodaySummary 캐시 상태 확인
+      final hasValidCache =
+          await CacheService.hasValidCache(CacheKeys.todaySummary);
+
+      if (!hasValidCache) {
+        print('🔄 Today 캐시가 없거나 만료됨 - 강제 새로고침');
+        // 캐시 삭제 후 provider 무효화
+        await CacheService.removeCache(CacheKeys.todaySummary);
+        ref.invalidate(todaySummaryProvider);
+      } else {
+        print('✅ Today 캐시 유효함 - 일반 새로고침');
+        ref.invalidate(todaySummaryProvider);
+      }
+    } catch (e) {
+      print('❌ 캐시 확인 실패: $e - 강제 새로고침');
+      await CacheService.removeCache(CacheKeys.todaySummary);
+      ref.invalidate(todaySummaryProvider);
+    }
   }
 }

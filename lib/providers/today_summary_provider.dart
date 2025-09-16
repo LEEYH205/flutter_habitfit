@@ -88,17 +88,37 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
     return summary;
   } catch (e) {
     print('❌ Today 요약 데이터 로드 실패: $e');
-    print('🔄 HealthKit 데이터로 fallback 시도...');
+    print('🔄 재시도 및 HealthKit 데이터로 fallback 시도...');
 
+    // 먼저 Firebase 재시도 (단순화된 쿼리로)
     try {
+      print('🔄 Firebase 단순화된 쿼리로 재시도...');
+
+      // 사용자의 총 활성 습관 개수만 다시 시도
+      final totalHabitsQuery = await FirebaseFirestore.instance
+          .collection('user_habits')
+          .where('uid', isEqualTo: user.uid)
+          .where('isActive', isEqualTo: true)
+          .get()
+          .timeout(const Duration(seconds: 3));
+
+      // 오늘의 습관 완료 데이터만 다시 시도
+      final habitsQuery = await FirebaseFirestore.instance
+          .collection('habit_completions')
+          .where('uid', isEqualTo: user.uid)
+          .where('done', isEqualTo: true)
+          .where('date', isEqualTo: dateId)
+          .get()
+          .timeout(const Duration(seconds: 3));
+
       // HealthKit에서 오늘의 데이터 가져오기
       final runningData = await _getTodayRunningData(today);
 
-      // HealthKit 데이터를 기반으로 TodaySummary 생성
+      // 재시도 성공 시 정상 데이터로 TodaySummary 생성
       final summary = TodaySummary(
         date: today,
-        completedHabits: 0, // Firebase 연결 실패 시 0
-        totalHabits: 0, // Firebase 연결 실패 시 0
+        completedHabits: habitsQuery.docs.length,
+        totalHabits: totalHabitsQuery.docs.length,
         completedWorkouts: runningData['workoutCount'] ?? 0,
         runningDistance: runningData['distance'] ?? 0.0,
         runningDuration: runningData['duration'] ?? 0,
@@ -107,31 +127,65 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
         steps: _getTodaySteps(), // TODO: HealthKit 연동 시 실제 데이터
         activeCalories: runningData['activeCalories'] ?? 0.0,
         exerciseMinutes: runningData['exerciseMinutes'] ?? 0,
-        habitCompletionRate: 0.0, // Firebase 연결 실패 시 0
+        habitCompletionRate: totalHabitsQuery.docs.isNotEmpty
+            ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
+            : 0.0,
       );
 
-      print('✅ HealthKit 데이터로 Today 요약 생성 완료');
-      return summary;
-    } catch (healthKitError) {
-      print('❌ HealthKit 데이터 로드도 실패: $healthKitError');
+      print(
+          '✅ Firebase 재시도 성공: 습관 ${habitsQuery.docs.length}/${totalHabitsQuery.docs.length}');
 
-      // 모든 데이터 로드 실패 시 기본값 반환
-      final summary = TodaySummary(
-        date: today,
-        completedHabits: 0,
-        totalHabits: 0,
-        completedWorkouts: 0,
-        runningDistance: 0.0,
-        runningDuration: 0,
-        calories: 0.0,
-        protein: 0.0,
-        steps: 0,
-        activeCalories: 0.0,
-        exerciseMinutes: 0,
-        habitCompletionRate: 0.0,
-      );
+      // 캐시에 저장 (짧은 시간으로 설정)
+      await CacheService.setCache(cacheKey, summary, expiry: CacheExpiry.short);
 
       return summary;
+    } catch (retryError) {
+      print('❌ Firebase 재시도도 실패: $retryError');
+
+      try {
+        // HealthKit에서 오늘의 데이터 가져오기
+        final runningData = await _getTodayRunningData(today);
+
+        // HealthKit 데이터를 기반으로 TodaySummary 생성 (더 나은 기본값 사용)
+        final summary = TodaySummary(
+          date: today,
+          completedHabits: 0, // Firebase 연결 실패 시 0
+          totalHabits: 1, // 0/0 대신 0/1로 표시하여 의미있는 정보 제공
+          completedWorkouts: runningData['workoutCount'] ?? 0,
+          runningDistance: runningData['distance'] ?? 0.0,
+          runningDuration: runningData['duration'] ?? 0,
+          calories: runningData['calories'] ?? 0.0,
+          protein: 0.0, // TODO: 식사 데이터 연동 시 실제 계산
+          steps: _getTodaySteps(), // TODO: HealthKit 연동 시 실제 데이터
+          activeCalories: runningData['activeCalories'] ?? 0.0,
+          exerciseMinutes: runningData['exerciseMinutes'] ?? 0,
+          habitCompletionRate: 0.0, // Firebase 연결 실패 시 0
+        );
+
+        print('⚠️ Firebase 연결 실패 - 임시 데이터로 Today 요약 생성 (습관: 0/1)');
+        return summary;
+      } catch (healthKitError) {
+        print('❌ HealthKit 데이터 로드도 실패: $healthKitError');
+
+        // 모든 데이터 로드 실패 시 기본값 반환 (더 나은 기본값 사용)
+        final summary = TodaySummary(
+          date: today,
+          completedHabits: 0,
+          totalHabits: 1, // 0/0 대신 0/1로 표시
+          completedWorkouts: 0,
+          runningDistance: 0.0,
+          runningDuration: 0,
+          calories: 0.0,
+          protein: 0.0,
+          steps: 0,
+          activeCalories: 0.0,
+          exerciseMinutes: 0,
+          habitCompletionRate: 0.0,
+        );
+
+        print('⚠️ 모든 데이터 로드 실패 - 기본값으로 Today 요약 생성 (습관: 0/1)');
+        return summary;
+      }
     }
   }
 });

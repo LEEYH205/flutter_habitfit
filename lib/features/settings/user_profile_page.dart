@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart' as auth;
 import '../../services/cache_service.dart';
+import '../../router/app_router.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -66,8 +67,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
               backgroundColor: Colors.green,
             ),
           );
-          // 로그인 페이지로 이동
-          context.go('/login');
+          // 잠시 대기 후 전역 라우터를 사용하여 로그인 페이지로 이동
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              AppRouter.router.go('/login');
+            }
+          });
         }
       } catch (e) {
         if (mounted) {
@@ -106,7 +111,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     if (confirmed == true) {
       try {
-        await _currentUser?.delete();
+        // AuthProvider를 통해 계정 삭제 (Firestore 데이터도 함께 삭제)
+        final authProvider =
+            Provider.of<auth.AuthProvider>(context, listen: false);
+        final success = await authProvider.deleteAccount();
+
+        if (!success) {
+          throw Exception('계정 삭제 실패');
+        }
+
+        // 모든 캐시 데이터 정리
+        await CacheService.clearAllCache();
+
+        // Google Sign-In도 정리
+        await _googleSignIn.signOut();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -114,8 +133,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
               backgroundColor: Colors.green,
             ),
           );
-          // 로그인 페이지로 이동
-          context.go('/login');
+          // 잠시 대기 후 전역 라우터를 사용하여 로그인 페이지로 이동
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              AppRouter.router.go('/login');
+            }
+          });
         }
       } catch (e) {
         if (mounted) {
