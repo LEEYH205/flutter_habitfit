@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// 사용자 레벨 타입
 enum UserLevelType {
   free('무료', 'free', 0),
@@ -196,16 +198,47 @@ class UserLevel {
   }
 
   factory UserLevel.fromMap(Map<String, dynamic> map) {
+    // 날짜 필드들 처리 - Timestamp 또는 String 모두 지원
+    DateTime? premiumExpiryDate;
+    final premiumExpiryValue = map['premiumExpiryDate'];
+    if (premiumExpiryValue != null) {
+      if (premiumExpiryValue is Timestamp) {
+        premiumExpiryDate = premiumExpiryValue.toDate();
+      } else if (premiumExpiryValue is String) {
+        premiumExpiryDate = DateTime.parse(premiumExpiryValue);
+      }
+    }
+
+    DateTime createdAt;
+    final createdAtValue = map['createdAt'];
+    if (createdAtValue == null) {
+      createdAt = DateTime.now();
+    } else if (createdAtValue is Timestamp) {
+      createdAt = createdAtValue.toDate();
+    } else if (createdAtValue is String) {
+      createdAt = DateTime.parse(createdAtValue);
+    } else {
+      createdAt = DateTime.now();
+    }
+
+    DateTime updatedAt;
+    final updatedAtValue = map['updatedAt'];
+    if (updatedAtValue == null) {
+      updatedAt = DateTime.now();
+    } else if (updatedAtValue is Timestamp) {
+      updatedAt = updatedAtValue.toDate();
+    } else if (updatedAtValue is String) {
+      updatedAt = DateTime.parse(updatedAtValue);
+    } else {
+      updatedAt = DateTime.now();
+    }
+
     return UserLevel(
       userId: map['userId'] ?? '',
       level: UserLevelType.fromString(map['level'] ?? 'free'),
-      premiumExpiryDate: map['premiumExpiryDate'] != null
-          ? DateTime.parse(map['premiumExpiryDate'])
-          : null,
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt:
-          DateTime.parse(map['updatedAt'] ?? DateTime.now().toIso8601String()),
+      premiumExpiryDate: premiumExpiryDate,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       metadata: Map<String, dynamic>.from(map['metadata'] ?? {}),
     );
   }

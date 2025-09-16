@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-import 'package:health/health.dart';
 import 'health_kit_service.dart';
 
 /// Apple Watch 연동을 위한 서비스 클래스

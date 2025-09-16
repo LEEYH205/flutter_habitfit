@@ -221,7 +221,7 @@ class _RunningAnalysisPageState extends ConsumerState<RunningAnalysisPage>
             );
 
             print('📊 심박수 데이터 조회 결과:');
-            print('   - 데이터 개수: ${heartRateData.length ?? 0}');
+            print('   - 데이터 개수: ${heartRateData.length}');
 
             if (heartRateData.isNotEmpty) {
               print('✅ 심박수 데이터 로드 성공!');

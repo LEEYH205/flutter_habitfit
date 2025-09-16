@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// 사용자 목표 설정 모델
 class UserGoals {
   final double activeCaloriesGoal;
@@ -24,13 +26,24 @@ class UserGoals {
 
   /// JSON에서 생성
   factory UserGoals.fromJson(Map<String, dynamic> json) {
+    // lastUpdated 필드 처리 - Timestamp 또는 String 모두 지원
+    DateTime lastUpdated;
+    final lastUpdatedValue = json['lastUpdated'];
+    if (lastUpdatedValue == null) {
+      lastUpdated = DateTime.now();
+    } else if (lastUpdatedValue is Timestamp) {
+      lastUpdated = lastUpdatedValue.toDate();
+    } else if (lastUpdatedValue is String) {
+      lastUpdated = DateTime.parse(lastUpdatedValue);
+    } else {
+      lastUpdated = DateTime.now();
+    }
+
     return UserGoals(
       activeCaloriesGoal: (json['activeCaloriesGoal'] ?? 400.0).toDouble(),
       exerciseMinutesGoal: (json['exerciseMinutesGoal'] ?? 30) as int,
       stepsGoal: (json['stepsGoal'] ?? 10000) as int,
-      lastUpdated: json['lastUpdated'] != null
-          ? DateTime.parse(json['lastUpdated'])
-          : DateTime.now(),
+      lastUpdated: lastUpdated,
     );
   }
 

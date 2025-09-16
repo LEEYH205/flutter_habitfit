@@ -1,23 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// 포인트 타입
 enum PointType {
-  habitCompleted('습관 완료', 'habit_completed', 10),
-  workoutCompleted('운동 완료', 'workout_completed', 20),
-  streakAchieved('연속 달성', 'streak_achieved', 15),
-  goalAchieved('목표 달성', 'goal_achieved', 50),
-  dailyChallenge('일일 챌린지', 'daily_challenge', 30),
-  weeklyChallenge('주간 챌린지', 'weekly_challenge', 100),
-  monthlyChallenge('월간 챌린지', 'monthly_challenge', 200),
-  socialShare('소셜 공유', 'social_share', 5),
-  reviewWritten('리뷰 작성', 'review_written', 25),
-  friendInvited('친구 초대', 'friend_invited', 100),
-  achievementUnlocked('업적 달성', 'achievement_unlocked', 75),
-  bonus('보너스', 'bonus', 0);
+  habitCompleted('습관 완료', 'habit_completed'),
+  workoutCompleted('운동 완료', 'workout_completed'),
+  streakAchieved('연속 달성', 'streak_achieved'),
+  goalAchieved('목표 달성', 'goal_achieved'),
+  dailyChallenge('일일 챌린지', 'daily_challenge'),
+  weeklyChallenge('주간 챌린지', 'weekly_challenge'),
+  monthlyChallenge('월간 챌린지', 'monthly_challenge'),
+  socialShare('소셜 공유', 'social_share'),
+  reviewWritten('리뷰 작성', 'review_written'),
+  friendInvited('친구 초대', 'friend_invited'),
+  achievementUnlocked('업적 달성', 'achievement_unlocked'),
+  bonus('보너스', 'bonus');
 
-  const PointType(this.displayName, this.value, this.basePoints);
+  const PointType(this.displayName, this.value);
 
   final String displayName;
   final String value;
-  final int basePoints; // 기본 포인트
 
   static PointType fromString(String value) {
     return PointType.values.firstWhere(
@@ -50,6 +51,19 @@ class PointEarned {
   });
 
   factory PointEarned.fromMap(Map<String, dynamic> map) {
+    // earnedAt 필드 처리 - Timestamp 또는 String 모두 지원
+    DateTime earnedAt;
+    final earnedAtValue = map['earnedAt'];
+    if (earnedAtValue == null) {
+      earnedAt = DateTime.now();
+    } else if (earnedAtValue is Timestamp) {
+      earnedAt = earnedAtValue.toDate();
+    } else if (earnedAtValue is String) {
+      earnedAt = DateTime.parse(earnedAtValue);
+    } else {
+      earnedAt = DateTime.now();
+    }
+
     return PointEarned(
       id: map['id'] ?? '',
       userId: map['userId'] ?? '',
@@ -57,8 +71,7 @@ class PointEarned {
       points: map['points'] ?? 0,
       description: map['description'],
       relatedId: map['relatedId'],
-      earnedAt:
-          DateTime.parse(map['earnedAt'] ?? DateTime.now().toIso8601String()),
+      earnedAt: earnedAt,
       metadata: Map<String, dynamic>.from(map['metadata'] ?? {}),
     );
   }
@@ -104,8 +117,10 @@ class UserPoints {
 
   /// 현재 레벨의 진행률 (0.0 ~ 1.0)
   double get levelProgress {
-    if (pointsToNextLevel == 0) return 1.0;
-    return pointsInCurrentLevel / pointsToNextLevel;
+    final currentLevelRequiredPoints =
+        LevelCalculator.getPointsForLevel(currentLevel + 1);
+    if (currentLevelRequiredPoints == 0) return 1.0;
+    return (pointsInCurrentLevel / currentLevelRequiredPoints).clamp(0.0, 1.0);
   }
 
   /// 레벨명
@@ -142,14 +157,26 @@ class UserPoints {
   }
 
   factory UserPoints.fromMap(Map<String, dynamic> map) {
+    // lastUpdated 필드 처리 - Timestamp 또는 String 모두 지원
+    DateTime lastUpdated;
+    final lastUpdatedValue = map['lastUpdated'];
+    if (lastUpdatedValue == null) {
+      lastUpdated = DateTime.now();
+    } else if (lastUpdatedValue is Timestamp) {
+      lastUpdated = lastUpdatedValue.toDate();
+    } else if (lastUpdatedValue is String) {
+      lastUpdated = DateTime.parse(lastUpdatedValue);
+    } else {
+      lastUpdated = DateTime.now();
+    }
+
     return UserPoints(
       userId: map['userId'] ?? '',
       totalPoints: map['totalPoints'] ?? 0,
       currentLevel: map['currentLevel'] ?? 1,
       pointsToNextLevel: map['pointsToNextLevel'] ?? 0,
       pointsInCurrentLevel: map['pointsInCurrentLevel'] ?? 0,
-      lastUpdated: DateTime.parse(
-          map['lastUpdated'] ?? DateTime.now().toIso8601String()),
+      lastUpdated: lastUpdated,
       metadata: Map<String, dynamic>.from(map['metadata'] ?? {}),
     );
   }
@@ -202,13 +229,15 @@ class LevelCalculator {
   }
 
   /// 특정 레벨에 도달하기 위한 포인트 계산
-  static int getPointsForLevel(int level) {
+  static int getPointsForLevel(int level,
+      {int? basePoints, double? multiplier}) {
     if (level <= 1) return 0;
 
     // 레벨이 올라갈수록 더 많은 포인트 필요
-    // 공식: basePoints * (level - 1) * 1.2^(level - 2)
-    const basePoints = 100;
-    return (basePoints * (level - 1) * (1.2 * (level - 2))).round();
+    // 공식: basePoints * (level - 1) * multiplier^(level - 2)
+    final base = basePoints ?? 100;
+    final mult = multiplier ?? 1.2;
+    return (base * (level - 1) * (mult * (level - 2))).round();
   }
 
   /// 포인트로부터 레벨 계산
@@ -269,6 +298,17 @@ class Achievement {
   bool get isUnlocked => unlockedAt != null;
 
   factory Achievement.fromMap(Map<String, dynamic> map) {
+    // unlockedAt 필드 처리 - Timestamp 또는 String 모두 지원
+    DateTime? unlockedAt;
+    final unlockedAtValue = map['unlockedAt'];
+    if (unlockedAtValue != null) {
+      if (unlockedAtValue is Timestamp) {
+        unlockedAt = unlockedAtValue.toDate();
+      } else if (unlockedAtValue is String) {
+        unlockedAt = DateTime.parse(unlockedAtValue);
+      }
+    }
+
     return Achievement(
       id: map['id'] ?? '',
       title: map['title'] ?? '',
@@ -278,8 +318,7 @@ class Achievement {
       category: map['category'] ?? 'general',
       requirements: Map<String, dynamic>.from(map['requirements'] ?? {}),
       isSecret: map['isSecret'] ?? false,
-      unlockedAt:
-          map['unlockedAt'] != null ? DateTime.parse(map['unlockedAt']) : null,
+      unlockedAt: unlockedAt,
     );
   }
 

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Habit {
   final String id;
   final String title;
@@ -33,13 +35,25 @@ class Habit {
   }
 
   factory Habit.fromMap(Map<String, dynamic> map) {
+    // createdAt 필드 처리 - Timestamp 또는 String 모두 지원
+    DateTime createdAt;
+    final createdAtValue = map['createdAt'];
+    if (createdAtValue == null) {
+      createdAt = DateTime.now();
+    } else if (createdAtValue is Timestamp) {
+      createdAt = createdAtValue.toDate();
+    } else if (createdAtValue is String) {
+      createdAt = DateTime.parse(createdAtValue);
+    } else {
+      createdAt = DateTime.now();
+    }
+
     return Habit(
       id: map['id'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       emoji: map['emoji'] ?? '✅',
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: createdAt,
       isActive: map['isActive'] ?? true,
       currentStreak: map['currentStreak'] ?? 0,
       maxStreak: map['maxStreak'] ?? 0,

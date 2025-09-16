@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/habit.dart';
+import '../models/points_system.dart';
+import 'points_service.dart';
 
 class HabitService {
   static final HabitService _instance = HabitService._internal();
@@ -136,6 +138,14 @@ class HabitService {
           date.month == today.month &&
           date.day == today.day) {
         await _updateHabitStreak(habitId, done);
+
+        // 습관 완료 시 포인트 획득 (중복 방지)
+        if (done) {
+          await _earnHabitPoints(habitId, dateId);
+        } else {
+          // 습관 해제 시 오늘 포인트 기록 삭제 (있다면)
+          await _removeHabitPointsIfExists(habitId, dateId);
+        }
       }
 
       print('✅ 습관 완료 상태 저장: $habitId - $dateId - $done');
@@ -239,5 +249,127 @@ class HabitService {
 
   String _getDateId(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 습관 완료 시 포인트 획득 (중복 방지)
+  Future<void> _earnHabitPoints(String habitId, String dateId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // 이미 오늘 이 습관으로 포인트를 받았는지 확인
+      final pointsQuery = await _firestore
+          .collection('points_earned')
+          .where('userId', isEqualTo: user.uid)
+          .where('type', isEqualTo: 'habit_completed')
+          .where('relatedId', isEqualTo: habitId)
+          .where('metadata.date', isEqualTo: dateId)
+          .get();
+
+      if (pointsQuery.docs.isNotEmpty) {
+        print('⚠️ 이미 오늘 이 습관으로 포인트를 받았습니다: $habitId');
+        return;
+      }
+
+      // 습관 정보 가져오기
+      final habitDoc =
+          await _firestore.collection('user_habits').doc(habitId).get();
+      if (!habitDoc.exists) return;
+
+      final habitData = habitDoc.data()!;
+      final habitName = habitData['title'] ?? '습관';
+
+      // 현재 연속 기록 가져오기
+      final habit = Habit.fromMap(habitData);
+      final currentStreak = habit.currentStreak;
+
+      // 첫 완료 여부 확인 (연속 기록이 1이면 첫 완료)
+      final isFirstTime = currentStreak == 1;
+
+      // 포인트 획득 (날짜 정보를 메타데이터에 포함)
+      final success = await PointsService().earnPoints(
+        type: PointType.habitCompleted,
+        description: '$habitName 완료 (연속 $currentStreak일)',
+        relatedId: habitId,
+        context: {
+          'habitName': habitName,
+          'streak': currentStreak,
+          'isFirstTime': isFirstTime,
+          'date': dateId, // 날짜 정보 추가로 중복 체크
+        },
+      );
+
+      if (success) {
+        print('✅ 습관 완료 포인트 획득: $habitName (날짜: $dateId)');
+      } else {
+        print('❌ 습관 완료 포인트 획득 실패: $habitName');
+      }
+    } catch (e) {
+      print('❌ 습관 포인트 획득 오류: $e');
+    }
+  }
+
+  /// 습관 해제 시 포인트 기록 삭제 (있다면)
+  Future<void> _removeHabitPointsIfExists(String habitId, String dateId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // 오늘 이 습관으로 받은 포인트 기록 찾기
+      final pointsQuery = await _firestore
+          .collection('points_earned')
+          .where('userId', isEqualTo: user.uid)
+          .where('type', isEqualTo: 'habit_completed')
+          .where('relatedId', isEqualTo: habitId)
+          .where('metadata.date', isEqualTo: dateId)
+          .get();
+
+      if (pointsQuery.docs.isEmpty) {
+        print('ℹ️ 삭제할 포인트 기록이 없습니다: $habitId ($dateId)');
+        return;
+      }
+
+      // 포인트 기록 삭제 및 사용자 포인트에서 차감
+      for (final doc in pointsQuery.docs) {
+        final pointData = doc.data();
+        final points = pointData['points'] ?? 0;
+
+        // 포인트 기록 삭제
+        await doc.reference.delete();
+
+        // 사용자 포인트에서 차감
+        await _deductUserPoints(points);
+
+        print('✅ 습관 해제로 포인트 기록 삭제: $habitId (-$points점, 날짜: $dateId)');
+      }
+    } catch (e) {
+      print('❌ 포인트 기록 삭제 오류: $e');
+    }
+  }
+
+  /// 사용자 포인트 차감
+  Future<void> _deductUserPoints(int pointsToDeduct) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final doc =
+          await _firestore.collection('user_points').doc(user.uid).get();
+      if (!doc.exists) return;
+
+      final currentPoints = doc.data()!['totalPoints'] ?? 0;
+      final newTotalPoints =
+          (currentPoints - pointsToDeduct).clamp(0, double.infinity).toInt();
+
+      // 포인트 차감 후 레벨 재계산은 복잡하므로 일단 총 포인트만 업데이트
+      await _firestore.collection('user_points').doc(user.uid).update({
+        'totalPoints': newTotalPoints,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ 사용자 포인트 차감: -$pointsToDeduct (새 총점: $newTotalPoints)');
+    } catch (e) {
+      print('❌ 사용자 포인트 차감 오류: $e');
+    }
   }
 }

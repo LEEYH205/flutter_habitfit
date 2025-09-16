@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 
 /// HealthKit에서 실제 GPS 경로를 가져오는 서비스
 class HealthKitRouteService {

@@ -1416,7 +1416,7 @@ class _HealthTestPageState extends State<HealthTestPage> {
                               title: Text('${data.type}'),
                               subtitle:
                                   Text('${data.value} - ${data.dateFrom}'),
-                              trailing: Text(data.sourceName ?? '알 수 없음'),
+                              trailing: Text(data.sourceName),
                             );
                           },
                         ),

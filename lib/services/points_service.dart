@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/points_system.dart';
+import 'config_service.dart';
 
 /// 포인트 시스템 관리 서비스
 class PointsService {
@@ -10,6 +11,7 @@ class PointsService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ConfigService _configService = ConfigService();
 
   static const String _pointsCollection = 'user_points';
   static const String _pointsEarnedCollection = 'points_earned';
@@ -70,16 +72,20 @@ class PointsService {
     bool isFirstTime = false,
   }) async {
     try {
-      int points = PointType.habitCompleted.basePoints;
+      int points = await _configService.getPointsForType('habitCompleted');
 
       // 연속 달성 보너스
       if (streak > 1) {
-        points += (streak - 1) * 5; // 연속일수당 5포인트 추가
+        final streakBonus =
+            await _configService.getPointsForType('streakBonus');
+        points += (streak - 1) * streakBonus;
       }
 
       // 첫 완료 보너스
       if (isFirstTime) {
-        points += 20;
+        final firstTimeBonus =
+            await _configService.getPointsForType('firstTimeBonus');
+        points += firstTimeBonus;
       }
 
       return await earnPoints(
@@ -107,7 +113,7 @@ class PointsService {
     int? heartRate,
   }) async {
     try {
-      int points = PointType.workoutCompleted.basePoints;
+      int points = await _configService.getPointsForType('workoutCompleted');
 
       // 운동 시간 보너스 (10분당 5포인트)
       points += (duration.inMinutes ~/ 10) * 5;
@@ -142,7 +148,7 @@ class PointsService {
     int? achievedValue,
   }) async {
     try {
-      int points = PointType.goalAchieved.basePoints;
+      int points = await _configService.getPointsForType('goalAchieved');
 
       // 목표 달성도에 따른 보너스
       if (targetValue != null && achievedValue != null) {
@@ -200,7 +206,7 @@ class PointsService {
         userId: userId,
         totalPoints: 0,
         currentLevel: 1,
-        pointsToNextLevel: LevelCalculator.getPointsForLevel(2),
+        pointsToNextLevel: await _getPointsForLevel(2),
         pointsInCurrentLevel: 0,
         lastUpdated: now,
       );
@@ -238,11 +244,10 @@ class PointsService {
       final newTotalPoints = userPoints.totalPoints + earnedPoints;
 
       // 새로운 레벨 계산
-      final newLevel = LevelCalculator.getLevelFromPoints(newTotalPoints);
+      final newLevel = await _getLevelFromPoints(newTotalPoints);
       final pointsInCurrentLevel =
-          LevelCalculator.getPointsInCurrentLevel(newTotalPoints);
-      final pointsToNextLevel =
-          LevelCalculator.getPointsToNextLevel(newTotalPoints);
+          await _getPointsInCurrentLevel(newTotalPoints);
+      final pointsToNextLevel = await _getPointsToNextLevel(newTotalPoints);
 
       // 레벨업 확인
       final leveledUp = newLevel > userPoints.currentLevel;
@@ -277,7 +282,9 @@ class PointsService {
   Future<void> _notifyLevelUp(int oldLevel, int newLevel) async {
     try {
       // 레벨업 포인트 보너스
-      final levelUpBonus = (newLevel - oldLevel) * 100;
+      final levelUpBonusPerLevel =
+          await _configService.getPointsForType('levelUpBonus');
+      final levelUpBonus = (newLevel - oldLevel) * levelUpBonusPerLevel;
 
       await earnPoints(
         type: PointType.bonus,
@@ -334,7 +341,8 @@ class PointsService {
 
   /// 포인트 계산
   int _calculatePoints(PointType type, Map<String, dynamic> context) {
-    int basePoints = type.basePoints;
+    // 기본 포인트는 이제 Firebase에서 가져오므로 여기서는 0으로 시작
+    int basePoints = 0;
 
     // 컨텍스트에 따른 보너스 계산
     switch (type) {
@@ -398,34 +406,40 @@ class PointsService {
   /// 기본 업적 확인
   Future<void> _checkBasicAchievements(UserPoints userPoints) async {
     try {
-      final achievements = [
-        // 레벨 업적
-        if (userPoints.currentLevel >= 5)
-          await _unlockAchievement('level_5', '첫 번째 레벨업', '레벨 5 달성', '🎯', 50),
-        if (userPoints.currentLevel >= 10)
-          await _unlockAchievement('level_10', '습관러', '레벨 10 달성', '🌿', 100),
-        if (userPoints.currentLevel >= 20)
-          await _unlockAchievement('level_20', '달성자', '레벨 20 달성', '🌳', 200),
-        if (userPoints.currentLevel >= 30)
-          await _unlockAchievement('level_30', '마스터', '레벨 30 달성', '🏆', 300),
+      final achievements = <Future<bool>?>[];
 
-        // 포인트 업적
-        if (userPoints.totalPoints >= 1000)
-          await _unlockAchievement(
-              'points_1000', '첫 1000점', '1000 포인트 달성', '💯', 100),
-        if (userPoints.totalPoints >= 5000)
-          await _unlockAchievement(
-              'points_5000', '포인트 마스터', '5000 포인트 달성', '💰', 200),
-        if (userPoints.totalPoints >= 10000)
-          await _unlockAchievement(
-              'points_10000', '포인트 레전드', '10000 포인트 달성', '💎', 500),
-      ];
+      // 레벨 업적
+      if (userPoints.currentLevel >= 5) {
+        achievements.add(_unlockAchievementFromConfig('level_5'));
+      }
+      if (userPoints.currentLevel >= 10) {
+        achievements.add(_unlockAchievementFromConfig('level_10'));
+      }
+      if (userPoints.currentLevel >= 20) {
+        achievements.add(_unlockAchievementFromConfig('level_20'));
+      }
+      if (userPoints.currentLevel >= 30) {
+        achievements.add(_unlockAchievementFromConfig('level_30'));
+      }
 
-      // null 값 제거
-      final validAchievements = achievements.where((a) => a != null).toList();
+      // 포인트 업적
+      if (userPoints.totalPoints >= 1000) {
+        achievements.add(_unlockAchievementFromConfig('points_1000'));
+      }
+      if (userPoints.totalPoints >= 5000) {
+        achievements.add(_unlockAchievementFromConfig('points_5000'));
+      }
+      if (userPoints.totalPoints >= 10000) {
+        achievements.add(_unlockAchievementFromConfig('points_10000'));
+      }
 
-      if (validAchievements.isNotEmpty) {
-        print('🏆 ${validAchievements.length}개의 업적을 달성했습니다!');
+      // 모든 업적 확인 완료 대기
+      final results = await Future.wait(
+          achievements.where((a) => a != null).cast<Future<bool>>());
+      final unlockedCount = results.where((result) => result).length;
+
+      if (unlockedCount > 0) {
+        print('🏆 $unlockedCount개의 업적을 달성했습니다!');
       }
     } catch (e) {
       print('❌ 기본 업적 확인 오류: $e');
@@ -481,6 +495,25 @@ class PointsService {
       return true;
     } catch (e) {
       print('❌ 업적 달성 오류: $e');
+      return false;
+    }
+  }
+
+  /// Firebase 설정으로부터 업적 달성
+  Future<bool> _unlockAchievementFromConfig(String achievementId) async {
+    try {
+      final config = await _configService.getAchievementConfig(achievementId);
+      if (config == null) return false;
+
+      return await _unlockAchievement(
+        achievementId,
+        config['title'] ?? '',
+        config['description'] ?? '',
+        config['icon'] ?? '🏆',
+        config['points'] ?? 0,
+      );
+    } catch (e) {
+      print('❌ 설정 기반 업적 달성 오류: $e');
       return false;
     }
   }
@@ -541,5 +574,50 @@ class PointsService {
       print('❌ 포인트 통계 조회 오류: $e');
       return {};
     }
+  }
+
+  /// 레벨 계산을 위한 헬퍼 메서드들
+  Future<int> _getPointsForLevel(int level) async {
+    final levelConfig = await _configService.getLevelConfig();
+    final basePoints = levelConfig['basePoints'] ?? 100;
+    final multiplier = levelConfig['multiplier'] ?? 1.2;
+    return LevelCalculator.getPointsForLevel(level,
+        basePoints: basePoints, multiplier: multiplier);
+  }
+
+  Future<int> _getLevelFromPoints(int totalPoints) async {
+    if (totalPoints < 0) return 1;
+
+    int level = 1;
+    int requiredPoints = 0;
+
+    while (requiredPoints <= totalPoints) {
+      level++;
+      requiredPoints += await _getPointsForLevel(level);
+    }
+
+    return level - 1;
+  }
+
+  Future<int> _getPointsInCurrentLevel(int totalPoints) async {
+    final currentLevel = await _getLevelFromPoints(totalPoints);
+    final previousLevelPoints = await _getTotalPointsForLevel(currentLevel);
+    return totalPoints - previousLevelPoints;
+  }
+
+  Future<int> _getPointsToNextLevel(int totalPoints) async {
+    final currentLevel = await _getLevelFromPoints(totalPoints);
+    final nextLevelPoints = await _getTotalPointsForLevel(currentLevel + 1);
+    return nextLevelPoints - totalPoints;
+  }
+
+  Future<int> _getTotalPointsForLevel(int level) async {
+    if (level <= 1) return 0;
+
+    int totalPoints = 0;
+    for (int i = 2; i <= level; i++) {
+      totalPoints += await _getPointsForLevel(i);
+    }
+    return totalPoints;
   }
 }

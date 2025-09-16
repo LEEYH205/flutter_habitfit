@@ -6,8 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../common/services/firestore_service.dart';
-import '../../common/services/remote_config_service.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../widgets/app_bar_with_notifications.dart';
 import 'pose_estimator.dart';

@@ -1,6 +1,5 @@
 import 'package:health/health.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter/services.dart';
 import 'dart:math';
 import 'healthkit_route_service.dart';
 import 'running_coaching_service.dart' as coaching;
@@ -456,7 +455,7 @@ class HealthKitService {
 
           // dateTo가 null일 수 있으므로 안전하게 처리
           final endTime =
-              point.dateTo ?? point.dateFrom.add(Duration(minutes: 30));
+              point.dateTo ?? point.dateFrom.add(const Duration(minutes: 30));
           final duration = endTime.difference(point.dateFrom);
 
           // WORKOUT 데이터에서 운동 정보 추출
@@ -466,7 +465,7 @@ class HealthKitService {
 
           // 운동의 고유 식별자 생성 (시작시간 + 소스 + 타입)
           final workoutUuid =
-              '${point.dateFrom.millisecondsSinceEpoch}_${point.sourceName ?? 'unknown'}_$workoutType';
+              '${point.dateFrom.millisecondsSinceEpoch}_${point.sourceName}_$workoutType';
 
           final workout = WorkoutData(
             id: point.dateFrom.millisecondsSinceEpoch.toString(),

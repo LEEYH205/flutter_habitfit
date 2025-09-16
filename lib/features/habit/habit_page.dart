@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../common/services/local_notification_service.dart';
 import '../../models/habit.dart';
 import '../../services/habit_service.dart';
+import '../../services/cache_service.dart';
+import '../../providers/today_summary_provider.dart';
 import '../../widgets/habit_dialog.dart';
 import '../../widgets/app_bar_with_notifications.dart';
 
@@ -116,6 +118,14 @@ class _HabitPageState extends ConsumerState<HabitPage> {
 
           if (habitId != null) {
             await _loadHabitData(); // 데이터 새로고침
+
+            // Today Summary 캐시 무효화 (총 습관 개수 업데이트를 위해)
+            await CacheService.removeCache(CacheKeys.todaySummary);
+            // Provider 무효화
+            if (mounted) {
+              ref.invalidate(todaySummaryProvider);
+            }
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -231,6 +241,12 @@ class _HabitPageState extends ConsumerState<HabitPage> {
           'max': updatedHabit.maxStreak,
         };
         ref.read(_habitStreaksProvider.notifier).state = Map.from(streaks);
+
+        // Today Summary 캐시 무효화 (완료된 습관 개수 업데이트를 위해)
+        await CacheService.removeCache(CacheKeys.todaySummary);
+        if (mounted) {
+          ref.invalidate(todaySummaryProvider);
+        }
 
         if (done) {
           // 습관 체크 완료 알림
