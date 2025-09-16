@@ -6,6 +6,7 @@ import '../../common/services/local_notification_service.dart';
 import '../../services/analytics_service.dart';
 import '../../widgets/app_bar_with_notifications.dart';
 import '../../services/recommendation_service.dart';
+import '../../services/user_cleanup_service.dart';
 import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
 import 'notification_settings_page.dart';
@@ -1241,6 +1242,92 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     SizedBox(height: 4),
                     Text(
                       '포인트 획득 기록 및 업적 확인',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios,
+                  color: Colors.grey.shade400, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataCleanupCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('데이터 정리'),
+              content: const Text(
+                '중복된 사용자 문서를 정리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.orange),
+                  child: const Text('정리'),
+                ),
+              ],
+            ),
+          );
+
+          if (confirmed == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('데이터 정리 중...'),
+                backgroundColor: Colors.blue,
+              ),
+            );
+
+            await UserCleanupService().cleanupDuplicateUsers();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('데이터 정리 완료'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(Icons.cleaning_services,
+                  color: Colors.orange.shade600, size: 24),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '데이터 정리',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '중복된 사용자 문서 정리',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,

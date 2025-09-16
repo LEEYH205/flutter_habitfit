@@ -183,7 +183,7 @@ class AuthProvider extends ChangeNotifier {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
       if (!userDoc.exists) {
-        // 사용자 문서가 없으면 생성
+        // 사용자 문서가 없으면 완전한 문서 생성
         await _firestore.collection('users').doc(user.uid).set({
           'email': user.email,
           'displayName': user.displayName,
@@ -194,13 +194,37 @@ class AuthProvider extends ChangeNotifier {
           'totalHabits': 0,
           'totalWorkouts': 0,
           'isActive': true,
+          // 기본 목표 설정
+          'goals': {
+            'activeCaloriesGoal': 400.0,
+            'exerciseMinutesGoal': 30,
+            'stepsGoal': 10000,
+            'lastUpdated': DateTime.now().toIso8601String(),
+          },
         });
         print('✅ 사용자 문서 생성 완료: ${user.uid}');
       } else {
-        // 기존 문서가 있으면 lastUpdated만 업데이트
-        await _firestore.collection('users').doc(user.uid).update({
+        // 기존 문서가 있으면 필수 필드만 업데이트
+        final updateData = <String, dynamic>{
           'lastUpdated': FieldValue.serverTimestamp(),
-        });
+        };
+
+        // 필수 필드가 없으면 추가
+        final data = userDoc.data()!;
+        if (data['email'] == null) updateData['email'] = user.email;
+        if (data['displayName'] == null)
+          updateData['displayName'] = user.displayName;
+        if (data['photoURL'] == null) updateData['photoURL'] = user.photoURL;
+        if (data['goals'] == null) {
+          updateData['goals'] = {
+            'activeCaloriesGoal': 400.0,
+            'exerciseMinutesGoal': 30,
+            'stepsGoal': 10000,
+            'lastUpdated': DateTime.now().toIso8601String(),
+          };
+        }
+
+        await _firestore.collection('users').doc(user.uid).update(updateData);
         print('✅ 사용자 문서 업데이트 완료: ${user.uid}');
       }
     } catch (e) {

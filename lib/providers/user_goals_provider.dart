@@ -31,11 +31,9 @@ Future<UserGoals> _loadUserGoals() async {
       print('✅ 사용자 목표 로드 완료: $goals');
       return goals;
     } else {
-      // 목표가 없으면 기본값으로 생성
-      final defaultGoals = UserGoals.defaultGoals();
-      await _saveUserGoals(defaultGoals);
-      print('📝 기본 목표 생성: $defaultGoals');
-      return defaultGoals;
+      // 목표가 없으면 기본값 반환 (AuthProvider에서 생성하도록 함)
+      print('📝 목표가 없음 - 기본값 반환 (AuthProvider에서 생성 예정)');
+      return UserGoals.defaultGoals();
     }
   } catch (e) {
     print('❌ 사용자 목표 로드 실패: $e');
