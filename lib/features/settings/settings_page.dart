@@ -12,6 +12,7 @@ import '../../services/habit_service.dart';
 import '../../models/habit.dart';
 import '../../services/cache_service.dart';
 import '../../providers/today_summary_provider.dart';
+import '../../router/app_router.dart';
 import 'user_profile_page.dart';
 import 'goal_settings_page.dart';
 import 'notification_settings_page.dart';
@@ -1447,10 +1448,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               label: '습관 보기',
               textColor: Colors.white,
               onPressed: () {
-                // 스낵바 닫기
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                // Today 페이지로 이동하면서 습관 섹션으로 스크롤
-                context.go('/today?action=habits');
+                // 안전한 네비게이션을 위해 전역 네비게이터 사용
+                _navigateToHabitsSafely();
               },
             ),
           ),
@@ -1502,6 +1501,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       print('✅ Today 캐시 무효화 완료');
     } catch (e) {
       print('❌ Today 캐시 무효화 실패: $e');
+    }
+  }
+
+  /// 안전한 습관 페이지 네비게이션
+  void _navigateToHabitsSafely() {
+    try {
+      // 먼저 스낵바 닫기 (현재 context가 유효한 동안)
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+
+      // 전역 라우터를 사용하여 안전하게 네비게이션
+      // 약간의 지연을 두어 스낵바가 완전히 닫힌 후 네비게이션
+      Future.delayed(const Duration(milliseconds: 100), () {
+        try {
+          // AppRouter의 전역 라우터 인스턴스 사용
+          AppRouter.router.go('/today?action=habits');
+          print('✅ 습관 페이지로 안전하게 네비게이션 완료');
+        } catch (routerError) {
+          print('❌ 전역 라우터 네비게이션 실패: $routerError');
+          // 최후의 fallback: 단순히 Today 페이지로 이동
+          try {
+            AppRouter.router.go('/today');
+          } catch (finalError) {
+            print('❌ 최종 Fallback도 실패: $finalError');
+          }
+        }
+      });
+    } catch (e) {
+      print('❌ 습관 페이지 네비게이션 초기화 실패: $e');
     }
   }
 }
