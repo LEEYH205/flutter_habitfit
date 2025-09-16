@@ -29,8 +29,10 @@ class UserPattern {
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
-      'timeBasedPerformance': timeBasedPerformance,
-      'dayBasedPerformance': dayBasedPerformance,
+      'timeBasedPerformance':
+          _convertIntDoubleMapToStringMap(timeBasedPerformance),
+      'dayBasedPerformance':
+          _convertIntDoubleMapToStringMap(dayBasedPerformance),
       'overallCompletionRate': overallCompletionRate,
       'totalHabits': totalHabits,
       'completedHabits': completedHabits,
@@ -41,22 +43,93 @@ class UserPattern {
     };
   }
 
+  /// Map<int, double>를 Map<String, double>로 변환 (Firestore 저장용)
+  Map<String, double> _convertIntDoubleMapToStringMap(Map<int, double> intMap) {
+    final result = <String, double>{};
+    intMap.forEach((key, value) {
+      result[key.toString()] = value;
+    });
+    return result;
+  }
+
   factory UserPattern.fromMap(Map<String, dynamic> map) {
+    // lastUpdated 필드 처리 - Timestamp 또는 String 모두 지원
+    DateTime lastUpdated;
+    final lastUpdatedValue = map['lastUpdated'];
+    if (lastUpdatedValue == null) {
+      lastUpdated = DateTime.now();
+    } else if (lastUpdatedValue is Timestamp) {
+      lastUpdated = lastUpdatedValue.toDate();
+    } else if (lastUpdatedValue is String) {
+      lastUpdated = DateTime.parse(lastUpdatedValue);
+    } else {
+      lastUpdated = DateTime.now();
+    }
+
     return UserPattern(
       uid: map['uid'] ?? '',
-      timeBasedPerformance:
-          Map<int, double>.from(map['timeBasedPerformance'] ?? {}),
-      dayBasedPerformance:
-          Map<int, double>.from(map['dayBasedPerformance'] ?? {}),
+      timeBasedPerformance: _parseIntDoubleMap(map['timeBasedPerformance']),
+      dayBasedPerformance: _parseIntDoubleMap(map['dayBasedPerformance']),
       overallCompletionRate: (map['overallCompletionRate'] ?? 0.0).toDouble(),
       totalHabits: map['totalHabits'] ?? 0,
       completedHabits: map['completedHabits'] ?? 0,
-      bestTimeSlots: List<String>.from(map['bestTimeSlots'] ?? []),
-      bestDays: List<String>.from(map['bestDays'] ?? []),
+      bestTimeSlots: _parseStringList(map['bestTimeSlots']),
+      bestDays: _parseStringList(map['bestDays']),
       consistencyScore: (map['consistencyScore'] ?? 0.0).toDouble(),
-      lastUpdated: DateTime.parse(
-          map['lastUpdated'] ?? DateTime.now().toIso8601String()),
+      lastUpdated: lastUpdated,
     );
+  }
+
+  /// Map<String, dynamic>에서 Map<int, double>로 안전하게 변환
+  static Map<int, double> _parseIntDoubleMap(dynamic data) {
+    if (data == null) return {};
+
+    final result = <int, double>{};
+    if (data is Map) {
+      data.forEach((key, value) {
+        // 키를 int로 변환
+        int? intKey;
+        if (key is int) {
+          intKey = key;
+        } else if (key is String) {
+          intKey = int.tryParse(key);
+        }
+
+        // 값을 double로 변환
+        double? doubleValue;
+        if (value is double) {
+          doubleValue = value;
+        } else if (value is int) {
+          doubleValue = value.toDouble();
+        } else if (value is String) {
+          doubleValue = double.tryParse(value);
+        } else if (value is num) {
+          doubleValue = value.toDouble();
+        }
+
+        if (intKey != null && doubleValue != null) {
+          result[intKey] = doubleValue;
+        }
+      });
+    }
+
+    return result;
+  }
+
+  /// 동적 리스트에서 List<String>로 안전하게 변환
+  static List<String> _parseStringList(dynamic data) {
+    if (data == null) return [];
+
+    final result = <String>[];
+    if (data is List) {
+      for (final item in data) {
+        if (item != null) {
+          result.add(item.toString());
+        }
+      }
+    }
+
+    return result;
   }
 }
 
@@ -121,8 +194,9 @@ class AnalyticsService {
       print(
           '✅ 사용자 패턴 분석 완료: 완료율 ${(overallCompletionRate * 100).toStringAsFixed(1)}%');
       return pattern;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ 사용자 패턴 분석 실패: $e');
+      print('📍 Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -259,7 +333,20 @@ class AnalyticsService {
     // 날짜별 완료 수 계산
     final dailyCompletions = <String, int>{};
     for (final completion in completions) {
-      final date = completion['date'] as String?;
+      // date 필드를 안전하게 처리 (int, String 모두 지원)
+      final dateValue = completion['date'];
+      String? date;
+
+      if (dateValue is String) {
+        date = dateValue;
+      } else if (dateValue is int) {
+        // int인 경우 문자열로 변환 (예: 20240101)
+        date = dateValue.toString();
+      } else if (dateValue != null) {
+        // 기타 타입인 경우 toString() 사용
+        date = dateValue.toString();
+      }
+
       if (date != null) {
         dailyCompletions[date] = (dailyCompletions[date] ?? 0) + 1;
       }

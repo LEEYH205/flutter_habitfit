@@ -225,8 +225,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _isAnalyzing = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ 스마트 추천 로드 실패: $e');
+      print('📍 Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isAnalyzing = false;
