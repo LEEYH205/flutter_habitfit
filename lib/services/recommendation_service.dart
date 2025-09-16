@@ -99,38 +99,64 @@ class RecommendationService {
 
       // 완료율 기반 목표 조정 제안
       final completionRate = pattern.overallCompletionRate;
+      final totalHabits = pattern.totalHabits;
+      final completedHabits = pattern.completedHabits;
 
       if (completionRate > 0.8) {
         // 완료율이 80% 이상이면 목표 증가 제안
+        final confidence = _calculateConfidence(
+          completionRate: completionRate,
+          totalHabits: totalHabits,
+          completedHabits: completedHabits,
+          consistencyScore: pattern.consistencyScore,
+          suggestionType: 'increase',
+        );
+
         suggestions.add(GoalAdjustment(
           habitType: '습관',
           currentGoal: 1,
           suggestedGoal: 2,
           reason:
               '완료율이 ${(completionRate * 100).toStringAsFixed(1)}%로 높습니다. 목표를 늘려보세요!',
-          confidence: completionRate,
+          confidence: confidence,
         ));
       } else if (completionRate < 0.3) {
         // 완료율이 30% 미만이면 목표 감소 제안
+        final confidence = _calculateConfidence(
+          completionRate: completionRate,
+          totalHabits: totalHabits,
+          completedHabits: completedHabits,
+          consistencyScore: pattern.consistencyScore,
+          suggestionType: 'decrease',
+        );
+
         suggestions.add(GoalAdjustment(
           habitType: '습관',
           currentGoal: 1,
           suggestedGoal: 1,
           reason:
               '완료율이 ${(completionRate * 100).toStringAsFixed(1)}%로 낮습니다. 더 작은 목표부터 시작해보세요.',
-          confidence: 1.0 - completionRate,
+          confidence: confidence,
         ));
       }
 
       // 일관성 점수 기반 제안
       if (pattern.consistencyScore < 0.5) {
+        final confidence = _calculateConfidence(
+          completionRate: completionRate,
+          totalHabits: totalHabits,
+          completedHabits: completedHabits,
+          consistencyScore: pattern.consistencyScore,
+          suggestionType: 'consistency',
+        );
+
         suggestions.add(GoalAdjustment(
           habitType: '일관성',
           currentGoal: 1,
           suggestedGoal: 1,
           reason:
               '일관성 점수가 ${(pattern.consistencyScore * 100).toStringAsFixed(1)}%입니다. 규칙적인 시간에 습관을 실천해보세요.',
-          confidence: 1.0 - pattern.consistencyScore,
+          confidence: confidence,
         ));
       }
 
@@ -299,6 +325,78 @@ class RecommendationService {
       print('❌ 스마트 알림 시간 추천 실패: $e');
       return null;
     }
+  }
+
+  /// 합리적인 신뢰도 계산
+  /// 데이터 샘플 크기, 패턴 일관성, 통계적 유의성을 고려한 신뢰도 계산
+  double _calculateConfidence({
+    required double completionRate,
+    required int totalHabits,
+    required int completedHabits,
+    required double consistencyScore,
+    required String suggestionType,
+  }) {
+    // 기본 신뢰도 (0.1 ~ 0.9 범위)
+    double baseConfidence = 0.1;
+
+    // 1. 샘플 크기 기반 신뢰도 (데이터가 많을수록 신뢰도 증가)
+    double sampleConfidence = 0.0;
+    if (totalHabits >= 50) {
+      sampleConfidence = 0.4; // 충분한 데이터
+    } else if (totalHabits >= 20) {
+      sampleConfidence = 0.3; // 적당한 데이터
+    } else if (totalHabits >= 10) {
+      sampleConfidence = 0.2; // 제한적 데이터
+    } else {
+      sampleConfidence = 0.1; // 부족한 데이터
+    }
+
+    // 2. 패턴 명확성 기반 신뢰도
+    double patternConfidence = 0.0;
+    switch (suggestionType) {
+      case 'increase':
+        // 완료율이 높을수록, 일관성이 높을수록 신뢰도 증가
+        patternConfidence = (completionRate * 0.3) + (consistencyScore * 0.2);
+        break;
+      case 'decrease':
+        // 완료율이 낮을수록, 하지만 극단적이지 않을 때 신뢰도 증가
+        if (completionRate < 0.1) {
+          patternConfidence = 0.15; // 너무 낮으면 데이터 부족 가능성
+        } else {
+          patternConfidence =
+              (1.0 - completionRate) * 0.3 + (consistencyScore * 0.1);
+        }
+        break;
+      case 'consistency':
+        // 일관성 부족이 명확할수록 신뢰도 증가
+        patternConfidence =
+            (1.0 - consistencyScore) * 0.25 + (completionRate * 0.1);
+        break;
+    }
+
+    // 3. 통계적 유의성 (완료된 습관 수와 총 습관 수의 비율 고려)
+    double statisticalConfidence = 0.0;
+    if (completedHabits >= 5) {
+      // 최소 5개 이상의 완료된 습관이 있어야 의미있는 분석
+      final ratio = completedHabits / totalHabits;
+      statisticalConfidence = ratio * 0.2;
+    }
+
+    // 4. 극단값 페널티 (너무 극단적인 값은 신뢰도 감소)
+    double extremePenalty = 0.0;
+    if (completionRate < 0.05 || completionRate > 0.95) {
+      extremePenalty = -0.1; // 극단적 완료율은 신뢰도 감소
+    }
+
+    // 최종 신뢰도 계산
+    final finalConfidence = baseConfidence +
+        sampleConfidence +
+        patternConfidence +
+        statisticalConfidence +
+        extremePenalty;
+
+    // 0.1 ~ 0.9 범위로 제한 (너무 높거나 낮은 신뢰도 방지)
+    return finalConfidence.clamp(0.1, 0.9);
   }
 
   /// 개인화된 인사이트 생성
