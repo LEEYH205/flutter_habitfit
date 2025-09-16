@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_level.dart';
@@ -199,6 +200,12 @@ class _UserMembershipPageState extends ConsumerState<UserMembershipPage> {
 
               // 레벨 정보 안내
               _buildLevelInfoCard(),
+
+              // 개발자 도구 (디버그 모드에서만 표시)
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                _buildDeveloperTools(),
+              ],
             ],
           ),
         ),
@@ -718,5 +725,260 @@ class _UserMembershipPageState extends ConsumerState<UserMembershipPage> {
         ),
       ),
     );
+  }
+
+  /// 개발자 도구 (디버그 모드에서만 표시)
+  Widget _buildDeveloperTools() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200, width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.developer_mode, color: Colors.red.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  '🛠️ 개발자 도구',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '개발 및 테스트용 도구입니다. 릴리즈 버전에서는 표시되지 않습니다.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '레벨 변경:',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // 레벨 변경 버튼들
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: UserLevelType.values.map((levelType) {
+                final isCurrentLevel = _userLevel?.level == levelType;
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 80) / 2,
+                  child: ElevatedButton(
+                    onPressed: isCurrentLevel
+                        ? null
+                        : () => _changeUserLevel(levelType),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isCurrentLevel
+                          ? Colors.grey.shade300
+                          : Color(levelType.colorValue),
+                      foregroundColor:
+                          isCurrentLevel ? Colors.grey.shade600 : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          levelType.iconName,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          levelType.displayName,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (isCurrentLevel) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '현재',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            // 프리미엄 만료일 설정 (프리미엄 레벨일 때만)
+            if (_userLevel?.level == UserLevelType.premium) ...[
+              const Text(
+                '프리미엄 만료일 설정:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _setPremiumExpiry(
+                          DateTime.now().add(const Duration(days: 30))),
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: const Text('30일 연장'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _setPremiumExpiry(
+                          DateTime.now().subtract(const Duration(days: 1))),
+                      icon: const Icon(Icons.schedule, size: 16),
+                      label: const Text('만료시키기'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 개발자 도구: 사용자 레벨 변경
+  Future<void> _changeUserLevel(UserLevelType newLevel) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      bool success = false;
+      DateTime? premiumExpiry;
+
+      switch (newLevel) {
+        case UserLevelType.free:
+          success = await _userLevelService.updateUserLevel(newLevel: newLevel);
+          break;
+        case UserLevelType.premium:
+          // 프리미엄은 30일 만료일로 설정
+          premiumExpiry = DateTime.now().add(const Duration(days: 30));
+          success = await _userLevelService.updateUserLevel(
+            newLevel: newLevel,
+            premiumExpiryDate: premiumExpiry,
+          );
+          break;
+        case UserLevelType.coach:
+          success = await _userLevelService.promoteToCoach(
+            reason: '개발자 도구를 통한 테스트 승격',
+            approvedBy: 'Developer Tool',
+          );
+          break;
+        case UserLevelType.admin:
+          success = await _userLevelService.promoteToAdmin(
+            reason: '개발자 도구를 통한 테스트 승격',
+            approvedBy: 'Developer Tool',
+          );
+          break;
+      }
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ 레벨이 ${newLevel.displayName}(으)로 변경되었습니다!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        await _loadUserLevel(); // 데이터 새로고침
+      } else {
+        throw Exception('레벨 변경 실패');
+      }
+    } catch (e) {
+      print('❌ 개발자 도구 레벨 변경 오류: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ 레벨 변경에 실패했습니다: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// 개발자 도구: 프리미엄 만료일 설정
+  Future<void> _setPremiumExpiry(DateTime expiryDate) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final success = await _userLevelService.updateUserLevel(
+        newLevel: UserLevelType.premium,
+        premiumExpiryDate: expiryDate,
+      );
+
+      if (success) {
+        final isExpired = expiryDate.isBefore(DateTime.now());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isExpired
+                  ? '✅ 프리미엄이 만료되었습니다!'
+                  : '✅ 프리미엄 만료일이 ${expiryDate.toString().split(' ')[0]}로 설정되었습니다!',
+            ),
+            backgroundColor: isExpired ? Colors.orange : Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        await _loadUserLevel(); // 데이터 새로고침
+      } else {
+        throw Exception('만료일 설정 실패');
+      }
+    } catch (e) {
+      print('❌ 개발자 도구 만료일 설정 오류: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ 만료일 설정에 실패했습니다: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }

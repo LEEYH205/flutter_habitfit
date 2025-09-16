@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// 사용자 레벨 타입
+/// 사용자 멤버십 레벨 타입
 enum UserLevelType {
   free('무료', 'free', 0),
   premium('멤버십', 'premium', 1),
