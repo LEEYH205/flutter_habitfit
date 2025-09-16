@@ -14,6 +14,50 @@ import '../../features/user_level/user_level_page.dart';
 import '../../features/points/points_page.dart';
 import '../../providers/auth_provider.dart';
 
+/// 탭 인덱스 관리 (간단한 방향성 계산용)
+class _TabManager {
+  static int _currentIndex = 0;
+
+  static final List<String> _routes = [
+    '/today',
+    '/journal',
+    '/insights',
+    '/settings'
+  ];
+
+  static int getRouteIndex(String route) {
+    for (int i = 0; i < _routes.length; i++) {
+      if (route.startsWith(_routes[i])) return i;
+    }
+    return 0;
+  }
+
+  static void updateCurrentIndex(String route) {
+    final newIndex = getRouteIndex(route);
+    print(
+        '📍 Current index updated: $_currentIndex → $newIndex (route: $route)');
+    _currentIndex = newIndex;
+  }
+
+  /// 슬라이드 방향 결정
+  /// 현재인덱스 - 목표인덱스
+  /// 음수 = 오른쪽에서 왼쪽으로 슬라이드 (목표가 더 큰 인덱스)
+  /// 양수 = 왼쪽에서 오른쪽으로 슬라이드 (목표가 더 작은 인덱스)
+  static bool isMovingRight(int targetIndex) {
+    final diff = _currentIndex - targetIndex;
+    final movingRight = diff > 0;
+
+    if (_currentIndex != targetIndex) {
+      print(
+          '🎬 Tab Animation: ${_routes[_currentIndex]} → ${_routes[targetIndex]}');
+      print('   📊 Index: $_currentIndex → $targetIndex (diff: $diff)');
+      print('   ➡️ Direction: ${movingRight ? "왼쪽에서 오른쪽으로" : "오른쪽에서 왼쪽으로"}');
+    }
+
+    return movingRight;
+  }
+}
+
 /// 앱 라우터 설정
 class AppRouter {
   static final GlobalKey<NavigatorState> _rootNavigatorKey =
@@ -57,9 +101,33 @@ class AppRouter {
           GoRoute(
             path: '/today',
             name: 'today',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
+              print('🎯 TODAY pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
               final action = state.uri.queryParameters['action'];
-              return TodayPage(action: action);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: TodayPage(action: action),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
             },
           ),
 
@@ -67,7 +135,32 @@ class AppRouter {
           GoRoute(
             path: '/journal',
             name: 'journal',
-            builder: (context, state) => const JournalPage(),
+            pageBuilder: (context, state) {
+              print('🎯 JOURNAL pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: const JournalPage(),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
+            },
             routes: [
               // 특정 날짜의 Journal 페이지
               GoRoute(
@@ -86,9 +179,32 @@ class AppRouter {
           GoRoute(
             path: '/insights',
             name: 'insights',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
               final range = state.uri.queryParameters['range'];
-              return InsightsPage(initialRange: range);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: InsightsPage(initialRange: range),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
             },
           ),
 
@@ -96,7 +212,31 @@ class AppRouter {
           GoRoute(
             path: '/settings',
             name: 'settings',
-            builder: (context, state) => const SettingsPage(),
+            pageBuilder: (context, state) {
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: const SettingsPage(),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
+            },
           ),
 
           // Watch 테스트 페이지
@@ -233,25 +373,124 @@ class _MainAppWrapper extends ConsumerWidget {
           GoRoute(
             path: '/today',
             name: 'today',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
+              print('🎯 TODAY pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
               final action = state.uri.queryParameters['action'];
-              return TodayPage(action: action);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: TodayPage(action: action),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
             },
           ),
           GoRoute(
             path: '/journal',
             name: 'journal',
-            builder: (context, state) => const JournalPage(),
+            pageBuilder: (context, state) {
+              print('🎯 JOURNAL pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: const JournalPage(),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
+            },
           ),
           GoRoute(
             path: '/insights',
             name: 'insights',
-            builder: (context, state) => const InsightsPage(),
+            pageBuilder: (context, state) {
+              print('🎯 INSIGHTS pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: const InsightsPage(),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
+            },
           ),
           GoRoute(
             path: '/settings',
             name: 'settings',
-            builder: (context, state) => const SettingsPage(),
+            pageBuilder: (context, state) {
+              print('🎯 SETTINGS pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: const SettingsPage(),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
+            },
           ),
           GoRoute(
             path: '/watch-test',
