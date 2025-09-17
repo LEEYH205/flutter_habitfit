@@ -649,12 +649,13 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
                             // 패딩과 바 너비를 먼저 계산하고 남은 공간을 간격으로 분배
                             final totalBarWidth =
                                 _activityData.length * 4.0; // 바 너비 총합
-                            final paddingWidth = 6.0; // 양쪽 패딩을 줄임 (3px * 2)
+                            final paddingWidth = 8.0; // 양쪽 패딩 (4px * 2)
                             final availableSpace = constraints.maxWidth -
                                 totalBarWidth -
                                 paddingWidth;
                             final spacing = _activityData.length > 1
-                                ? availableSpace / (_activityData.length - 1)
+                                ? (availableSpace / (_activityData.length - 1))
+                                    .clamp(0.5, double.infinity)
                                 : 0.0;
 
                             return SingleChildScrollView(
@@ -665,7 +666,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     // 왼쪽 패딩
-                                    SizedBox(width: 3.0),
+                                    SizedBox(width: spacing / 2),
                                     // 바들
                                     ..._activityData
                                         .asMap()
@@ -684,7 +685,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
                                       );
                                     }),
                                     // 오른쪽 패딩
-                                    SizedBox(width: 3.0),
+                                    SizedBox(width: spacing / 2),
                                   ],
                                 ),
                               ),
@@ -706,14 +707,36 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        // 패딩과 바 너비를 먼저 계산하고 남은 공간을 간격으로 분배
-                        final totalBarWidth =
-                            _activityData.length * 4.0; // 바 너비 총합
-                        final paddingWidth = 6.0; // 양쪽 패딩을 줄임 (3px * 2)
-                        final availableSpace =
-                            constraints.maxWidth - totalBarWidth - paddingWidth;
+                        // 표시되는 라벨과 숨겨지는 라벨의 개수를 각각 계산
+                        final visibleLabels = _activityData.where((data) {
+                          final day = int.tryParse(data['label'] ?? '') ?? 0;
+                          final lastDayOfMonth = DateTime(_selectedMonth.year,
+                                  _selectedMonth.month + 1, 0)
+                              .day;
+                          return day == 1 ||
+                              day == 7 ||
+                              day == 14 ||
+                              day == 21 ||
+                              day == 28 ||
+                              day == lastDayOfMonth;
+                        }).length;
+
+                        final hiddenLabels =
+                            _activityData.length - visibleLabels;
+
+                        print(
+                            '📊 라벨 계산: 표시 $visibleLabels개 × 20px + 숨김 $hiddenLabels개 × 4px = ${(visibleLabels * 20.0) + (hiddenLabels * 4.0)}px');
+
+                        // 표시되는 라벨(20px) + 숨겨지는 라벨(4px)의 총 너비 계산
+                        final totalLabelWidth =
+                            (visibleLabels * 20.0) + (hiddenLabels * 4.0);
+                        final paddingWidth = 8.0; // 양쪽 패딩 (4px * 2)
+                        final availableSpace = constraints.maxWidth -
+                            totalLabelWidth -
+                            paddingWidth;
                         final spacing = _activityData.length > 1
-                            ? availableSpace / (_activityData.length - 1)
+                            ? (availableSpace / (_activityData.length - 1))
+                                .clamp(0.5, double.infinity)
                             : 0.0;
 
                         return SingleChildScrollView(
@@ -723,7 +746,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
                             child: Row(
                               children: [
                                 // 왼쪽 패딩
-                                SizedBox(width: 3.0),
+                                SizedBox(width: spacing / 2),
                                 // 라벨들
                                 ..._activityData.asMap().entries.map((entry) {
                                   final index = entry.key;
@@ -738,7 +761,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
                                   );
                                 }),
                                 // 오른쪽 패딩
-                                SizedBox(width: 3.0),
+                                SizedBox(width: spacing / 2),
                               ],
                             ),
                           ),
@@ -820,16 +843,24 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
             day == lastDayOfMonth)
         : true;
 
+    if (_selectedPeriod == '월' && shouldShowLabel) {
+      print('🏷️ 라벨 표시: $day일 (말일: $lastDayOfMonth일)');
+    }
+
+    // 표시되는 라벨은 넉넉한 너비, 숨겨지는 라벨은 최소 너비로 할당
+    final labelWidth =
+        shouldShowLabel ? 20.0 : 4.0; // 표시되는 라벨은 20px, 숨겨지는 라벨은 4px
+
     return SizedBox(
-      width: 4.0, // 바와 동일한 너비
+      width: labelWidth,
       child: shouldShowLabel
           ? Text(
               data['label'] ?? '',
-              style: TextStyle(fontSize: fontSize),
+              style: const TextStyle(fontSize: 10),
               textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis, // 텍스트 오버플로우 처리
+              overflow: TextOverflow.ellipsis,
             )
-          : const SizedBox.shrink(),
+          : const SizedBox.shrink(), // 텍스트는 숨기지만 공간은 차지
     );
   }
 
@@ -847,19 +878,6 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
     final barWidth = _selectedPeriod == '월' ? 4.0 : 20.0;
     final spacing = _selectedPeriod == '월' ? 0.8 : 4.0;
     final fontSize = _selectedPeriod == '월' ? 8.0 : 10.0;
-
-    // 월별 데이터에서 특정 날짜만 라벨 표시
-    final day = int.tryParse(data['label'] ?? '') ?? 0;
-    final lastDayOfMonth =
-        DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
-    final shouldShowLabel = _selectedPeriod == '월'
-        ? (day == 1 ||
-            day == 7 ||
-            day == 14 ||
-            day == 21 ||
-            day == 28 ||
-            day == lastDayOfMonth)
-        : true;
 
     return Container(
       width: _selectedPeriod == '월' ? 6.0 : null, // 월별 데이터는 고정 너비
@@ -883,15 +901,6 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
             ),
           ),
           SizedBox(height: spacing),
-          // X축 라벨을 X축 선 아래에 배치
-          if (shouldShowLabel)
-            Container(
-              margin: const EdgeInsets.only(top: 2), // X축 선과 라벨 사이 간격
-              child: Text(
-                data['label'] ?? '',
-                style: TextStyle(fontSize: fontSize),
-              ),
-            ),
         ],
       ),
     );
