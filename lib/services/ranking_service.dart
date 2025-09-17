@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/ranking.dart';
+import '../services/points_service.dart';
 
 /// 랭킹 서비스
 class RankingService {
@@ -10,7 +11,7 @@ class RankingService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // final PointsService _pointsService = PointsService(); // TODO: 향후 필요시 활성화
+  final PointsService _pointsService = PointsService();
 
   static const String _rankingsCollection = 'rankings';
   static const String _friendshipsCollection = 'friendships';
@@ -313,6 +314,31 @@ class RankingService {
         rankings.addAll(batchRankings);
       }
 
+      // 랭킹 데이터가 없는 친구들을 위해 기본 데이터 생성
+      if (rankings.length < friendIds.length) {
+        await _createMissingFriendRankings(friendIds, category, type, period);
+
+        // 다시 조회
+        rankings.clear();
+        for (int i = 0; i < friendIds.length; i += batchSize) {
+          final batch = friendIds.skip(i).take(batchSize).toList();
+
+          final querySnapshot = await _firestore
+              .collection(_rankingsCollection)
+              .where('userId', whereIn: batch)
+              .where('category', isEqualTo: category.value)
+              .where('type', isEqualTo: type.value)
+              .where('period', isEqualTo: period)
+              .get();
+
+          final batchRankings = querySnapshot.docs
+              .map((doc) => UserRanking.fromMap(doc.data()))
+              .toList();
+
+          rankings.addAll(batchRankings);
+        }
+      }
+
       // 점수로 정렬
       rankings.sort((a, b) => b.score.compareTo(a.score));
 
@@ -328,13 +354,87 @@ class RankingService {
     }
   }
 
+  /// 누락된 친구 랭킹 데이터 생성
+  Future<void> _createMissingFriendRankings(
+    List<String> friendIds,
+    RankingCategory category,
+    RankingType type,
+    String period,
+  ) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (final friendId in friendIds) {
+        // 기존 랭킹 데이터 확인
+        final existingDoc = await _firestore
+            .collection(_rankingsCollection)
+            .where('userId', isEqualTo: friendId)
+            .where('category', isEqualTo: category.value)
+            .where('type', isEqualTo: type.value)
+            .where('period', isEqualTo: period)
+            .limit(1)
+            .get();
+
+        if (existingDoc.docs.isEmpty) {
+          // 사용자 정보 조회
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(friendId)
+              .get();
+
+          String displayName = 'Unknown User';
+          String? profileImageUrl;
+
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            displayName = userData['displayName'] ?? 'Unknown User';
+            profileImageUrl = userData['photoURL'];
+          }
+
+          // 기본 점수 설정
+          double score = 0.0;
+          if (category == RankingCategory.totalPoints) {
+            // 포인트 정보 조회
+            final userPoints = await _pointsService.getUserPoints(friendId);
+            score = userPoints?.totalPoints.toDouble() ?? 0.0;
+          }
+
+          // 기본 랭킹 데이터 생성
+          final rankingId = _firestore.collection(_rankingsCollection).doc().id;
+          batch.set(
+            _firestore.collection(_rankingsCollection).doc(rankingId),
+            {
+              'userId': friendId,
+              'displayName': displayName,
+              'profileImageUrl': profileImageUrl,
+              'score': score,
+              'category': category.value,
+              'type': type.value,
+              'period': period,
+              'rank': 0, // 나중에 재계산됨
+              'metadata': {
+                'scoreChange': 0.0,
+                'rankChange': 0,
+                'lastUpdated': DateTime.now().toIso8601String(),
+              },
+              'createdAt': DateTime.now().toIso8601String(),
+              'updatedAt': DateTime.now().toIso8601String(),
+            },
+          );
+        }
+      }
+
+      await batch.commit();
+      print('✅ 누락된 친구 랭킹 데이터 생성 완료');
+    } catch (e) {
+      print('❌ 누락된 친구 랭킹 데이터 생성 오류: $e');
+    }
+  }
+
   /// 포인트 기반 랭킹 자동 업데이트
   Future<void> updatePointsRanking(String userId) async {
     try {
-      // TODO: PointsService에 getUserPoints 메서드 추가 필요
-      // final userPoints = await _pointsService.getUserPoints(userId);
-      // 임시로 null 체크
-      final userPoints = null;
+      final userPoints = await _pointsService.getUserPoints(userId);
       if (userPoints == null) return;
 
       final user = _auth.currentUser;
@@ -349,7 +449,7 @@ class RankingService {
         type: RankingType.weekly,
         score: userPoints.totalPoints.toDouble(),
         metadata: {
-          'level': userPoints.level,
+          'level': userPoints.currentLevel,
           'levelProgress': userPoints.levelProgress,
         },
       );
@@ -363,7 +463,7 @@ class RankingService {
         type: RankingType.monthly,
         score: userPoints.totalPoints.toDouble(),
         metadata: {
-          'level': userPoints.level,
+          'level': userPoints.currentLevel,
           'levelProgress': userPoints.levelProgress,
         },
       );
@@ -377,7 +477,7 @@ class RankingService {
         type: RankingType.allTime,
         score: userPoints.totalPoints.toDouble(),
         metadata: {
-          'level': userPoints.level,
+          'level': userPoints.currentLevel,
           'levelProgress': userPoints.levelProgress,
         },
       );

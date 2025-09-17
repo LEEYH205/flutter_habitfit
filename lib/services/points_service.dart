@@ -177,6 +177,22 @@ class PointsService {
     }
   }
 
+  /// 특정 사용자 포인트 조회
+  Future<UserPoints?> getUserPoints(String userId) async {
+    try {
+      final doc =
+          await _firestore.collection(_pointsCollection).doc(userId).get();
+
+      if (doc.exists) {
+        return UserPoints.fromMap(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      print('❌ 사용자 포인트 조회 오류: $e');
+      return null;
+    }
+  }
+
   /// 현재 사용자 포인트 정보 가져오기
   Future<UserPoints?> getCurrentUserPoints() async {
     try {
