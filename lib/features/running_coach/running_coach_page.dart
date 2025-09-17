@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/running_coach.dart';
@@ -107,6 +108,14 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
 
               // 퀵 액션 버튼들
               _buildQuickActions(),
+
+              const SizedBox(height: 20),
+
+              // 개발자 디버깅 섹션 (디버그 모드에서만 표시)
+              if (kDebugMode) ...[
+                _buildDeveloperSection(),
+                const SizedBox(height: 20),
+              ],
             ],
           ),
         ),
@@ -760,5 +769,307 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
         );
       }
     }
+  }
+
+  /// 개발자 디버깅 섹션
+  Widget _buildDeveloperSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200, width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.bug_report,
+                  color: Colors.red.shade600,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '🔧 개발자 디버깅 도구',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '⚠️ 주의: 이 버튼들은 Firebase DB 데이터를 완전히 삭제합니다!',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildDeveloperButton(
+              '개인 코치 설정 삭제',
+              Icons.settings,
+              Colors.orange,
+              _deleteCoachSettings,
+            ),
+            const SizedBox(height: 8),
+            _buildDeveloperButton(
+              '모든 러닝 이벤트 삭제',
+              Icons.event,
+              Colors.blue,
+              _deleteAllRunningEvents,
+            ),
+            const SizedBox(height: 8),
+            _buildDeveloperButton(
+              '모든 훈련 계획 삭제',
+              Icons.fitness_center,
+              Colors.green,
+              _deleteAllTrainingPlans,
+            ),
+            const SizedBox(height: 8),
+            _buildDeveloperButton(
+              '전체 데이터 초기화',
+              Icons.delete_forever,
+              Colors.red,
+              _resetAllData,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeveloperButton(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onPressed,
+  ) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(title),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 개인 코치 설정 삭제
+  Future<void> _deleteCoachSettings() async {
+    final confirmed = await _showConfirmationDialog(
+      '개인 코치 설정 삭제',
+      '개인 코치 설정을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      final success = await _coachService.deleteCoachSettings();
+
+      if (success) {
+        setState(() {
+          _settings = null;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ 개인 코치 설정이 삭제되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ 개인 코치 설정 삭제에 실패했습니다'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 모든 러닝 이벤트 삭제
+  Future<void> _deleteAllRunningEvents() async {
+    final confirmed = await _showConfirmationDialog(
+      '모든 러닝 이벤트 삭제',
+      '모든 러닝 이벤트를 삭제하시겠습니까?\n\n관련된 훈련 계획도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      int deletedCount = 0;
+
+      for (final event in _events) {
+        final success = await _coachService.deleteRunningEvent(event.id);
+        if (success) deletedCount++;
+      }
+
+      setState(() {
+        _events.clear();
+        _trainingPlans.clear();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ $deletedCount개의 러닝 이벤트가 삭제되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 모든 훈련 계획 삭제
+  Future<void> _deleteAllTrainingPlans() async {
+    final confirmed = await _showConfirmationDialog(
+      '모든 훈련 계획 삭제',
+      '모든 훈련 계획을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      int deletedCount = 0;
+
+      for (final plan in _trainingPlans) {
+        final success = await _coachService.deleteTrainingPlan(plan.id);
+        if (success) deletedCount++;
+      }
+
+      setState(() {
+        _trainingPlans.clear();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ $deletedCount개의 훈련 계획이 삭제되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 전체 데이터 초기화
+  Future<void> _resetAllData() async {
+    final confirmed = await _showConfirmationDialog(
+      '전체 데이터 초기화',
+      '러닝 코치의 모든 데이터를 삭제하시겠습니까?\n\n• 개인 코치 설정\n• 모든 러닝 이벤트\n• 모든 훈련 계획\n\n이 작업은 되돌릴 수 없습니다!',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // 1. 개인 코치 설정 삭제
+      await _coachService.deleteCoachSettings();
+
+      // 2. 모든 러닝 이벤트 삭제 (관련 훈련 계획도 함께 삭제됨)
+      for (final event in _events) {
+        await _coachService.deleteRunningEvent(event.id);
+      }
+
+      // 3. 남은 훈련 계획들 삭제
+      for (final plan in _trainingPlans) {
+        await _coachService.deleteTrainingPlan(plan.id);
+      }
+
+      setState(() {
+        _settings = null;
+        _events.clear();
+        _trainingPlans.clear();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ 모든 데이터가 초기화되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 확인 다이얼로그 표시
+  Future<bool> _showConfirmationDialog(String title, String content) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }

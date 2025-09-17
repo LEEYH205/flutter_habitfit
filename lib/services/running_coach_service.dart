@@ -671,25 +671,51 @@ class RunningCoachService {
 
       // 관련된 훈련 계획들도 함께 삭제
       final relatedPlans = await getUserTrainingPlans();
-      final plansToDelete = relatedPlans.where((plan) => plan.eventId == eventId).toList();
-      
+      final plansToDelete =
+          relatedPlans.where((plan) => plan.eventId == eventId).toList();
+
       // 배치 삭제
       final batch = _firestore.batch();
-      
+
       // 이벤트 삭제
       batch.delete(_firestore.collection(_eventsCollection).doc(eventId));
-      
+
       // 관련 훈련 계획들 삭제
       for (final plan in plansToDelete) {
         batch.delete(_firestore.collection(_plansCollection).doc(plan.id));
       }
-      
+
       await batch.commit();
 
-      print('✅ 러닝 이벤트 및 관련 훈련 계획 삭제 완료: $eventId (${plansToDelete.length}개 계획)');
+      print(
+          '✅ 러닝 이벤트 및 관련 훈련 계획 삭제 완료: $eventId (${plansToDelete.length}개 계획)');
       return true;
     } catch (e) {
       print('❌ 러닝 이벤트 삭제 오류: $e');
+      return false;
+    }
+  }
+
+  /// 개인 코치 설정 삭제
+  Future<bool> deleteCoachSettings() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      // 설정이 존재하는지 확인
+      final settings = await getCoachSettings();
+      if (settings == null || settings.userId != user.uid) {
+        print('❌ 개인 코치 설정을 찾을 수 없거나 권한이 없습니다');
+        return false;
+      }
+
+      // 설정 삭제
+      await _firestore.collection(_settingsCollection).doc(user.uid).delete();
+
+      print('✅ 개인 코치 설정 삭제 완료: ${user.uid}');
+      return true;
+    } catch (e) {
+      print('❌ 개인 코치 설정 삭제 오류: $e');
       return false;
     }
   }
