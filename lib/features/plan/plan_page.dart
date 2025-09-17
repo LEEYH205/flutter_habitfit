@@ -130,9 +130,11 @@ class _PlanPageState extends ConsumerState<PlanPage>
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.grey.shade300,
-                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
-                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
-                    : null,
+                backgroundImage:
+                    ref.read(authProviderProvider).user?.photoURL != null
+                        ? NetworkImage(
+                            ref.read(authProviderProvider).user!.photoURL!)
+                        : null,
                 child: ref.read(authProviderProvider).user?.photoURL == null
                     ? const Icon(
                         Icons.person,
@@ -186,13 +188,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
         _buildKpiRings(),
         const SizedBox(height: 24),
 
-        // 습관 섹션
-        _buildHabitsSection(),
-        const SizedBox(height: 16),
-
-        // 운동 섹션
-        _buildWorkoutSection(),
-        const SizedBox(height: 16),
 
         // 식사 섹션
         _buildMealsSection(),
@@ -267,6 +262,14 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     progress:
                         summary.getExerciseProgress(goals.exerciseMinutesGoal),
                     subtitle: '목표: ${goals.exerciseMinutesGoal}분',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const WorkoutPage(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -276,6 +279,14 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     progress: summary.habitProgress,
                     subtitle:
                         '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HabitPage(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -295,6 +306,14 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     value: '${summary.exerciseMinutes}분',
                     progress: summary.getExerciseProgress(30),
                     subtitle: '목표: 30분',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const WorkoutPage(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -304,6 +323,14 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     progress: summary.habitProgress,
                     subtitle:
                         '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HabitPage(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -317,109 +344,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
     );
   }
 
-  /// 습관 섹션
-  Widget _buildHabitsSection() {
-    return SectionCard(
-      title: '습관',
-      child: Consumer(
-        builder: (context, ref, child) {
-          final todaySummaryAsync = ref.watch(todaySummaryProvider);
-
-          return todaySummaryAsync.when(
-            data: (summary) => Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      summary.habitStatusText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const HabitPage(),
-                          ),
-                        );
-                      },
-                      child: const Text('전체 보기'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: summary.habitProgress,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    summary.habitProgress >= 1.0 ? Colors.green : Colors.blue,
-                  ),
-                ),
-              ],
-            ),
-            loading: () => const CircularProgressIndicator(),
-            error: (error, stack) => const Text('습관 데이터 로딩 실패'),
-          );
-        },
-      ),
-    );
-  }
-
-  /// 운동 섹션
-  Widget _buildWorkoutSection() {
-    return SectionCard(
-      title: '운동',
-      child: Consumer(
-        builder: (context, ref, child) {
-          final todaySummaryAsync = ref.watch(todaySummaryProvider);
-
-          return todaySummaryAsync.when(
-            data: (summary) => Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${summary.exerciseMinutes}분',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const WorkoutPage(),
-                          ),
-                        );
-                      },
-                      child: const Text('운동 추가'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '오늘 ${summary.workoutCount}번의 운동을 완료했어요',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-            loading: () => const CircularProgressIndicator(),
-            error: (error, stack) => const Text('운동 데이터 로딩 실패'),
-          );
-        },
-      ),
-    );
-  }
 
   /// 식사 섹션
   Widget _buildMealsSection() {
@@ -613,7 +537,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
         ] else if (_userPattern != null) ...[
           if (_personalizedInsight.isNotEmpty) _buildPersonalizedInsightCard(),
           if (_goalAdjustments.isNotEmpty) _buildGoalAdjustmentCard(),
-          if (_habitSuggestions.isNotEmpty) _buildHabitSuggestionCard(),
         ] else ...[
           _buildNoDataCard(),
         ],
@@ -760,89 +683,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
     );
   }
 
-  /// 습관 제안 카드
-  Widget _buildHabitSuggestionCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.add_circle_outline, color: Colors.purple.shade600),
-                const SizedBox(width: 8),
-                const Text(
-                  '새로운 습관 제안',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ..._habitSuggestions.take(3).map((suggestion) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: InkWell(
-                    onTap: () => _addSuggestedHabit(suggestion),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(suggestion.emoji,
-                              style: const TextStyle(fontSize: 20)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  suggestion.title,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w500),
-                                ),
-                                Text(
-                                  suggestion.description,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.purple.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${(suggestion.relevanceScore * 100).toStringAsFixed(0)}%',
-                              style: TextStyle(
-                                color: Colors.purple.shade700,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// 데이터 없음 카드
   Widget _buildNoDataCard() {
     return Card(
@@ -883,43 +723,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
         ),
       ),
     );
-  }
-
-  /// 제안된 습관을 실제 습관으로 추가
-  Future<void> _addSuggestedHabit(HabitSuggestion suggestion) async {
-    try {
-      // TODO: HabitService를 사용하여 습관 추가
-      print('습관 추가: ${suggestion.title}');
-
-      // 성공 스낵바 표시
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('${suggestion.emoji} ${suggestion.title} 습관이 추가되었습니다!'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-
-      // 습관 제안 목록에서 제거
-      if (mounted) {
-        setState(() {
-          _habitSuggestions.removeWhere((s) => s.title == suggestion.title);
-        });
-      }
-    } catch (e) {
-      print('❌ 습관 추가 실패: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('습관 추가에 실패했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   /// 목표 설정 섹션

@@ -101,9 +101,11 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.grey.shade300,
-                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
-                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
-                    : null,
+                backgroundImage:
+                    ref.read(authProviderProvider).user?.photoURL != null
+                        ? NetworkImage(
+                            ref.read(authProviderProvider).user!.photoURL!)
+                        : null,
                 child: ref.read(authProviderProvider).user?.photoURL == null
                     ? const Icon(
                         Icons.person,

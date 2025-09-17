@@ -9,6 +9,7 @@ class KpiRing extends StatelessWidget {
   final IconData? icon;
   final String? unit;
   final String? subtitle;
+  final VoidCallback? onTap;
 
   const KpiRing({
     super.key,
@@ -19,6 +20,7 @@ class KpiRing extends StatelessWidget {
     this.icon,
     this.unit,
     this.subtitle,
+    this.onTap,
   });
 
   /// 칼로리 링 생성
@@ -26,6 +28,7 @@ class KpiRing extends StatelessWidget {
     required String value,
     required double progress,
     String? subtitle,
+    VoidCallback? onTap,
   }) {
     return KpiRing(
       title: '움직이기',
@@ -35,6 +38,7 @@ class KpiRing extends StatelessWidget {
       icon: Icons.local_fire_department,
       unit: 'kcal',
       subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
@@ -43,6 +47,7 @@ class KpiRing extends StatelessWidget {
     required String value,
     required double progress,
     String? subtitle,
+    VoidCallback? onTap,
   }) {
     return KpiRing(
       title: '운동 시간',
@@ -52,6 +57,7 @@ class KpiRing extends StatelessWidget {
       icon: Icons.timer,
       unit: null, // 값에 이미 '분'이 포함되어 있음
       subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
@@ -60,6 +66,7 @@ class KpiRing extends StatelessWidget {
     required String value,
     required double progress,
     String? subtitle,
+    VoidCallback? onTap,
   }) {
     return KpiRing(
       title: '습관',
@@ -69,6 +76,7 @@ class KpiRing extends StatelessWidget {
       icon: Icons.check_circle,
       unit: '개',
       subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
@@ -91,20 +99,22 @@ class KpiRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
       child: Column(
         children: [
           // 아이콘과 제목
@@ -191,6 +201,7 @@ class KpiRing extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }
