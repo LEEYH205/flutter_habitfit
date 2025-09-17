@@ -36,9 +36,98 @@ class _TrainingPlanPageState extends ConsumerState<TrainingPlanPage>
 
   void _calculateCurrentWeek() {
     final now = DateTime.now();
-    final daysSinceStart = now.difference(widget.plan.startDate).inDays;
-    _currentWeek =
-        ((daysSinceStart / 7).floor() + 1).clamp(1, widget.plan.totalWeeks);
+
+    // 현재 주의 월요일 계산
+    final nowWeekStart =
+        DateTime(now.year, now.month, now.day - now.weekday + 1);
+
+    // 훈련 계획의 시작일을 월요일로 조정
+    final planStartMonday = DateTime(
+        widget.plan.startDate.year,
+        widget.plan.startDate.month,
+        widget.plan.startDate.day - widget.plan.startDate.weekday + 1);
+
+    // 현재 주와 훈련 계획 시작 주의 차이를 계산하여 현재 주차 결정
+    final weeksDifference =
+        nowWeekStart.difference(planStartMonday).inDays ~/ 7;
+    _currentWeek = (weeksDifference + 1).clamp(1, widget.plan.totalWeeks);
+  }
+
+  List<DailyWorkout> _getSortedDailyWorkouts(WeeklyPlan weekPlan) {
+    final now = DateTime.now();
+
+    // 현재 주의 월요일 계산
+    final nowWeekStart =
+        DateTime(now.year, now.month, now.day - now.weekday + 1);
+
+    // 훈련 계획의 시작일을 월요일로 조정
+    final planStartMonday = DateTime(
+        widget.plan.startDate.year,
+        widget.plan.startDate.month,
+        widget.plan.startDate.day - widget.plan.startDate.weekday + 1);
+
+    // 현재 주차의 월요일 계산
+    final currentWeekStart =
+        planStartMonday.add(Duration(days: (_currentWeek - 1) * 7));
+
+    // 현재 주인지 판단
+    final isCurrentWeek = nowWeekStart.isAtSameMomentAs(currentWeekStart);
+
+    if (isCurrentWeek) {
+      // 현재 주: 오늘부터 시작 (미래 → 과거 순서)
+      final today = now.weekday;
+      final sortedWorkouts = <DailyWorkout>[];
+
+      // 오늘부터 일요일까지 (미래)
+      for (int i = today; i <= 7; i++) {
+        final workout = weekPlan.dailyWorkouts.firstWhere(
+          (w) => w.date.weekday == i,
+          orElse: () => DailyWorkout(
+            date: currentWeekStart.add(Duration(days: i - 1)),
+            type: TrainingType.rest,
+            distance: 0,
+            duration: Duration.zero,
+            description: '휴식',
+          ),
+        );
+        sortedWorkouts.add(workout);
+      }
+
+      // 월요일부터 어제까지 (과거) - 이미 지나간 날짜는 "없음"으로 표시
+      for (int i = 1; i < today; i++) {
+        final pastDate = currentWeekStart.add(Duration(days: i - 1));
+        final workout = DailyWorkout(
+          date: pastDate,
+          type: TrainingType.rest,
+          distance: 0,
+          duration: Duration.zero,
+          description: '없음',
+        );
+        sortedWorkouts.add(workout);
+      }
+
+      return sortedWorkouts;
+    } else {
+      // 다른 주: 월요일부터 시작
+      final sortedWorkouts = <DailyWorkout>[];
+
+      // 월요일부터 일요일까지
+      for (int i = 1; i <= 7; i++) {
+        final workout = weekPlan.dailyWorkouts.firstWhere(
+          (w) => w.date.weekday == i,
+          orElse: () => DailyWorkout(
+            date: currentWeekStart.add(Duration(days: i - 1)),
+            type: TrainingType.rest,
+            distance: 0,
+            duration: Duration.zero,
+            description: '휴식',
+          ),
+        );
+        sortedWorkouts.add(workout);
+      }
+
+      return sortedWorkouts;
+    }
   }
 
   @override
@@ -310,7 +399,7 @@ class _TrainingPlanPageState extends ConsumerState<TrainingPlanPage>
           ),
           const SizedBox(height: 12),
 
-          ...weekPlan.dailyWorkouts
+          ..._getSortedDailyWorkouts(weekPlan)
               .map((workout) => _buildDailyWorkoutCard(workout)),
         ],
       ),
@@ -446,6 +535,14 @@ class _TrainingPlanPageState extends ConsumerState<TrainingPlanPage>
                               color: isToday
                                   ? Colors.orange
                                   : Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${workout.date.month.toString().padLeft(2, '0')}-${workout.date.day.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
                             ),
                           ),
                           if (isToday) ...[

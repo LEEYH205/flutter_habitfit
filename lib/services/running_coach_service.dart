@@ -162,7 +162,9 @@ class RunningCoachService {
       final trainingWeeks =
           math.max(4, math.min(weeksUntilEvent - 1, 20)); // 최소 4주, 최대 20주
 
-      final startDate = now;
+      // 시작일을 현재 주의 월요일로 조정
+      final startDate =
+          DateTime(now.year, now.month, now.day - now.weekday + 1);
       final endDate =
           event.eventDate.subtract(const Duration(days: 7)); // 이벤트 1주 전까지
 
@@ -208,10 +210,22 @@ class RunningCoachService {
   }) {
     final weeklyPlans = <WeeklyPlan>[];
     final baseWeeklyDistance = settings.currentWeeklyDistance;
+    final now = DateTime.now();
 
     for (int week = 1; week <= trainingWeeks; week++) {
-      final weekStartDate = startDate.add(Duration(days: (week - 1) * 7));
-      final weekEndDate = weekStartDate.add(const Duration(days: 6));
+      DateTime weekStartDate;
+      DateTime weekEndDate;
+
+      if (week == 1) {
+        // 첫째 주: 현재 날짜부터 시작
+        weekStartDate = now;
+        weekEndDate =
+            DateTime(now.year, now.month, now.day - now.weekday + 7); // 일요일
+      } else {
+        // 중간 주차들: 월요일부터 시작
+        weekStartDate = startDate.add(Duration(days: (week - 1) * 7));
+        weekEndDate = weekStartDate.add(const Duration(days: 6));
+      }
 
       // 훈련 단계 결정
       final phase = _getTrainingPhase(week, trainingWeeks);
@@ -300,26 +314,78 @@ class RunningCoachService {
     final dailyWorkouts = <DailyWorkout>[];
     final availableRunningDays = List<int>.from(settings.runningDays);
     final availableLsdDays = List<int>.from(settings.lsdDays);
+    final now = DateTime.now();
 
-    // 7일간 계획 생성
-    for (int day = 0; day < 7; day++) {
-      final currentDate = weekStartDate.add(Duration(days: day));
-      final dayOfWeek = currentDate.weekday % 7; // 0=일요일, 1=월요일, ...
+    if (weekNumber == 1) {
+      // 첫째 주: 오늘부터 일요일까지 (불완전한 주)
+      final today = now.weekday; // 1=월요일, 7=일요일
+      final daysInFirstWeek = 8 - today; // 오늘부터 일요일까지의 일수
 
-      final workout = _generateDailyWorkout(
-        date: currentDate,
-        dayOfWeek: dayOfWeek,
-        phase: phase,
-        weeklyDistance: weeklyDistance,
-        settings: settings,
-        event: event,
-        availableRunningDays: availableRunningDays,
-        availableLsdDays: availableLsdDays,
-        weekNumber: weekNumber,
-        totalWeeks: totalWeeks,
-      );
+      for (int day = 0; day < daysInFirstWeek; day++) {
+        final currentDate = now.add(Duration(days: day));
+        final dayOfWeek = currentDate.weekday % 7; // 0=일요일, 1=월요일, ...
 
-      dailyWorkouts.add(workout);
+        final workout = _generateDailyWorkout(
+          date: currentDate,
+          dayOfWeek: dayOfWeek,
+          phase: phase,
+          weeklyDistance: weeklyDistance,
+          settings: settings,
+          event: event,
+          availableRunningDays: availableRunningDays,
+          availableLsdDays: availableLsdDays,
+          weekNumber: weekNumber,
+          totalWeeks: totalWeeks,
+        );
+
+        dailyWorkouts.add(workout);
+      }
+    } else if (weekNumber == totalWeeks) {
+      // 마지막 주: 월요일부터 목표일까지 (불완전한 주)
+      final targetDate =
+          event.eventDate.subtract(const Duration(days: 7)); // 이벤트 1주 전까지
+      final daysInLastWeek = targetDate.difference(weekStartDate).inDays + 1;
+
+      for (int day = 0; day < daysInLastWeek; day++) {
+        final currentDate = weekStartDate.add(Duration(days: day));
+        final dayOfWeek = currentDate.weekday % 7; // 0=일요일, 1=월요일, ...
+
+        final workout = _generateDailyWorkout(
+          date: currentDate,
+          dayOfWeek: dayOfWeek,
+          phase: phase,
+          weeklyDistance: weeklyDistance,
+          settings: settings,
+          event: event,
+          availableRunningDays: availableRunningDays,
+          availableLsdDays: availableLsdDays,
+          weekNumber: weekNumber,
+          totalWeeks: totalWeeks,
+        );
+
+        dailyWorkouts.add(workout);
+      }
+    } else {
+      // 중간 주차들: 월요일부터 일요일까지 (완전한 7일)
+      for (int day = 0; day < 7; day++) {
+        final currentDate = weekStartDate.add(Duration(days: day));
+        final dayOfWeek = currentDate.weekday % 7; // 0=일요일, 1=월요일, ...
+
+        final workout = _generateDailyWorkout(
+          date: currentDate,
+          dayOfWeek: dayOfWeek,
+          phase: phase,
+          weeklyDistance: weeklyDistance,
+          settings: settings,
+          event: event,
+          availableRunningDays: availableRunningDays,
+          availableLsdDays: availableLsdDays,
+          weekNumber: weekNumber,
+          totalWeeks: totalWeeks,
+        );
+
+        dailyWorkouts.add(workout);
+      }
     }
 
     return dailyWorkouts;

@@ -5,6 +5,7 @@ import '../../models/running_coach.dart';
 import '../../services/running_coach_service.dart';
 import '../../widgets/app_bar_with_notifications.dart';
 import 'all_training_plans_page.dart';
+import 'progress_tracking_page.dart';
 import 'running_coach_setup_page.dart';
 import 'training_plan_page.dart';
 
@@ -106,11 +107,6 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
                 const SizedBox(height: 20),
               ],
 
-              // 퀵 액션 버튼들
-              _buildQuickActions(),
-
-              const SizedBox(height: 20),
-
               // 개발자 디버깅 섹션 (디버그 모드에서만 표시)
               if (kDebugMode) ...[
                 _buildDeveloperSection(),
@@ -178,6 +174,44 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
                 color: Colors.white,
                 height: 1.4,
               ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _navigateToSetup(),
+                    icon: const Icon(Icons.settings, size: 18),
+                    label: Text(hasSettings ? '설정 변경' : '설정하기'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.blue.shade600,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                if (hasSettings) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _navigateToProgressTracking(),
+                      icon: const Icon(Icons.analytics, size: 18),
+                      label: const Text('진행 상황'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             if (hasSettings) ...[
               const SizedBox(height: 16),
@@ -576,91 +610,6 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
     );
   }
 
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '⚡ 빠른 실행',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                icon: Icons.settings,
-                title: '코치 설정',
-                subtitle: '페이스, 일정 설정',
-                color: Colors.orange,
-                onTap: () => _navigateToSetup(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildQuickActionCard(
-                icon: Icons.analytics,
-                title: '진행 상황',
-                subtitle: '훈련 분석 보기',
-                color: Colors.purple,
-                onTap: () {
-                  // TODO: 진행 상황 분석 페이지로 이동
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _navigateToSetup() {
     Navigator.push(
       context,
@@ -691,6 +640,15 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
             _loadData();
           },
         ),
+      ),
+    );
+  }
+
+  void _navigateToProgressTracking() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProgressTrackingPage(),
       ),
     );
   }
