@@ -97,6 +97,25 @@ class KpiRing extends StatelessWidget {
     );
   }
 
+  /// 식사 링 생성
+  factory KpiRing.meals({
+    required String value,
+    required double progress,
+    String? subtitle,
+    VoidCallback? onTap,
+  }) {
+    return KpiRing(
+      title: '식사',
+      value: value,
+      progress: progress,
+      color: Colors.purple,
+      icon: Icons.restaurant,
+      unit: '끼',
+      subtitle: subtitle,
+      onTap: onTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(

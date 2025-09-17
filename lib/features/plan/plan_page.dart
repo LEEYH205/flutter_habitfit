@@ -187,10 +187,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
         // KPI 링 섹션
         _buildKpiRings(),
         const SizedBox(height: 24),
-
-
-        // 식사 섹션
-        _buildMealsSection(),
       ],
     );
   }
@@ -245,129 +241,63 @@ class _PlanPageState extends ConsumerState<PlanPage>
 
         return todaySummaryAsync.when(
           data: (summary) => userGoalsAsync.when(
-            data: (goals) => Row(
-              children: [
-                Expanded(
-                  child: KpiRing.calories(
-                    value: summary.activeCalories.toInt().toString(),
-                    progress: summary
-                        .getActiveCaloriesProgress(goals.activeCaloriesGoal),
-                    subtitle: '목표: ${goals.activeCaloriesGoal.toInt()}kcal',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KpiRing.exercise(
-                    value: '${summary.exerciseMinutes}분',
-                    progress:
-                        summary.getExerciseProgress(goals.exerciseMinutesGoal),
-                    subtitle: '목표: ${goals.exerciseMinutesGoal}분',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WorkoutPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KpiRing.habits(
-                    value: summary.habitStatusText,
-                    progress: summary.habitProgress,
-                    subtitle:
-                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HabitPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            loading: () => Row(
-              children: [
-                Expanded(
-                  child: KpiRing.calories(
-                    value: summary.activeCalories.toInt().toString(),
-                    progress: summary.getActiveCaloriesProgress(400.0),
-                    subtitle: '목표: 400kcal',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KpiRing.exercise(
-                    value: '${summary.exerciseMinutes}분',
-                    progress: summary.getExerciseProgress(30),
-                    subtitle: '목표: 30분',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WorkoutPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KpiRing.habits(
-                    value: summary.habitStatusText,
-                    progress: summary.habitProgress,
-                    subtitle:
-                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HabitPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            error: (error, stack) => const Text('목표 로딩 실패'),
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => const Text('데이터 로딩 실패'),
-        );
-      },
-    );
-  }
-
-
-  /// 식사 섹션
-  Widget _buildMealsSection() {
-    return SectionCard(
-      title: '식사',
-      child: Consumer(
-        builder: (context, ref, child) {
-          final todaySummaryAsync = ref.watch(todaySummaryProvider);
-
-          return todaySummaryAsync.when(
-            data: (summary) => Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${summary.mealCount}끼',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+            data: (goals) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.calories(
+                      value: summary.activeCalories.toInt().toString(),
+                      progress: summary
+                          .getActiveCaloriesProgress(goals.activeCaloriesGoal),
+                      subtitle: '목표: ${goals.activeCaloriesGoal.toInt()}kcal',
                     ),
-                    TextButton(
-                      onPressed: () {
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.exercise(
+                      value: '${summary.exerciseMinutes}분',
+                      progress: summary
+                          .getExerciseProgress(goals.exerciseMinutesGoal),
+                      subtitle: '목표: ${goals.exerciseMinutesGoal}분',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WorkoutPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.habits(
+                      value: summary.habitStatusText,
+                      progress: summary.habitProgress,
+                      subtitle:
+                          '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HabitPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.meals(
+                      value: '${summary.mealCount}끼',
+                      progress: summary.getMealProgress(3), // 하루 3끼 목표
+                      subtitle: '목표: 3끼',
+                      onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -375,25 +305,86 @@ class _PlanPageState extends ConsumerState<PlanPage>
                           ),
                         );
                       },
-                      child: const Text('식사 추가'),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '오늘 ${summary.mealCount}끼를 기록했어요',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 16), // 마지막에 여백 추가
+                ],
+              ),
             ),
-            loading: () => const CircularProgressIndicator(),
-            error: (error, stack) => const Text('식사 데이터 로딩 실패'),
-          );
-        },
-      ),
+            loading: () => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.calories(
+                      value: summary.activeCalories.toInt().toString(),
+                      progress: summary.getActiveCaloriesProgress(400.0),
+                      subtitle: '목표: 400kcal',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.exercise(
+                      value: '${summary.exerciseMinutes}분',
+                      progress: summary.getExerciseProgress(30),
+                      subtitle: '목표: 30분',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WorkoutPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.habits(
+                      value: summary.habitStatusText,
+                      progress: summary.habitProgress,
+                      subtitle:
+                          '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HabitPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: KpiRing.meals(
+                      value: '${summary.mealCount}끼',
+                      progress: summary.getMealProgress(3), // 하루 3끼 목표
+                      subtitle: '목표: 3끼',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MealPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16), // 마지막에 여백 추가
+                ],
+              ),
+            ),
+            error: (error, stack) => const Text('목표 로딩 실패'),
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => const Text('데이터 로딩 실패'),
+        );
+      },
     );
   }
 

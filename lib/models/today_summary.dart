@@ -63,6 +63,10 @@ class TodaySummary {
   double getStepsProgress(int goal) =>
       (steps / goal.toDouble()).clamp(0.0, 1.0);
 
+  /// 식사 목표 대비 진행률 (동적 목표)
+  double getMealProgress(int goal) =>
+      (mealCount / goal.toDouble()).clamp(0.0, 1.0);
+
   /// 오늘의 총 운동 시간 (분)
   int get totalWorkoutMinutes => runningDuration;
 
