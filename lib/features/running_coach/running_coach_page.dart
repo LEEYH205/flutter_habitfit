@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/running_coach.dart';
 import '../../services/running_coach_service.dart';
 import '../../widgets/app_bar_with_notifications.dart';
+import 'all_training_plans_page.dart';
 import 'running_coach_setup_page.dart';
 import 'training_plan_page.dart';
 
@@ -458,9 +459,7 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                // TODO: 전체 훈련 계획 목록 페이지로 이동
-              },
+              onPressed: () => _navigateToAllTrainingPlans(),
               child: const Text('전체 보기'),
             ),
           ],
@@ -667,6 +666,22 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
       context,
       MaterialPageRoute(
         builder: (context) => TrainingPlanPage(plan: plan),
+      ),
+    );
+  }
+
+  void _navigateToAllTrainingPlans() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AllTrainingPlansPage(
+          events: _events,
+          trainingPlans: _trainingPlans,
+          onPlanDeleted: () {
+            // 훈련 계획이 삭제되면 데이터 새로고침
+            _loadData();
+          },
+        ),
       ),
     );
   }

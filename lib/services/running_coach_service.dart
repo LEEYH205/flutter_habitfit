@@ -615,4 +615,82 @@ class RunningCoachService {
       return null;
     }
   }
+
+  /// 특정 러닝 이벤트 조회
+  Future<RunningEvent?> getRunningEvent(String eventId) async {
+    try {
+      final doc =
+          await _firestore.collection(_eventsCollection).doc(eventId).get();
+
+      if (doc.exists) {
+        return RunningEvent.fromMap(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      print('❌ 러닝 이벤트 조회 오류: $e');
+      return null;
+    }
+  }
+
+  /// 훈련 계획 삭제
+  Future<bool> deleteTrainingPlan(String planId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      // 훈련 계획이 존재하는지 확인
+      final plan = await getTrainingPlan(planId);
+      if (plan == null || plan.userId != user.uid) {
+        print('❌ 훈련 계획을 찾을 수 없거나 권한이 없습니다');
+        return false;
+      }
+
+      // 훈련 계획 삭제
+      await _firestore.collection(_plansCollection).doc(planId).delete();
+
+      print('✅ 훈련 계획 삭제 완료: $planId');
+      return true;
+    } catch (e) {
+      print('❌ 훈련 계획 삭제 오류: $e');
+      return false;
+    }
+  }
+
+  /// 러닝 이벤트 삭제
+  Future<bool> deleteRunningEvent(String eventId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      // 이벤트가 존재하는지 확인
+      final event = await getRunningEvent(eventId);
+      if (event == null || event.userId != user.uid) {
+        print('❌ 러닝 이벤트를 찾을 수 없거나 권한이 없습니다');
+        return false;
+      }
+
+      // 관련된 훈련 계획들도 함께 삭제
+      final relatedPlans = await getUserTrainingPlans();
+      final plansToDelete = relatedPlans.where((plan) => plan.eventId == eventId).toList();
+      
+      // 배치 삭제
+      final batch = _firestore.batch();
+      
+      // 이벤트 삭제
+      batch.delete(_firestore.collection(_eventsCollection).doc(eventId));
+      
+      // 관련 훈련 계획들 삭제
+      for (final plan in plansToDelete) {
+        batch.delete(_firestore.collection(_plansCollection).doc(plan.id));
+      }
+      
+      await batch.commit();
+
+      print('✅ 러닝 이벤트 및 관련 훈련 계획 삭제 완료: $eventId (${plansToDelete.length}개 계획)');
+      return true;
+    } catch (e) {
+      print('❌ 러닝 이벤트 삭제 오류: $e');
+      return false;
+    }
+  }
 }

@@ -226,7 +226,8 @@ class _TrainingPlanPageState extends ConsumerState<TrainingPlanPage>
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              height: 50, // 고정 높이 설정
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: isSelected
                     ? Colors.blue
@@ -238,41 +239,36 @@ class _TrainingPlanPageState extends ConsumerState<TrainingPlanPage>
                     ? Border.all(color: Colors.orange, width: 2)
                     : null,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$week주차',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected
-                            ? Colors.white
-                            : isCurrentWeek
-                                ? Colors.orange.shade700
-                                : Colors.grey.shade700,
-                      ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$week주차',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : isCurrentWeek
+                              ? Colors.orange.shade700
+                              : Colors.grey.shade700,
                     ),
-                    const SizedBox(height: 1),
-                    Flexible(
-                      child: Text(
-                        '${weekPlan.totalDistance.toStringAsFixed(0)}km',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: isSelected
-                              ? Colors.white70
-                              : isCurrentWeek
-                                  ? Colors.orange.shade600
-                                  : Colors.grey.shade600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${weekPlan.totalDistance.toStringAsFixed(0)}km',
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: isSelected
+                          ? Colors.white70
+                          : isCurrentWeek
+                              ? Colors.orange.shade600
+                              : Colors.grey.shade600,
                     ),
-                  ],
-                ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           );
