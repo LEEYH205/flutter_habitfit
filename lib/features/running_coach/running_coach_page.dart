@@ -340,131 +340,171 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
     final daysUntilEvent = event.eventDate.difference(DateTime.now()).inDays;
     final isUpcoming = daysUntilEvent > 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isUpcoming ? Colors.blue.shade200 : Colors.grey.shade300,
-          width: isUpcoming ? 2 : 1,
+    return Dismissible(
+      key: Key('event_${event.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.red.shade100,
+          borderRadius: BorderRadius.circular(16),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isUpcoming
-                        ? Colors.blue.shade100
-                        : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.flag,
-                    color: isUpcoming
-                        ? Colors.blue.shade600
-                        : Colors.grey.shade600,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        event.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${event.eventDate.year}.${event.eventDate.month.toString().padLeft(2, '0')}.${event.eventDate.day.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isUpcoming)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'D-$daysUntilEvent',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange.shade700,
-                      ),
-                    ),
-                  ),
-              ],
+            Icon(
+              Icons.delete,
+              color: Colors.red.shade600,
+              size: 24,
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildEventInfo(Icons.straighten, '${event.targetDistance}km'),
-                const SizedBox(width: 16),
-                _buildEventInfo(Icons.timer,
-                    '${event.targetTime.inHours}h${(event.targetTime.inMinutes % 60).toString().padLeft(2, '0')}m'),
-                const SizedBox(width: 16),
-                _buildEventInfo(Icons.speed,
-                    '${event.targetPace.inMinutes}:${(event.targetPace.inSeconds % 60).toString().padLeft(2, '0')}/km'),
-              ],
-            ),
-            if (isUpcoming) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed:
-                      _isCreatingPlan ? null : () => _createTrainingPlan(event),
-                  icon: _isCreatingPlan
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.fitness_center, size: 18),
-                  label: Text(_isCreatingPlan ? '생성 중...' : '훈련 계획 생성'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isCreatingPlan ? Colors.grey : Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+            const SizedBox(height: 4),
+            Text(
+              '삭제',
+              style: TextStyle(
+                color: Colors.red.shade600,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
               ),
-            ],
+            ),
           ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        return await _showDeleteEventConfirmation(event);
+      },
+      onDismissed: (direction) {
+        _deleteEventInBackground(event);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isUpcoming ? Colors.blue.shade200 : Colors.grey.shade300,
+            width: isUpcoming ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isUpcoming
+                          ? Colors.blue.shade100
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.flag,
+                      color: isUpcoming
+                          ? Colors.blue.shade600
+                          : Colors.grey.shade600,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${event.eventDate.year}.${event.eventDate.month.toString().padLeft(2, '0')}.${event.eventDate.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isUpcoming)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'D-$daysUntilEvent',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildEventInfo(
+                      Icons.straighten, '${event.targetDistance}km'),
+                  const SizedBox(width: 16),
+                  _buildEventInfo(Icons.timer,
+                      '${event.targetTime.inHours}h${(event.targetTime.inMinutes % 60).toString().padLeft(2, '0')}m'),
+                  const SizedBox(width: 16),
+                  _buildEventInfo(Icons.speed,
+                      '${event.targetPace.inMinutes}:${(event.targetPace.inSeconds % 60).toString().padLeft(2, '0')}/km'),
+                ],
+              ),
+              if (isUpcoming) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isCreatingPlan
+                        ? null
+                        : () => _createTrainingPlan(event),
+                    icon: _isCreatingPlan
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.fitness_center, size: 18),
+                    label: Text(_isCreatingPlan ? '생성 중...' : '훈련 계획 생성'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          _isCreatingPlan ? Colors.grey : Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -508,14 +548,16 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
           ],
         ),
         const SizedBox(height: 12),
-        ..._trainingPlans.take(2).map((plan) => _buildTrainingPlanCard(plan)),
+        ..._trainingPlans
+            .where((plan) => _events.any((event) => event.id == plan.eventId))
+            .take(2)
+            .map((plan) => _buildTrainingPlanCard(plan)),
       ],
     );
   }
 
   Widget _buildTrainingPlanCard(TrainingPlan plan) {
-    final event = _events.firstWhere((e) => e.id == plan.eventId,
-        orElse: () => _events.first);
+    final event = _events.firstWhere((e) => e.id == plan.eventId);
     final progress = DateTime.now().difference(plan.startDate).inDays /
         (plan.endDate.difference(plan.startDate).inDays);
     final progressPercent = (progress * 100).clamp(0, 100).round();
@@ -608,6 +650,68 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
         ),
       ),
     );
+  }
+
+  Future<bool> _showDeleteEventConfirmation(RunningEvent event) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('이벤트 삭제'),
+              content: Text(
+                  '\'${event.name}\' 이벤트와 관련된 모든 훈련 계획을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('삭제'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  void _deleteEventInBackground(RunningEvent event) async {
+    try {
+      final success = await _coachService.deleteRunningEvent(event.id);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('\'${event.name}\' 이벤트가 삭제되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // UI에서 즉시 제거
+        setState(() {
+          _events.removeWhere((e) => e.id == event.id);
+          _trainingPlans.removeWhere((plan) => plan.eventId == event.id);
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('이벤트 삭제에 실패했습니다'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _navigateToSetup() {
