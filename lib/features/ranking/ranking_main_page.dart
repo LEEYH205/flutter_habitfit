@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/section_card.dart';
+import '../../widgets/profile_menu.dart';
+import '../../providers/auth_provider.dart';
 import 'ranking_page.dart';
 import 'friends_page.dart';
+import 'club_list_page.dart';
+import 'club_create_page.dart';
+import 'achievements_page.dart';
+import '../notifications/notifications_page.dart';
 
 class RankingMainPage extends ConsumerStatefulWidget {
   const RankingMainPage({super.key});
@@ -16,17 +22,70 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('랭킹'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          '랭킹',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // 프로필 메뉴 열기
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
+              ),
+              // Red dot for unread notifications
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () {
               _showProfileMenu(context);
             },
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
+                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
+                    : null,
+                child: ref.read(authProviderProvider).user?.photoURL == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey,
+                      )
+                    : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -145,7 +204,12 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // 클럽 생성 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ClubCreatePage(),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('클럽 생성'),
@@ -155,7 +219,12 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // 클럽 목록 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ClubListPage(),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.list),
                   label: const Text('클럽 목록'),
@@ -180,7 +249,12 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: () {
-              // 업적 페이지로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AchievementsPage(),
+                ),
+              );
             },
             icon: const Icon(Icons.military_tech),
             label: const Text('업적 보기'),
@@ -193,38 +267,9 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
   void _showProfileMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('사용자 정보'),
-              onTap: () {
-                Navigator.pop(context);
-                // 사용자 정보 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('앱 설정'),
-              onTap: () {
-                Navigator.pop(context);
-                // 앱 설정 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('로그아웃'),
-              onTap: () {
-                Navigator.pop(context);
-                // 로그아웃 처리
-              },
-            ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ProfileMenu(),
     );
   }
 }

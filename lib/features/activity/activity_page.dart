@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:health/health.dart';
 import '../../widgets/common/section_card.dart';
+import '../../widgets/profile_menu.dart';
 import '../../providers/day_log_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/day_log.dart';
 import '../insights/insights_page.dart';
+import '../notifications/notifications_page.dart';
 
 class ActivityPage extends ConsumerStatefulWidget {
   final DateTime? initialDate; // 초기 선택 날짜
@@ -47,17 +49,70 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('활동'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          '활동',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // 프로필 메뉴 열기
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
+              ),
+              // Red dot for unread notifications
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () {
               _showProfileMenu(context);
             },
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
+                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
+                    : null,
+                child: ref.read(authProviderProvider).user?.photoURL == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey,
+                      )
+                    : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -116,7 +171,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
 
   /// Insights 탭 (분석)
   Widget _buildInsightsTab() {
-    return const InsightsPage();
+    return const InsightsPage(showAppBar: false);
   }
 
   /// HealthKit 권한 확인 및 요청
@@ -303,11 +358,12 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
             const Text('오늘 운동 기록이 없습니다.')
           else
             ...dayLog!.workouts.map((workout) => ListTile(
-              leading: const Icon(Icons.fitness_center),
-              title: Text(workout['name'] ?? '운동'),
-              subtitle: Text('${workout['duration'] ?? 0}분'),
-              trailing: Text('${workout['caloriesBurned']?.toInt() ?? 0}kcal'),
-            )),
+                  leading: const Icon(Icons.fitness_center),
+                  title: Text(workout['name'] ?? '운동'),
+                  subtitle: Text('${workout['duration'] ?? 0}분'),
+                  trailing:
+                      Text('${workout['caloriesBurned']?.toInt() ?? 0}kcal'),
+                )),
           const SizedBox(height: 8),
           ElevatedButton.icon(
             onPressed: () {
@@ -342,12 +398,14 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
           }
 
           return Column(
-            children: data.map((item) => ListTile(
-              leading: Icon(_getHealthKitIcon(item['type'])),
-              title: Text(item['type']),
-              subtitle: Text(item['value']),
-              trailing: Text(item['unit']),
-            )).toList(),
+            children: data
+                .map((item) => ListTile(
+                      leading: Icon(_getHealthKitIcon(item['type'])),
+                      title: Text(item['type']),
+                      subtitle: Text(item['value']),
+                      trailing: Text(item['unit']),
+                    ))
+                .toList(),
           );
         },
       ),
@@ -376,17 +434,17 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   Future<List<Map<String, dynamic>>> _loadAllHealthKitData() async {
     try {
       print('📅 HealthKit에서 모든 운동 데이터 로드 시작 (달력용)');
-      
+
       final health = HealthFactory();
       final now = DateTime.now();
       final startDate = now.subtract(const Duration(days: 30));
-      
+
       final steps = await health.getHealthDataFromTypes(
         startDate,
         now,
         [HealthDataType.STEPS],
       );
-      
+
       final workouts = await health.getHealthDataFromTypes(
         startDate,
         now,
@@ -394,7 +452,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
       );
 
       final List<Map<String, dynamic>> result = [];
-      
+
       // 걸음 수 데이터 처리
       for (final step in steps) {
         result.add({
@@ -404,7 +462,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
           'unit': '걸음',
         });
       }
-      
+
       // 운동 데이터 처리
       for (final workout in workouts) {
         result.add({
@@ -424,7 +482,8 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   }
 
   /// 특정 날짜의 HealthKit 데이터 로드
-  Future<List<Map<String, dynamic>>> _loadHealthKitDataForDate(DateTime date) async {
+  Future<List<Map<String, dynamic>>> _loadHealthKitDataForDate(
+      DateTime date) async {
     try {
       final health = HealthFactory();
       final startDate = DateTime(date.year, date.month, date.day);
@@ -437,7 +496,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
       );
 
       final List<Map<String, dynamic>> result = [];
-      
+
       for (final step in steps) {
         result.add({
           'type': 'STEPS',
@@ -478,38 +537,9 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   void _showProfileMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('사용자 정보'),
-              onTap: () {
-                Navigator.pop(context);
-                // 사용자 정보 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('앱 설정'),
-              onTap: () {
-                Navigator.pop(context);
-                // 앱 설정 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('로그아웃'),
-              onTap: () {
-                Navigator.pop(context);
-                // 로그아웃 처리
-              },
-            ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ProfileMenu(),
     );
   }
 }

@@ -14,8 +14,74 @@ class ClubService {
   static const String _clubsCollection = 'clubs';
   static const String _clubMembersCollection = 'club_members';
 
-  /// 클럽 생성
-  Future<String?> createClub({
+  /// 클럽 생성 (새로운 Club 모델용)
+  Future<void> createClub({
+    required String name,
+    required String description,
+    required String category,
+    required bool isPrivate,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('사용자가 로그인되지 않았습니다');
+
+      final now = DateTime.now();
+      final clubId = _firestore.collection(_clubsCollection).doc().id;
+
+      final club = Club(
+        id: clubId,
+        name: name,
+        description: description,
+        ownerId: user.uid,
+        ownerName: user.displayName ?? 'Unknown User',
+        memberIds: [user.uid], // 생성자는 자동으로 멤버가 됨
+        adminIds: [user.uid], // 생성자는 자동으로 관리자가 됨
+        type: ClubType.running, // 기본값
+        isPublic: !isPrivate,
+        maxMembers: 50,
+        settings: {'category': category},
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _firestore
+          .collection(_clubsCollection)
+          .doc(clubId)
+          .set(club.toMap());
+
+      // 생성자를 클럽 멤버로 추가
+      await _firestore
+          .collection(_clubMembersCollection)
+          .doc('${clubId}_${user.uid}')
+          .set({
+        'clubId': clubId,
+        'userId': user.uid,
+        'role': 'owner',
+        'joinedAt': Timestamp.fromDate(now),
+      });
+    } catch (e) {
+      throw Exception('클럽 생성에 실패했습니다: $e');
+    }
+  }
+
+  /// 클럽 목록 조회
+  Future<List<Club>> getClubs() async {
+    try {
+      final snapshot = await _firestore
+          .collection(_clubsCollection)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => Club.fromMap({...doc.data(), 'id': doc.id}))
+          .toList();
+    } catch (e) {
+      throw Exception('클럽 목록 조회에 실패했습니다: $e');
+    }
+  }
+
+  /// 클럽 생성 (기존 메서드 - 호환성을 위해 유지)
+  Future<String?> createClubOld({
     required String name,
     required String description,
     required ClubType type,

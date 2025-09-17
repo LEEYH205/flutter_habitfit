@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/section_card.dart';
+import '../../widgets/profile_menu.dart';
+import '../../providers/auth_provider.dart';
 import '../running_coach/running_coach_page.dart';
 import '../running_coach/running_coach_setup_page.dart';
 import '../running_coach/progress_tracking_page.dart';
+import '../notifications/notifications_page.dart';
+import 'running_notifications_page.dart';
 import '../../services/running_coach_service.dart';
 import '../../models/running_coach.dart';
 
@@ -30,17 +34,70 @@ class _RunningPageState extends ConsumerState<RunningPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('러닝'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          '러닝',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // 프로필 메뉴 열기
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
+              ),
+              // Red dot for unread notifications
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () {
               _showProfileMenu(context);
             },
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
+                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
+                    : null,
+                child: ref.read(authProviderProvider).user?.photoURL == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey,
+                      )
+                    : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -261,7 +318,12 @@ class _RunningPageState extends ConsumerState<RunningPage> {
             subtitle: const Text('훈련 알림 관리'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              // 알림 설정 페이지로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RunningNotificationsPage(),
+                ),
+              );
             },
           ),
         ],
@@ -297,38 +359,9 @@ class _RunningPageState extends ConsumerState<RunningPage> {
   void _showProfileMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('사용자 정보'),
-              onTap: () {
-                Navigator.pop(context);
-                // 사용자 정보 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('앱 설정'),
-              onTap: () {
-                Navigator.pop(context);
-                // 앱 설정 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('로그아웃'),
-              onTap: () {
-                Navigator.pop(context);
-                // 로그아웃 처리
-              },
-            ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ProfileMenu(),
     );
   }
 }

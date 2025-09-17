@@ -12,8 +12,9 @@ import 'package:fl_chart/fl_chart.dart';
 /// Insights 페이지 - 분석 중심: "어떤 패턴이 있지?"
 class InsightsPage extends ConsumerStatefulWidget {
   final String? initialRange; // 초기 분석 범위
+  final bool showAppBar; // AppBar 표시 여부
 
-  const InsightsPage({super.key, this.initialRange});
+  const InsightsPage({super.key, this.initialRange, this.showAppBar = true});
 
   @override
   ConsumerState<InsightsPage> createState() => _InsightsPageState();
@@ -43,39 +44,39 @@ class _InsightsPageState extends ConsumerState<InsightsPage>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const AppBarWithNotifications(title: 'Insights'),
-      body: SafeArea(
-        child: RepaintBoundary(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 기간 선택
-                  _buildRangeSelector(),
-                  const SizedBox(height: 24),
+      appBar: widget.showAppBar
+          ? const AppBarWithNotifications(title: 'Insights')
+          : null,
+      body: RepaintBoundary(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 기간 선택
+                _buildRangeSelector(),
+                const SizedBox(height: 24),
 
-                  // 트렌드 개요
-                  _buildTrendOverview(),
-                  const SizedBox(height: 24),
+                // 트렌드 개요
+                _buildTrendOverview(),
+                const SizedBox(height: 24),
 
-                  // 성과 차트
-                  _buildPerformanceCharts(),
-                  const SizedBox(height: 24),
+                // 성과 차트
+                _buildPerformanceCharts(),
+                const SizedBox(height: 24),
 
-                  // 상세 통계
-                  _buildDetailedStats(),
-                  const SizedBox(height: 24),
+                // 상세 통계
+                _buildDetailedStats(),
+                const SizedBox(height: 24),
 
-                  // AI 인사이트
-                  _buildAIInsights(),
-                  const SizedBox(height: 24),
+                // AI 인사이트
+                _buildAIInsights(),
+                const SizedBox(height: 24),
 
-                  // 개선 제안
-                  _buildImprovementSuggestions(),
-                ],
-              ),
+                // 개선 제안
+                _buildImprovementSuggestions(),
+              ],
             ),
           ),
         ),

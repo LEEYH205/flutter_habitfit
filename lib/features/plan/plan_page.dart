@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/kpi_ring.dart';
 import '../../widgets/common/section_card.dart';
+import '../../widgets/profile_menu.dart';
 import '../../providers/today_summary_provider.dart';
 import '../../providers/user_goals_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -13,7 +14,8 @@ import '../../models/user_goals.dart';
 import '../habit/habit_page.dart';
 import '../workout/workout_page.dart';
 import '../meals/meal_page.dart';
-import '../settings/settings_page.dart';
+import '../settings/goal_settings_page.dart';
+import '../notifications/notifications_page.dart';
 
 class PlanPage extends ConsumerStatefulWidget {
   final String? action; // 빠른 액션 파라미터
@@ -76,17 +78,70 @@ class _PlanPageState extends ConsumerState<PlanPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('플랜'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          '플랜',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // 프로필 메뉴 열기
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
+              ),
+              // Red dot for unread notifications
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () {
               _showProfileMenu(context);
             },
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
+                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
+                    : null,
+                child: ref.read(authProviderProvider).user?.photoURL == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey,
+                      )
+                    : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -144,8 +199,6 @@ class _PlanPageState extends ConsumerState<PlanPage>
       ],
     );
   }
-
-
 
   /// 인사말 섹션
   Widget _buildGreeting() {
@@ -491,43 +544,9 @@ class _PlanPageState extends ConsumerState<PlanPage>
   void _showProfileMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('사용자 정보'),
-              onTap: () {
-                Navigator.pop(context);
-                // 사용자 정보 페이지로 이동
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('앱 설정'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('로그아웃'),
-              onTap: () {
-                Navigator.pop(context);
-                // 로그아웃 처리
-              },
-            ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ProfileMenu(),
     );
   }
 
@@ -935,7 +954,7 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const SettingsPage(),
+                        builder: (context) => const GoalSettingsPage(),
                       ),
                     );
                   },
@@ -952,7 +971,7 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const SettingsPage(),
+                        builder: (context) => const GoalSettingsPage(),
                       ),
                     );
                   },
@@ -969,7 +988,7 @@ class _PlanPageState extends ConsumerState<PlanPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const SettingsPage(),
+                        builder: (context) => const GoalSettingsPage(),
                       ),
                     );
                   },
