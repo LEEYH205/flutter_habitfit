@@ -80,6 +80,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
       habitCompletionRate: totalHabitsQuery.docs.isNotEmpty
           ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
           : 0.0,
+      workoutCount: workoutsQuery.docs.length,
+      mealCount: 0, // TODO: 식사 데이터 연동 시 실제 계산
     );
 
     // 캐시에 저장 (5분간 유효)
@@ -130,6 +132,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
         habitCompletionRate: totalHabitsQuery.docs.isNotEmpty
             ? (habitsQuery.docs.length / totalHabitsQuery.docs.length) * 100
             : 0.0,
+        workoutCount: runningData['workoutCount'] ?? 0,
+        mealCount: 0, // TODO: 식사 데이터 연동 시 실제 계산
       );
 
       print(
@@ -160,6 +164,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
           activeCalories: runningData['activeCalories'] ?? 0.0,
           exerciseMinutes: runningData['exerciseMinutes'] ?? 0,
           habitCompletionRate: 0.0, // Firebase 연결 실패 시 0
+          workoutCount: runningData['workoutCount'] ?? 0,
+          mealCount: 0, // TODO: 식사 데이터 연동 시 실제 계산
         );
 
         print('⚠️ Firebase 연결 실패 - 임시 데이터로 Today 요약 생성 (습관: 0/1)');
@@ -181,6 +187,8 @@ final todaySummaryProvider = FutureProvider<TodaySummary>((ref) async {
           activeCalories: 0.0,
           exerciseMinutes: 0,
           habitCompletionRate: 0.0,
+          workoutCount: 0,
+          mealCount: 0,
         );
 
         print('⚠️ 모든 데이터 로드 실패 - 기본값으로 Today 요약 생성 (습관: 0/1)');

@@ -12,6 +12,8 @@ class TodaySummary {
   final double activeCalories; // 움직이기 칼로리
   final int exerciseMinutes; // 운동 시간 (분)
   final double habitCompletionRate;
+  final int workoutCount; // 운동 횟수
+  final int mealCount; // 식사 횟수
 
   const TodaySummary({
     required this.date,
@@ -26,6 +28,8 @@ class TodaySummary {
     required this.activeCalories,
     required this.exerciseMinutes,
     required this.habitCompletionRate,
+    required this.workoutCount,
+    required this.mealCount,
   });
 
   /// 습관 완료율 (0.0 ~ 1.0)
@@ -139,6 +143,8 @@ class TodaySummary {
       activeCalories,
       exerciseMinutes,
       habitCompletionRate,
+      workoutCount,
+      mealCount,
     );
   }
 
@@ -157,6 +163,8 @@ class TodaySummary {
       'activeCalories': activeCalories,
       'exerciseMinutes': exerciseMinutes,
       'habitCompletionRate': habitCompletionRate,
+      'workoutCount': workoutCount,
+      'mealCount': mealCount,
     };
   }
 
@@ -175,6 +183,8 @@ class TodaySummary {
       activeCalories: (json['activeCalories'] ?? 0.0).toDouble(),
       exerciseMinutes: json['exerciseMinutes'] ?? 0,
       habitCompletionRate: json['habitCompletionRate'].toDouble(),
+      workoutCount: json['workoutCount'] ?? 0,
+      mealCount: json['mealCount'] ?? 0,
     );
   }
 }

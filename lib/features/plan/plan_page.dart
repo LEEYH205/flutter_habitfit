@@ -1,0 +1,984 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../widgets/common/kpi_ring.dart';
+import '../../widgets/common/section_card.dart';
+import '../../providers/today_summary_provider.dart';
+import '../../providers/user_goals_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/cache_service.dart';
+import '../../services/analytics_service.dart';
+import '../../services/recommendation_service.dart';
+import '../../models/today_summary.dart';
+import '../../models/user_goals.dart';
+import '../habit/habit_page.dart';
+import '../workout/workout_page.dart';
+import '../meals/meal_page.dart';
+import '../settings/settings_page.dart';
+
+class PlanPage extends ConsumerStatefulWidget {
+  final String? action; // 빠른 액션 파라미터
+
+  const PlanPage({super.key, this.action});
+
+  @override
+  ConsumerState<PlanPage> createState() => _PlanPageState();
+}
+
+class _PlanPageState extends ConsumerState<PlanPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  // Smart Recommendations 관련 변수들
+  final AnalyticsService _analyticsService = AnalyticsService();
+  final RecommendationService _recommendationService = RecommendationService();
+  UserPattern? _userPattern;
+  List<GoalAdjustment> _goalAdjustments = [];
+  List<HabitSuggestion> _habitSuggestions = [];
+  String _personalizedInsight = '';
+  bool _isAnalyzing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 액션 파라미터가 있으면 해당 액션 실행
+    if (widget.action != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleAction(widget.action!);
+      });
+    }
+
+    // Smart Recommendations 로드
+    _loadSmartRecommendations();
+
+    // 페이지 로드 시 provider 새로고침 및 캐시 확인
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🚀 Plan 페이지 로드됨 - provider 새로고침 트리거');
+
+      // 캐시가 비어있거나 오래된 경우 강제 새로고침
+      _checkAndRefreshIfNeeded();
+
+      // 프로필 사진 로드를 위한 추가 대기
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {}); // 프로필 사진 재렌더링 트리거
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin을 위해 필요
+
+    final todaySummary = ref.watch(todaySummaryProvider);
+    final userGoals = ref.watch(userGoalsProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('플랜'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              // 프로필 메뉴 열기
+              _showProfileMenu(context);
+            },
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.refresh(todaySummaryProvider.future);
+          await ref.refresh(userGoalsProvider.future);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 오늘의 목표 섹션 (Today 기능 통합)
+              _buildTodaySection(todaySummary, userGoals),
+              const SizedBox(height: 24),
+
+              // 스마트 추천 섹션
+              _buildSmartRecommendationSection(),
+              const SizedBox(height: 24),
+
+              // 목표 설정 섹션
+              _buildGoalSettingSection(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodaySection(
+      AsyncValue<TodaySummary> todaySummary, AsyncValue<UserGoals> userGoals) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 인사말 섹션
+        _buildGreeting(),
+        const SizedBox(height: 24),
+
+        // KPI 링 섹션
+        _buildKpiRings(),
+        const SizedBox(height: 24),
+
+        // 습관 섹션
+        _buildHabitsSection(),
+        const SizedBox(height: 16),
+
+        // 운동 섹션
+        _buildWorkoutSection(),
+        const SizedBox(height: 16),
+
+        // 식사 섹션
+        _buildMealsSection(),
+      ],
+    );
+  }
+
+
+
+  /// 인사말 섹션
+  Widget _buildGreeting() {
+    final now = DateTime.now();
+    final weekday = _getWeekdayName(now.weekday);
+    final day = now.day;
+    final month = _getMonthName(now.month);
+    final hour = now.hour;
+
+    String greeting;
+    if (hour < 12) {
+      greeting = '좋은 아침이에요!';
+    } else if (hour < 18) {
+      greeting = '좋은 오후에요!';
+    } else {
+      greeting = '좋은 저녁이에요!';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$weekday, $day $month',
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          greeting,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// KPI 링 섹션
+  Widget _buildKpiRings() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final todaySummaryAsync = ref.watch(todaySummaryProvider);
+        final userGoalsAsync = ref.watch(userGoalsProvider);
+
+        return todaySummaryAsync.when(
+          data: (summary) => userGoalsAsync.when(
+            data: (goals) => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary
+                        .getActiveCaloriesProgress(goals.activeCaloriesGoal),
+                    subtitle: '목표: ${goals.activeCaloriesGoal.toInt()}kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress:
+                        summary.getExerciseProgress(goals.exerciseMinutesGoal),
+                    subtitle: '목표: ${goals.exerciseMinutesGoal}분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
+            loading: () => Row(
+              children: [
+                Expanded(
+                  child: KpiRing.calories(
+                    value: summary.activeCalories.toInt().toString(),
+                    progress: summary.getActiveCaloriesProgress(400.0),
+                    subtitle: '목표: 400kcal',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.exercise(
+                    value: '${summary.exerciseMinutes}분',
+                    progress: summary.getExerciseProgress(30),
+                    subtitle: '목표: 30분',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KpiRing.habits(
+                    value: summary.habitStatusText,
+                    progress: summary.habitProgress,
+                    subtitle:
+                        '완료율: ${summary.habitCompletionRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+              ],
+            ),
+            error: (error, stack) => const Text('목표 로딩 실패'),
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => const Text('데이터 로딩 실패'),
+        );
+      },
+    );
+  }
+
+  /// 습관 섹션
+  Widget _buildHabitsSection() {
+    return SectionCard(
+      title: '습관',
+      child: Consumer(
+        builder: (context, ref, child) {
+          final todaySummaryAsync = ref.watch(todaySummaryProvider);
+
+          return todaySummaryAsync.when(
+            data: (summary) => Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      summary.habitStatusText,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HabitPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('전체 보기'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: summary.habitProgress,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    summary.habitProgress >= 1.0 ? Colors.green : Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            loading: () => const CircularProgressIndicator(),
+            error: (error, stack) => const Text('습관 데이터 로딩 실패'),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 운동 섹션
+  Widget _buildWorkoutSection() {
+    return SectionCard(
+      title: '운동',
+      child: Consumer(
+        builder: (context, ref, child) {
+          final todaySummaryAsync = ref.watch(todaySummaryProvider);
+
+          return todaySummaryAsync.when(
+            data: (summary) => Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${summary.exerciseMinutes}분',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WorkoutPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('운동 추가'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '오늘 ${summary.workoutCount}번의 운동을 완료했어요',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            loading: () => const CircularProgressIndicator(),
+            error: (error, stack) => const Text('운동 데이터 로딩 실패'),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 식사 섹션
+  Widget _buildMealsSection() {
+    return SectionCard(
+      title: '식사',
+      child: Consumer(
+        builder: (context, ref, child) {
+          final todaySummaryAsync = ref.watch(todaySummaryProvider);
+
+          return todaySummaryAsync.when(
+            data: (summary) => Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${summary.mealCount}끼',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MealPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('식사 추가'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '오늘 ${summary.mealCount}끼를 기록했어요',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            loading: () => const CircularProgressIndicator(),
+            error: (error, stack) => const Text('식사 데이터 로딩 실패'),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 액션 처리
+  void _handleAction(String action) {
+    switch (action) {
+      case 'habits':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HabitPage(),
+          ),
+        );
+        break;
+      case 'workout':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const WorkoutPage(),
+          ),
+        );
+        break;
+      case 'meal':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MealPage(),
+          ),
+        );
+        break;
+    }
+  }
+
+  /// 캐시 확인 및 새로고침
+  void _checkAndRefreshIfNeeded() async {
+    final cacheKey = 'today_summary_cache';
+    final cachedData = await CacheService.getCache(cacheKey);
+
+    if (cachedData == null) {
+      print('🔄 Today 캐시가 없거나 만료됨 - 강제 새로고침');
+      await ref.refresh(todaySummaryProvider.future);
+    } else {
+      print('✅ Today 캐시 유효함 - 일반 새로고침');
+    }
+  }
+
+  /// 요일 이름 반환
+  String _getWeekdayName(int weekday) {
+    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    return weekdays[weekday - 1];
+  }
+
+  /// 월 이름 반환
+  String _getMonthName(int month) {
+    const months = [
+      '1월',
+      '2월',
+      '3월',
+      '4월',
+      '5월',
+      '6월',
+      '7월',
+      '8월',
+      '9월',
+      '10월',
+      '11월',
+      '12월'
+    ];
+    return months[month - 1];
+  }
+
+  void _showProfileMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('사용자 정보'),
+              onTap: () {
+                Navigator.pop(context);
+                // 사용자 정보 페이지로 이동
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('앱 설정'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('로그아웃'),
+              onTap: () {
+                Navigator.pop(context);
+                // 로그아웃 처리
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Smart Recommendations 로드
+  Future<void> _loadSmartRecommendations() async {
+    final authProvider = ref.read(authProviderProvider);
+    final user = authProvider.user;
+    if (user == null) return;
+
+    setState(() {
+      _isAnalyzing = true;
+    });
+
+    try {
+      // 사용자 패턴 분석
+      _userPattern = await _analyticsService.analyzeUserPattern(user.uid);
+
+      // 목표 조정 제안
+      _goalAdjustments =
+          await _recommendationService.suggestGoalAdjustments(user.uid);
+
+      // 새로운 습관 제안
+      _habitSuggestions =
+          await _recommendationService.suggestNewHabits(user.uid);
+
+      // 개인화된 인사이트
+      _personalizedInsight =
+          await _recommendationService.generatePersonalizedInsight(user.uid);
+
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      print('❌ 스마트 추천 로드 실패: $e');
+      print('📍 Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    }
+  }
+
+  /// Smart Recommendations 섹션 빌드
+  Widget _buildSmartRecommendationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Text(
+            '🤖 스마트 추천',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        ),
+        if (_isAnalyzing) ...[
+          _buildAnalyzingCard(),
+        ] else if (_userPattern != null) ...[
+          if (_personalizedInsight.isNotEmpty) _buildPersonalizedInsightCard(),
+          if (_goalAdjustments.isNotEmpty) _buildGoalAdjustmentCard(),
+          if (_habitSuggestions.isNotEmpty) _buildHabitSuggestionCard(),
+        ] else ...[
+          _buildNoDataCard(),
+        ],
+      ],
+    );
+  }
+
+  /// 분석 중 카드
+  Widget _buildAnalyzingCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            const Text(
+              '데이터를 분석하고 있어요',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '잠시만 기다려주세요...',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 개인화된 인사이트 카드
+  Widget _buildPersonalizedInsightCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: Colors.amber.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '개인화된 인사이트',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _personalizedInsight,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 목표 조정 제안 카드
+  Widget _buildGoalAdjustmentCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.trending_up, color: Colors.green.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '목표 조정 제안',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._goalAdjustments.map((adjustment) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              adjustment.habitType,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              '${adjustment.currentGoal} → ${adjustment.suggestedGoal}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              adjustment.reason,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${(adjustment.confidence * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 습관 제안 카드
+  Widget _buildHabitSuggestionCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.add_circle_outline, color: Colors.purple.shade600),
+                const SizedBox(width: 8),
+                const Text(
+                  '새로운 습관 제안',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._habitSuggestions.take(3).map((suggestion) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: () => _addSuggestedHabit(suggestion),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(suggestion.emoji,
+                              style: const TextStyle(fontSize: 20)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  suggestion.title,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                Text(
+                                  suggestion.description,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${(suggestion.relevanceScore * 100).toStringAsFixed(0)}%',
+                              style: TextStyle(
+                                color: Colors.purple.shade700,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 데이터 없음 카드
+  Widget _buildNoDataCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(Icons.analytics_outlined,
+                size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              '아직 충분한 데이터가 없어요',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '습관을 실천해보시면\n개인화된 추천을 받을 수 있습니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadSmartRecommendations,
+              icon: const Icon(Icons.refresh),
+              label: const Text('다시 분석하기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 제안된 습관을 실제 습관으로 추가
+  Future<void> _addSuggestedHabit(HabitSuggestion suggestion) async {
+    try {
+      // TODO: HabitService를 사용하여 습관 추가
+      print('습관 추가: ${suggestion.title}');
+
+      // 성공 스낵바 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('${suggestion.emoji} ${suggestion.title} 습관이 추가되었습니다!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // 습관 제안 목록에서 제거
+      if (mounted) {
+        setState(() {
+          _habitSuggestions.removeWhere((s) => s.title == suggestion.title);
+        });
+      }
+    } catch (e) {
+      print('❌ 습관 추가 실패: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('습관 추가에 실패했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 목표 설정 섹션
+  Widget _buildGoalSettingSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Text(
+            '🎯 목표 설정',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                ListTile(
+                  leading:
+                      Icon(Icons.fitness_center, color: Colors.orange.shade600),
+                  title: const Text('운동 목표'),
+                  subtitle: const Text('일일 운동 시간 설정'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // 운동 목표 설정 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsPage(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Icon(Icons.local_fire_department,
+                      color: Colors.red.shade600),
+                  title: const Text('칼로리 목표'),
+                  subtitle: const Text('일일 소모 칼로리 설정'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // 칼로리 목표 설정 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsPage(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading:
+                      Icon(Icons.directions_walk, color: Colors.green.shade600),
+                  title: const Text('걸음 수 목표'),
+                  subtitle: const Text('일일 걸음 수 설정'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // 걸음 수 목표 설정 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
