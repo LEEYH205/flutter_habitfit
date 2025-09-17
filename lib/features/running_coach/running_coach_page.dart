@@ -21,6 +21,7 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
   List<TrainingPlan> _trainingPlans = [];
   RunningCoachSettings? _settings;
   bool _isLoading = true;
+  bool _isCreatingPlan = false;
 
   @override
   void initState() {
@@ -393,11 +394,23 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _createTrainingPlan(event),
-                  icon: const Icon(Icons.fitness_center, size: 18),
-                  label: const Text('훈련 계획 생성'),
+                  onPressed:
+                      _isCreatingPlan ? null : () => _createTrainingPlan(event),
+                  icon: _isCreatingPlan
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.fitness_center, size: 18),
+                  label: Text(_isCreatingPlan ? '생성 중...' : '훈련 계획 생성'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor:
+                        _isCreatingPlan ? Colors.grey : Colors.blue,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -671,21 +684,12 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
     }
 
     try {
-      // 로딩 다이얼로그 표시
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('훈련 계획을 생성하고 있습니다...'),
-            ],
-          ),
-        ),
-      );
+      // 로딩 상태 시작
+      setState(() {
+        _isCreatingPlan = true;
+      });
+
+      print('🏃‍♂️ 훈련 계획 생성 시작...');
 
       final plan = await _coachService.generateTrainingPlan(
         eventId: event.id,
@@ -693,28 +697,53 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
         settings: _settings!,
       );
 
-      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+      print('🏃‍♂️ 훈련 계획 생성 완료: ${plan != null}');
+
+      // 로딩 상태 종료
+      if (mounted) {
+        setState(() {
+          _isCreatingPlan = false;
+        });
+      }
 
       if (plan != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ 훈련 계획이 성공적으로 생성되었습니다!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        print('✅ 훈련 계획 생성 성공 - 네비게이션 시작');
+
         await _loadData(); // 데이터 새로고침
-        _navigateToTrainingPlan(plan);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ 훈련 계획이 성공적으로 생성되었습니다!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // 네비게이션
+          _navigateToTrainingPlan(plan);
+          print('🚀 훈련 계획 페이지로 네비게이션 완료');
+        }
       } else {
         throw Exception('훈련 계획 생성 실패');
       }
     } catch (e) {
-      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ 훈련 계획 생성에 실패했습니다: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      print('❌ 훈련 계획 생성 오류: $e');
+
+      // 로딩 상태 종료
+      if (mounted) {
+        setState(() {
+          _isCreatingPlan = false;
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 훈련 계획 생성에 실패했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
