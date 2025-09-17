@@ -427,7 +427,7 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
                 _buildEventInfo(Icons.straighten, '${event.targetDistance}km'),
                 const SizedBox(width: 16),
                 _buildEventInfo(Icons.timer,
-                    '${event.targetTime.inHours}:${(event.targetTime.inMinutes % 60).toString().padLeft(2, '0')}'),
+                    '${event.targetTime.inHours}h${(event.targetTime.inMinutes % 60).toString().padLeft(2, '0')}m'),
                 const SizedBox(width: 16),
                 _buildEventInfo(Icons.speed,
                     '${event.targetPace.inMinutes}:${(event.targetPace.inSeconds % 60).toString().padLeft(2, '0')}/km'),
@@ -597,7 +597,7 @@ class _RunningCoachPageState extends ConsumerState<RunningCoachPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                '목표: ${event.targetDistance}km in ${event.targetTime.inHours}:${(event.targetTime.inMinutes % 60).toString().padLeft(2, '0')}',
+                '목표: ${event.targetDistance}km in ${event.targetTime.inHours}h${(event.targetTime.inMinutes % 60).toString().padLeft(2, '0')}m',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,

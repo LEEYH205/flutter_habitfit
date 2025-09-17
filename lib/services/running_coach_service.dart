@@ -158,9 +158,10 @@ class RunningCoachService {
       final planId = _firestore.collection(_plansCollection).doc().id;
 
       // 훈련 기간 계산 (이벤트 날짜까지의 주 수)
-      final weeksUntilEvent = event.eventDate.difference(now).inDays ~/ 7;
+      final daysUntilEvent = event.eventDate.difference(now).inDays;
+      final weeksUntilEvent = (daysUntilEvent / 7).ceil(); // 올림으로 계산
       final trainingWeeks =
-          math.max(4, math.min(weeksUntilEvent - 1, 20)); // 최소 4주, 최대 20주
+          math.max(4, math.min(weeksUntilEvent, 20)); // 최소 4주, 최대 20주
 
       // 시작일을 현재 주의 월요일로 조정
       final startDate =
@@ -342,8 +343,7 @@ class RunningCoachService {
       }
     } else if (weekNumber == totalWeeks) {
       // 마지막 주: 월요일부터 목표일까지 (불완전한 주)
-      final targetDate =
-          event.eventDate.subtract(const Duration(days: 7)); // 이벤트 1주 전까지
+      final targetDate = event.eventDate; // 실제 이벤트 날짜까지
       final daysInLastWeek = targetDate.difference(weekStartDate).inDays + 1;
 
       for (int day = 0; day < daysInLastWeek; day++) {
@@ -404,6 +404,19 @@ class RunningCoachService {
     required int weekNumber,
     required int totalWeeks,
   }) {
+    // 목표일인지 확인
+    final isEventDay = date.year == event.eventDate.year &&
+        date.month == event.eventDate.month &&
+        date.day == event.eventDate.day;
+
+    if (isEventDay) {
+      return DailyWorkout(
+        date: date,
+        type: TrainingType.rest,
+        description: '🎯 목표일 - 대회 참가',
+      );
+    }
+
     // 해당 요일에 운동 가능한지 확인
     final canRun = availableRunningDays.contains(dayOfWeek);
     final canLsd = availableLsdDays.contains(dayOfWeek);
