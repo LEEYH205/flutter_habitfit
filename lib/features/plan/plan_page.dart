@@ -633,7 +633,8 @@ class _PlanPageState extends ConsumerState<PlanPage>
                                   const TextStyle(fontWeight: FontWeight.w500),
                             ),
                             Text(
-                              '${adjustment.currentGoal} → ${adjustment.suggestedGoal}',
+                              _getGoalChangeText(adjustment.currentGoal,
+                                  adjustment.suggestedGoal),
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 12,
@@ -793,5 +794,16 @@ class _PlanPageState extends ConsumerState<PlanPage>
         ),
       ],
     );
+  }
+
+  /// 목표 변화를 사용자 친화적인 텍스트로 변환
+  String _getGoalChangeText(int currentGoal, int suggestedGoal) {
+    if (currentGoal == suggestedGoal) {
+      return '현재 목표 유지';
+    } else if (suggestedGoal > currentGoal) {
+      return '목표 증가 제안';
+    } else {
+      return '목표 감소 제안';
+    }
   }
 }

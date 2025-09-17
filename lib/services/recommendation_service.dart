@@ -137,7 +137,7 @@ class RecommendationService {
           currentGoal: 1,
           suggestedGoal: 1,
           reason:
-              '완료율이 ${(completionRate * 100).toStringAsFixed(1)}%로 낮습니다. 더 작은 목표부터 시작해보세요.',
+              '완료율이 ${(completionRate * 100).toStringAsFixed(1)}%로 낮습니다. 현재 목표를 꾸준히 달성해보세요.',
           confidence: confidence,
         ));
       }
@@ -486,7 +486,7 @@ class RecommendationService {
         insights.add('📅 더 규칙적인 시간에 습관을 실천해보세요.');
       }
 
-      return insights.join(' ');
+      return insights.join('\n');
     } catch (e) {
       print('❌ 개인화된 인사이트 생성 실패: $e');
       return '데이터 분석 중 오류가 발생했습니다.';
