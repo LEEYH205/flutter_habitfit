@@ -5,12 +5,46 @@ import '../providers/auth_provider.dart';
 import '../features/settings/settings_page.dart';
 import '../features/settings/user_profile_page.dart';
 import '../features/settings/goal_settings_page.dart';
+import '../services/user_level_service.dart';
+import '../models/user_level.dart';
 
-class ProfileMenu extends ConsumerWidget {
+class ProfileMenu extends ConsumerStatefulWidget {
   const ProfileMenu({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileMenu> createState() => _ProfileMenuState();
+}
+
+class _ProfileMenuState extends ConsumerState<ProfileMenu> {
+  UserLevel? _userLevel;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLevel();
+  }
+
+  Future<void> _loadUserLevel() async {
+    try {
+      final userLevel = await UserLevelService().getCurrentUserLevel();
+      if (mounted) {
+        setState(() {
+          _userLevel = userLevel;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authProvider = ref.read(authProviderProvider);
     final currentUser = authProvider.user;
 
@@ -32,7 +66,7 @@ class ProfileMenu extends ConsumerWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // 프로필 헤더
           Container(
             padding: const EdgeInsets.all(20),
@@ -73,31 +107,14 @@ class ProfileMenu extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          '무료',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
+                      _buildUserLevelBadge(),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // 메뉴 아이템들
           _buildMenuItem(
             icon: Icons.person_outline,
@@ -159,9 +176,9 @@ class ProfileMenu extends ConsumerWidget {
               );
             },
           ),
-          
+
           const Divider(),
-          
+
           // 계정 관리
           _buildMenuItem(
             icon: Icons.logout,
@@ -172,7 +189,7 @@ class ProfileMenu extends ConsumerWidget {
               _showLogoutDialog(context, ref);
             },
           ),
-          
+
           const SizedBox(height: 20),
         ],
       ),
@@ -200,6 +217,65 @@ class ProfileMenu extends ConsumerWidget {
       ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+    );
+  }
+
+  Widget _buildUserLevelBadge() {
+    if (_isLoading) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Text(
+          '로딩 중...',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
+    final level = _userLevel?.level ?? UserLevelType.free;
+    Color badgeColor;
+    Color textColor;
+
+    switch (level) {
+      case UserLevelType.free:
+        badgeColor = Colors.blue.shade100;
+        textColor = Colors.blue;
+        break;
+      case UserLevelType.premium:
+        badgeColor = Colors.purple.shade100;
+        textColor = Colors.purple;
+        break;
+      case UserLevelType.coach:
+        badgeColor = Colors.green.shade100;
+        textColor = Colors.green;
+        break;
+      case UserLevelType.admin:
+        badgeColor = Colors.red.shade100;
+        textColor = Colors.red;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: badgeColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        level.displayName,
+        style: TextStyle(
+          fontSize: 12,
+          color: textColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 
