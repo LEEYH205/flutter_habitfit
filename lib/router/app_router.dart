@@ -23,7 +23,8 @@ class _TabManager {
     '/plan',
     '/activity',
     '/running',
-    '/ranking'
+    '/ranking',
+    '/points'
   ];
 
   static int getRouteIndex(String route) {
@@ -236,6 +237,38 @@ class AppRouter {
               );
             },
           ),
+
+          // Points 페이지
+          GoRoute(
+            path: '/points',
+            name: 'points',
+            pageBuilder: (context, state) {
+              print('🎯 POINTS pageBuilder called: ${state.uri.path}');
+              final targetIndex = _TabManager.getRouteIndex(state.uri.path);
+              final isMovingRight = _TabManager.isMovingRight(targetIndex);
+              _TabManager.updateCurrentIndex(state.uri.path);
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: const PointsPage(),
+                transitionDuration: const Duration(milliseconds: 300),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  final slideOffset = isMovingRight
+                      ? const Offset(-1.0, 0.0) // 왼쪽에서 오른쪽으로
+                      : const Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로
+
+                  var tween = Tween(begin: slideOffset, end: Offset.zero)
+                      .chain(CurveTween(curve: Curves.easeOutCubic));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              );
+            },
+          ),
         ],
       ),
 
@@ -254,11 +287,6 @@ class AppRouter {
         path: '/membership',
         name: 'membership',
         builder: (context, state) => const UserMembershipPage(),
-      ),
-      GoRoute(
-        path: '/points',
-        name: 'points',
-        builder: (context, state) => const PointsPage(),
       ),
       GoRoute(
         path: '/test-security',
@@ -292,7 +320,7 @@ class _BottomNavigationBar extends ConsumerWidget {
       type: BottomNavigationBarType.fixed,
       currentIndex: _TabManager.getRouteIndex(currentLocation),
       onTap: (index) {
-        final routes = ['/plan', '/activity', '/running', '/ranking'];
+        final routes = ['/plan', '/activity', '/running', '/ranking', '/points'];
         if (index < routes.length) {
           context.go(routes[index]);
         }
@@ -313,6 +341,10 @@ class _BottomNavigationBar extends ConsumerWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.emoji_events),
           label: '랭킹',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.stars),
+          label: '포인트',
         ),
       ],
     );

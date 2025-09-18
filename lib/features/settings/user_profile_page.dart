@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/app_bar_with_notifications.dart';
-import '../points/points_page.dart';
 import 'settings_page.dart';
 import '../user_level/user_membership_page.dart';
 import 'notification_settings_page.dart';
@@ -52,10 +51,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
             // 설정 섹션
             _buildSettingsSection(),
 
-            const SizedBox(height: 24),
-
-            // 포인트 & 레벨업 섹션
-            _buildPointsCard(),
           ],
         ),
       ),
@@ -279,52 +274,4 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildPointsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const PointsPage()),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Icon(Icons.emoji_events, color: Colors.amber.shade600, size: 24),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '포인트 & 레벨업',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '포인트 획득 기록 및 업적 확인',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios,
-                  color: Colors.grey.shade400, size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
