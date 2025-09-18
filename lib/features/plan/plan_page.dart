@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/kpi_ring.dart';
-import '../../widgets/common/section_card.dart';
-import '../../widgets/profile_menu.dart';
 import '../../providers/today_summary_provider.dart';
 import '../../providers/user_goals_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -16,6 +14,7 @@ import '../workout/workout_page.dart';
 import '../meals/meal_page.dart';
 import '../settings/goal_settings_page.dart';
 import '../notifications/notifications_page.dart';
+import '../settings/user_profile_page.dart';
 
 class PlanPage extends ConsumerStatefulWidget {
   final String? action; // 빠른 액션 파라미터
@@ -457,11 +456,10 @@ class _PlanPageState extends ConsumerState<PlanPage>
   }
 
   void _showProfileMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const ProfileMenu(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UserProfilePage(),
+      ),
     );
   }
 

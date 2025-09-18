@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health/health.dart';
-import '../../widgets/common/section_card.dart';
-import '../../widgets/profile_menu.dart';
-import '../../providers/day_log_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../models/day_log.dart';
 import '../insights/insights_page.dart';
 import '../notifications/notifications_page.dart';
 import '../running/running_detail_page.dart';
 import '../../services/health_kit_service.dart';
+import '../settings/user_profile_page.dart';
 
 class ActivityPage extends ConsumerStatefulWidget {
   final DateTime? initialDate; // 초기 선택 날짜
@@ -1459,11 +1456,10 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   }
 
   void _showProfileMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const ProfileMenu(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UserProfilePage(),
+      ),
     );
   }
 }

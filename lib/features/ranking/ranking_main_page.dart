@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/section_card.dart';
-import '../../widgets/profile_menu.dart';
 import '../../providers/auth_provider.dart';
 import 'ranking_page.dart';
 import 'friends_page.dart';
@@ -9,6 +8,7 @@ import 'club_list_page.dart';
 import 'club_create_page.dart';
 import 'achievements_page.dart';
 import '../notifications/notifications_page.dart';
+import '../settings/user_profile_page.dart';
 
 class RankingMainPage extends ConsumerStatefulWidget {
   const RankingMainPage({super.key});
@@ -74,9 +74,11 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.grey.shade300,
-                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
-                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
-                    : null,
+                backgroundImage:
+                    ref.read(authProviderProvider).user?.photoURL != null
+                        ? NetworkImage(
+                            ref.read(authProviderProvider).user!.photoURL!)
+                        : null,
                 child: ref.read(authProviderProvider).user?.photoURL == null
                     ? const Icon(
                         Icons.person,
@@ -97,15 +99,15 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
             // 랭킹 메인 섹션
             _buildRankingSection(),
             const SizedBox(height: 24),
-            
+
             // 친구 관리 섹션
             _buildFriendsSection(),
             const SizedBox(height: 24),
-            
+
             // 클럽 기능 섹션
             _buildClubSection(),
             const SizedBox(height: 24),
-            
+
             // 업적 시스템 섹션
             _buildAchievementSection(),
           ],
@@ -265,11 +267,10 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
   }
 
   void _showProfileMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const ProfileMenu(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UserProfilePage(),
+      ),
     );
   }
 }

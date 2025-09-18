@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider;
 import '../providers/auth_provider.dart';
 import '../features/notifications/notifications_page.dart';
-import '../features/settings/settings_page.dart';
+import '../features/settings/user_profile_page.dart';
 
 class AppBarWithNotifications extends StatelessWidget
     implements PreferredSizeWidget {
@@ -74,7 +74,7 @@ class AppBarWithNotifications extends StatelessWidget
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const SettingsPage(),
+                  builder: (context) => const UserProfilePage(),
                 ),
               );
             },

@@ -5,7 +5,6 @@ import '../../common/services/local_notification_service.dart';
 import 'notification_settings_page.dart';
 import '../watch/watch_test_page.dart';
 import '../bug_report/bug_report_page.dart';
-import '../points/points_page.dart';
 import 'test_security_button.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -57,11 +56,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 // 보안 테스트 섹션
                 const TestSecurityButton(),
-
-                const SizedBox(height: 16),
-
-                // 포인트 섹션
-                _buildPointsCard(),
 
                 const SizedBox(height: 24),
 
@@ -310,55 +304,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     SizedBox(height: 4),
                     Text(
                       '문제 신고, 기능 요청, 피드백 전송',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios,
-                  color: Colors.grey.shade400, size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPointsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const PointsPage()),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Icon(Icons.emoji_events, color: Colors.amber.shade600, size: 24),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '포인트 & 레벨업',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '포인트 획득 기록 및 업적 확인',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,

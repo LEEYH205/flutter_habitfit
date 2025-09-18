@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/section_card.dart';
-import '../../widgets/profile_menu.dart';
 import '../../providers/auth_provider.dart';
 import '../running_coach/running_coach_page.dart';
 import '../running_coach/running_coach_setup_page.dart';
@@ -10,6 +9,7 @@ import '../notifications/notifications_page.dart';
 import 'running_notifications_page.dart';
 import '../../services/running_coach_service.dart';
 import '../../models/running_coach.dart';
+import '../settings/user_profile_page.dart';
 
 class RunningPage extends ConsumerStatefulWidget {
   const RunningPage({super.key});
@@ -357,11 +357,10 @@ class _RunningPageState extends ConsumerState<RunningPage> {
   }
 
   void _showProfileMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const ProfileMenu(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UserProfilePage(),
+      ),
     );
   }
 }
