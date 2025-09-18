@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/points_system.dart';
 import '../../services/points_service.dart';
+import '../../providers/auth_provider.dart';
+import '../notifications/notifications_page.dart';
+import '../settings/user_profile_page.dart';
 
 /// 포인트 및 레벨 페이지
 class PointsPage extends ConsumerStatefulWidget {
@@ -105,6 +109,14 @@ class _PointsPageState extends ConsumerState<PointsPage>
     }
   }
 
+  void _showProfileMenu(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const UserProfilePage(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -118,9 +130,18 @@ class _PointsPageState extends ConsumerState<PointsPage>
     if (_userPoints == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('포인트 & 레벨'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: const Text(
+            '포인트',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
         ),
         body: const Center(
           child: Text('포인트 정보를 불러올 수 없습니다.'),
@@ -130,20 +151,81 @@ class _PointsPageState extends ConsumerState<PointsPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🏆 포인트 & 레벨'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        leading: const Icon(Icons.emoji_events),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: '새로고침',
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          '포인트',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
-          IconButton(
-            icon: const Icon(Icons.science),
-            onPressed: _testEarnPoints,
-            tooltip: '테스트 포인트',
+        ),
+        centerTitle: true,
+        actions: [
+          // 실험 아이콘 (디버깅 모드에서만 표시)
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.science, color: Colors.black),
+              onPressed: _testEarnPoints,
+              tooltip: '테스트 포인트',
+            ),
+          // 알림 아이콘
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
+              ),
+              // Red dot for unread notifications
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // 프로필 아이콘
+          GestureDetector(
+            onTap: () {
+              _showProfileMenu(context);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage:
+                    ref.read(authProviderProvider).user?.photoURL != null
+                        ? NetworkImage(
+                            ref.read(authProviderProvider).user!.photoURL!)
+                        : null,
+                child: ref.read(authProviderProvider).user?.photoURL == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey,
+                      )
+                    : null,
+              ),
+            ),
           ),
         ],
         bottom: TabBar(

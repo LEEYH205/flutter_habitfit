@@ -50,7 +50,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
             // 설정 섹션
             _buildSettingsSection(),
-
           ],
         ),
       ),
@@ -273,5 +272,4 @@ class _UserProfilePageState extends State<UserProfilePage> {
       onTap: onTap,
     );
   }
-
 }

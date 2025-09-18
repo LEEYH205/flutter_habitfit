@@ -320,7 +320,13 @@ class _BottomNavigationBar extends ConsumerWidget {
       type: BottomNavigationBarType.fixed,
       currentIndex: _TabManager.getRouteIndex(currentLocation),
       onTap: (index) {
-        final routes = ['/plan', '/activity', '/running', '/ranking', '/points'];
+        final routes = [
+          '/plan',
+          '/activity',
+          '/running',
+          '/ranking',
+          '/points'
+        ];
         if (index < routes.length) {
           context.go(routes[index]);
         }
