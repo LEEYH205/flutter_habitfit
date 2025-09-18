@@ -883,31 +883,8 @@ class _UserMembershipPageState extends ConsumerState<UserMembershipPage> {
       bool success = false;
       DateTime? premiumExpiry;
 
-      switch (newLevel) {
-        case UserLevelType.free:
-          success = await _userLevelService.updateUserLevel(newLevel: newLevel);
-          break;
-        case UserLevelType.premium:
-          // 프리미엄은 30일 만료일로 설정
-          premiumExpiry = DateTime.now().add(const Duration(days: 30));
-          success = await _userLevelService.updateUserLevel(
-            newLevel: newLevel,
-            premiumExpiryDate: premiumExpiry,
-          );
-          break;
-        case UserLevelType.coach:
-          success = await _userLevelService.promoteToCoach(
-            reason: '개발자 도구를 통한 테스트 승격',
-            approvedBy: 'Developer Tool',
-          );
-          break;
-        case UserLevelType.admin:
-          success = await _userLevelService.promoteToAdmin(
-            reason: '개발자 도구를 통한 테스트 승격',
-            approvedBy: 'Developer Tool',
-          );
-          break;
-      }
+      // 개발자 도구에서는 간단한 레벨 변경 함수 사용
+      success = await _userLevelService.changeLevelForDeveloper(newLevel);
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(

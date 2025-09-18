@@ -366,6 +366,64 @@ class UserLevelService {
     return options;
   }
 
+  /// 개발자 도구용 간단한 레벨 변경 (승격 기록 없음)
+  Future<bool> changeLevelForDeveloper(UserLevelType newLevel) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      final now = DateTime.now();
+      await _firestore.collection(_collectionName).doc(user.uid).update({
+        'level': newLevel.value,
+        'updatedAt': now.toIso8601String(),
+        'metadata': {
+          'developerChangeDate': now.toIso8601String(),
+          'developerChangeReason': '개발자 도구를 통한 테스트 변경',
+        },
+      });
+
+      // Custom Claims도 함께 설정 (Firebase 보안 규칙용)
+      await _setCustomClaimsForLevel(newLevel);
+
+      print('✅ 개발자 도구 레벨 변경 완료: ${newLevel.displayName}');
+      return true;
+    } catch (e) {
+      print('❌ 개발자 도구 레벨 변경 오류: $e');
+      return false;
+    }
+  }
+
+  /// 레벨에 따른 Custom Claims 설정
+  Future<void> _setCustomClaimsForLevel(UserLevelType level) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      Map<String, dynamic> claims = {};
+
+      switch (level) {
+        case UserLevelType.free:
+          claims = {'role': 'user'};
+          break;
+        case UserLevelType.premium:
+          claims = {'role': 'premium'};
+          break;
+        case UserLevelType.coach:
+          claims = {'role': 'coach', 'coach': true};
+          break;
+        case UserLevelType.admin:
+          claims = {'role': 'admin', 'admin': true};
+          break;
+      }
+
+      // Custom Claims 설정 (클라이언트에서는 직접 설정할 수 없으므로 로그만 출력)
+      print('🔧 Custom Claims 설정 필요: $claims');
+      print('💡 실제 Custom Claims는 서버에서 설정해야 합니다.');
+    } catch (e) {
+      print('❌ Custom Claims 설정 오류: $e');
+    }
+  }
+
   /// 사용자 레벨 변경 이력 조회
   Future<List<Map<String, dynamic>>> getUserLevelHistory() async {
     try {

@@ -23,6 +23,7 @@ import '../ranking/ranking_page.dart';
 import '../watch/watch_test_page.dart';
 import '../bug_report/bug_report_page.dart';
 import '../points/points_page.dart';
+import 'test_security_button.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -430,6 +431,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 // 버그 리포트 섹션
                 _buildBugReportCard(),
+
+                const SizedBox(height: 16),
+
+                // 보안 테스트 섹션
+                const TestSecurityButton(),
 
                 const SizedBox(height: 16),
 

@@ -12,6 +12,7 @@ import '../../features/watch/watch_test_page.dart';
 import '../../features/bug_report/bug_report_page.dart';
 import '../../features/user_level/user_membership_page.dart';
 import '../../features/points/points_page.dart';
+import '../../features/test_security_page.dart';
 import '../../providers/auth_provider.dart';
 
 /// 탭 인덱스 관리 (간단한 방향성 계산용)
@@ -258,6 +259,11 @@ class AppRouter {
         path: '/points',
         name: 'points',
         builder: (context, state) => const PointsPage(),
+      ),
+      GoRoute(
+        path: '/test-security',
+        name: 'test-security',
+        builder: (context, state) => const TestSecurityPage(),
       ),
     ],
   );
