@@ -86,9 +86,11 @@ class _RunningPageState extends ConsumerState<RunningPage> {
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.grey.shade300,
-                backgroundImage: ref.read(authProviderProvider).user?.photoURL != null
-                    ? NetworkImage(ref.read(authProviderProvider).user!.photoURL!)
-                    : null,
+                backgroundImage:
+                    ref.read(authProviderProvider).user?.photoURL != null
+                        ? NetworkImage(
+                            ref.read(authProviderProvider).user!.photoURL!)
+                        : null,
                 child: ref.read(authProviderProvider).user?.photoURL == null
                     ? const Icon(
                         Icons.person,
@@ -114,15 +116,15 @@ class _RunningPageState extends ConsumerState<RunningPage> {
                     // 러닝 코치 메인 섹션
                     _buildRunningCoachSection(),
                     const SizedBox(height: 24),
-                    
+
                     // 훈련 계획 관리 섹션
                     _buildTrainingPlanSection(),
                     const SizedBox(height: 24),
-                    
+
                     // 진행 상황 추적 섹션
                     _buildProgressTrackingSection(),
                     const SizedBox(height: 24),
-                    
+
                     // 러닝 설정 섹션
                     _buildRunningSettingsSection(),
                   ],
@@ -235,19 +237,20 @@ class _RunningPageState extends ConsumerState<RunningPage> {
             ),
             const SizedBox(height: 8),
             ..._events.take(2).map((event) => ListTile(
-              leading: const Icon(Icons.event),
-              title: Text(event.name),
-              subtitle: Text('${event.targetDistance}km - ${event.eventDate.day}/${event.eventDate.month}'),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const RunningCoachPage(),
-                  ),
-                );
-              },
-            )),
+                  leading: const Icon(Icons.event),
+                  title: Text(event.name),
+                  subtitle: Text(
+                      '${event.targetDistance}km - ${event.eventDate.day}/${event.eventDate.month}'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RunningCoachPage(),
+                      ),
+                    );
+                  },
+                )),
             if (_events.length > 2)
               TextButton(
                 onPressed: () {
