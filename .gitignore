@@ -173,10 +173,6 @@ training_scripts/training_history.png
 *.tar.xz
 
 # AI-Hub dataset files
-training_scripts/aihub_food/
-**/AI모델/
-**/3-021.AI모델/
-**/AI 모델 설명서/
 
 # Python cache
 __pycache__/

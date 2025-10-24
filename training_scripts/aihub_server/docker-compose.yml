@@ -15,7 +15,7 @@ services:
       - FLASK_ENV=production
       - PYTHONPATH=/app
       - DOCKER_ENV=true
-      - NVIDIA_VISIBLE_DEVICES=all  # 모든 GPU 사용
+      - NVIDIA_VISIBLE_DEVICES=all # 모든 GPU 사용
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     restart: unless-stopped
     deploy:
@@ -24,9 +24,9 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [gpu]
+              capabilities: [ gpu ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
