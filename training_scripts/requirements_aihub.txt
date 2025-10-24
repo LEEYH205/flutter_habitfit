@@ -1,0 +1,30 @@
+# AI-Hub 데이터셋 튜닝을 위한 Python 패키지
+# 기존 requirements.txt에 추가로 필요한 패키지들
+
+# 기존 패키지들
+tensorflow>=2.15.0
+tensorflow-datasets>=4.9.0
+numpy>=1.21.0
+matplotlib>=3.5.0
+scikit-learn>=1.0.0
+Pillow>=8.3.0
+opencv-python>=4.5.0
+
+# AI-Hub 데이터셋 처리용 추가 패키지
+lxml>=4.6.0          # XML 파싱
+xmltodict>=0.12.0    # XML to dict 변환
+pandas>=1.3.0        # 데이터 처리
+tqdm>=4.62.0         # 진행률 표시
+seaborn>=0.11.0      # 시각화
+plotly>=5.0.0        # 인터랙티브 시각화
+
+# 모델 성능 평가
+tensorflow-addons>=0.15.0  # 추가 메트릭
+albumentations>=1.1.0      # 고급 데이터 증강
+
+# 한국어 텍스트 처리 (영양정보 파싱용)
+konlpy>=0.6.0        # 한국어 자연어 처리
+mecab-python3>=1.0.0 # 형태소 분석
+
+# 데이터 검증
+jsonschema>=4.0.0    # JSON 스키마 검증
