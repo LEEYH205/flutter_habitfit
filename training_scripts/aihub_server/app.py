@@ -53,8 +53,8 @@ def load_aihub_models():
         
         # MMDetection이 사용 가능한 경우에만 모델 로드 시도
         if MMDET_AVAILABLE:
-            # 모델 경로 설정
-            model_dir = os.path.join(os.path.dirname(__file__), '..', 'aihub_food', '3-021.AI모델')
+            # 모델 경로 설정 (Docker 컨테이너 내부 경로)
+            model_dir = '/app/aihub_food/3-021.AI모델'
             detection_model_path = os.path.join(model_dir, '02.학습모델 파일', '01.음식 탐지 및 분류 모델', '학습모델파일.pth')
             weight_model_path = os.path.join(model_dir, '02.학습모델 파일', '02.중량 예측 모델', 'food_weight_checkpoint.pth')
             config_path = os.path.join(model_dir, '01.AI 모델 소스코드', '01.음식 탐지 및 분류 모델', 'mmdetection', 'docker', 'afs_food_config.py')
@@ -412,9 +412,9 @@ if __name__ == '__main__':
         
         # Docker 환경에서는 Gunicorn 사용, 로컬에서는 Flask 개발 서버 사용
         if os.getenv('DOCKER_ENV'):
-            # Docker 환경 - Gunicorn 사용
+            # Docker 환경 - Gunicorn 사용 (모델 로딩 시간 고려하여 timeout 600초)
             import gunicorn.app.wsgiapp as wsgi
-            sys.argv = ['gunicorn', '--bind', '0.0.0.0:5000', '--workers', '2', '--timeout', '120', 'app:app']
+            sys.argv = ['gunicorn', '--bind', '0.0.0.0:5000', '--workers', '1', '--timeout', '600', '--preload', 'app:app']
             wsgi.run()
         else:
             # 로컬 환경 - Flask 개발 서버 사용

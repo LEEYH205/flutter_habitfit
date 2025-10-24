@@ -1,11 +1,17 @@
-# AI-Hub 음식 분류 서버 Dockerfile
-FROM python:3.9
+# NVIDIA CUDA 베이스 이미지 (Windows GPU 지원)
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_HOME=/usr/local/cuda
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 시스템 패키지 업데이트 및 필요한 패키지 설치
+# Python 3.9 및 시스템 패키지 설치
 RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3.9-dev \
+    python3-pip \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -22,7 +28,6 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libtiff-dev \
     libopenblas-dev \
-    python3-dev \
     gcc \
     g++ \
     wget \
@@ -31,11 +36,16 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
-# PyTorch 설치 (최신 버전 사용 - ARM64 호환)
-RUN pip install --no-cache-dir torch torchvision
+# Python 심볼릭 링크
+RUN ln -sf /usr/bin/python3.9 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # NumPy 먼저 설치 (버전 고정)
 RUN pip install --no-cache-dir "numpy<2.0"
+
+# PyTorch 설치 (CUDA 11.3 버전)
+RUN pip install --no-cache-dir torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
+    --extra-index-url https://download.pytorch.org/whl/cu113
 
 # 나머지 Python 의존성 설치
 COPY requirements.txt .
@@ -44,21 +54,26 @@ RUN pip install --no-cache-dir flask==2.3.3 flask-cors==4.0.0 \
     requests==2.31.0 python-dotenv==1.0.0 \
     gunicorn==21.2.0 redis==4.6.0
 
-# MMDetection 설치 시도 (실패해도 계속 진행)
-# MMCV-full을 소스에서 빌드 (C++ 확장 포함)
-RUN pip install --no-cache-dir -U openmim || true
-RUN MMCV_WITH_OPS=1 pip install --no-cache-dir "mmcv-full>=1.3.17,<=1.7.0" -f https://download.openmmlab.com/mmcv/dist/cpu/torch2.8.0/index.html || \
-    pip install --no-cache-dir "mmcv>=1.3.17,<=1.7.0" || true
-RUN pip install --no-cache-dir mmdet==2.25.3 || true
+# MMDetection 설치 (CUDA 지원)
+# 1. OpenMIM 설치
+RUN pip install --no-cache-dir -U openmim
 
-# PyTorch 설치 확인
-RUN python -c "import torch; print('✅ PyTorch version:', torch.__version__)"
+# 2. MMCV-full 설치 (CUDA 11.3 버전)
+RUN mim install mmcv-full==1.7.0 -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.12.0/index.html
+
+# 3. MMDetection 설치
+RUN pip install --no-cache-dir mmdet==2.25.3
+
+# 4. 설치 확인
+RUN python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())" && \
+    python -c "import mmcv; print('MMCV:', mmcv.__version__)" && \
+    python -c "import mmdet; print('MMDet:', mmdet.__version__)" && \
+    python -c "from mmcv.ops import RoIPool; print('✅ MMCV ops available')"
 
 # 애플리케이션 코드 복사
 COPY app.py .
 COPY start_server.sh .
 
-# 실행 권한 부여
 RUN chmod +x start_server.sh
 
 # 포트 노출
@@ -70,8 +85,8 @@ ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 ENV DOCKER_ENV=true
 
-# 헬스체크 추가
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# 헬스체크 설정 (모델 로딩 시간 고려)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
 # 서버 시작

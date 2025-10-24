@@ -18,8 +18,8 @@ class MealAIService {
       'assets/models/nutrition_database.json';
 
   // AI-Hub 서버 API 설정
-  static const String _aihubServerUrl = 'http://localhost:5000';
-  static const bool _useAihubServer = true; // AI-Hub 서버 사용 여부
+  static const String _aihubServerUrl = 'http://localhost:5001';
+  static const bool _useAihubServer = true; // AI-Hub 더미 서버 사용 (800개 한국 음식)
 
   dynamic _interpreter; // 웹 호환성을 위해 dynamic 사용
   List<String> _labels = [];
