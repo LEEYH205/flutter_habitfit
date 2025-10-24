@@ -1,0 +1,16 @@
+# AI-Hub 서버 API 의존성
+flask==2.3.3
+flask-cors==4.0.0
+torch==1.12.1
+torchvision==0.13.1
+mmcv-full==1.7.1
+mmdet==2.25.3
+opencv-python==4.8.1.78
+pillow==10.0.1
+numpy==1.21.6
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Docker 관련 추가 의존성
+gunicorn==21.2.0
+redis==4.6.0

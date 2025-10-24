@@ -3,18 +3,23 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
+import 'package:http/http.dart' as http;
 
 // 웹에서는 tflite_flutter를 사용하지 않음
 import 'package:tflite_flutter/tflite_flutter.dart'
     if (dart.library.html) 'dart:html' as tflite;
 
 /// 식사 AI 서비스 클래스
-/// TensorFlow Lite 모델을 사용하여 음식 인식 및 영양소 분석
+/// AI-Hub 서버 API 또는 TensorFlow Lite 모델을 사용하여 음식 인식 및 영양소 분석
 class MealAIService {
   static const String _modelPath = 'assets/models/food_classification.tflite';
   static const String _labelsPath = 'assets/models/food_labels.txt';
   static const String _nutritionDbPath =
       'assets/models/nutrition_database.json';
+
+  // AI-Hub 서버 API 설정
+  static const String _aihubServerUrl = 'http://localhost:5000';
+  static const bool _useAihubServer = true; // AI-Hub 서버 사용 여부
 
   dynamic _interpreter; // 웹 호환성을 위해 dynamic 사용
   List<String> _labels = [];
@@ -124,6 +129,11 @@ class MealAIService {
   /// 음식 이미지 분석
   Future<FoodAnalysisResult> analyzeFood(File imageFile) async {
     try {
+      // AI-Hub 서버 사용 시
+      if (_useAihubServer) {
+        return await _analyzeWithAihubServer(imageFile);
+      }
+
       if (_isWeb || _interpreter == null) {
         // 웹이거나 모델이 없는 경우 더미 분석 수행
         return _performDummyAnalysis();
@@ -410,6 +420,110 @@ class MealAIService {
         .map((entry) => _labels[entry.key])
         .where((label) => label != foodName)
         .toList();
+  }
+
+  /// AI-Hub 서버를 통한 음식 분석
+  Future<FoodAnalysisResult> _analyzeWithAihubServer(File imageFile) async {
+    try {
+      print('🌐 AI-Hub 서버로 음식 분석 요청...');
+
+      // HTTP 요청 생성
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_aihubServerUrl/predict'),
+      );
+
+      // 이미지 파일 추가
+      request.files.add(
+        await http.MultipartFile.fromPath('image', imageFile.path),
+      );
+
+      // 요청 전송
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.stream.bytesToString();
+        final result = json.decode(responseBody);
+
+        if (result['success'] == true && result['predictions'].isNotEmpty) {
+          final prediction = result['predictions'][0];
+          final foodName = prediction['food_name'];
+          final confidence = prediction['confidence'];
+
+          print(
+              '✅ AI-Hub 분석 완료: $foodName (${(confidence * 100).toStringAsFixed(1)}%)');
+
+          // 영양소 정보 가져오기
+          final nutrition = _getNutritionInfo(foodName);
+
+          // 대안 제안 생성
+          final alternativeSuggestions = result['predictions']
+              .skip(1)
+              .take(3)
+              .map((p) => p['food_name'] as String)
+              .toList();
+
+          return FoodAnalysisResult(
+            foodName: foodName,
+            confidence: confidence,
+            calories: nutrition['calories'] ?? 300,
+            protein: nutrition['protein'] ?? 15.0,
+            carbs: nutrition['carbs'] ?? 45.0,
+            fat: nutrition['fat'] ?? 10.0,
+            alternativeSuggestions: alternativeSuggestions,
+          );
+        } else {
+          print('⚠️ AI-Hub 서버에서 분석 결과 없음');
+          return _performDummyAnalysis();
+        }
+      } else {
+        print('❌ AI-Hub 서버 응답 오류: ${response.statusCode}');
+        return _performDummyAnalysis();
+      }
+    } catch (e) {
+      print('❌ AI-Hub 서버 분석 실패: $e');
+      return _performDummyAnalysis();
+    }
+  }
+
+  /// AI-Hub 서버 상태 확인
+  Future<bool> checkAihubServerHealth() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_aihubServerUrl/health'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        return result['models_loaded'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ AI-Hub 서버 상태 확인 실패: $e');
+      return false;
+    }
+  }
+
+  /// AI-Hub 서버에서 사용 가능한 음식 클래스 가져오기
+  Future<List<String>> getAihubClasses() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_aihubServerUrl/classes'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['success'] == true) {
+          return List<String>.from(result['classes']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('❌ AI-Hub 클래스 목록 가져오기 실패: $e');
+      return [];
+    }
   }
 
   /// 리소스 해제

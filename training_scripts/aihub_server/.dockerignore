@@ -1,0 +1,49 @@
+# Docker 빌드 시 제외할 파일들
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv-tf215/
+
+# Git 관련
+.git/
+.gitignore
+
+# IDE 관련
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# 테스트 파일
+test_*.py
+*_test.py
+tests/
+
+# 문서
+README.md
+*.md
+
+# Docker 관련
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# AI-Hub 데이터셋 (용량이 크므로 별도 마운트)
+aihub_food/
