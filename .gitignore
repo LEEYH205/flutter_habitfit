@@ -159,6 +159,25 @@ training_scripts/*.h5
 training_scripts/*.png
 training_scripts/training_history.png
 
+# Large archive files and datasets
+*.zip
+*.7z
+*.tar
+*.tgz
+*.gz
+*.rar
+*.bz2
+*.xz
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+
+# AI-Hub dataset files
+training_scripts/aihub_food/
+**/AI모델/
+**/3-021.AI모델/
+**/AI 모델 설명서/
+
 # Python cache
 __pycache__/
 *.pyc
