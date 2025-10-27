@@ -11,3 +11,4 @@ python-dotenv==1.0.0
 # Docker 관련 추가 의존성
 gunicorn==21.2.0
 redis==4.6.0
+

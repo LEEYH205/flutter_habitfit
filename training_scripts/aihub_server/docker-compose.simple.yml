@@ -34,3 +34,4 @@ services:
     depends_on:
       - aihub-server
     restart: unless-stopped
+

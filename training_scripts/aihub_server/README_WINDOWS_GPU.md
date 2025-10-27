@@ -336,3 +336,4 @@ docker run --rm --gpus all nvidia/cuda:11.3.1-base-ubuntu20.04 nvidia-smi
 
 **축하합니다! Windows PC에서 AI-Hub 800개 한국 음식 분류 모델이 GPU로 실행 중입니다!** 🎊
 
+

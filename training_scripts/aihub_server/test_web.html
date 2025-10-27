@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -20,30 +21,30 @@
             align-items: center;
             padding: 20px;
         }
-        
+
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
             max-width: 600px;
             width: 100%;
         }
-        
+
         h1 {
             color: #333;
             margin-bottom: 10px;
             font-size: 28px;
             text-align: center;
         }
-        
+
         .subtitle {
             color: #666;
             text-align: center;
             margin-bottom: 30px;
             font-size: 14px;
         }
-        
+
         .upload-area {
             border: 3px dashed #667eea;
             border-radius: 15px;
@@ -54,39 +55,39 @@
             margin-bottom: 20px;
             background: #f8f9ff;
         }
-        
+
         .upload-area:hover {
             border-color: #764ba2;
             background: #f0f2ff;
         }
-        
+
         .upload-area.dragover {
             border-color: #764ba2;
             background: #e8ebff;
             transform: scale(1.02);
         }
-        
+
         .upload-icon {
             font-size: 48px;
             margin-bottom: 10px;
         }
-        
+
         input[type="file"] {
             display: none;
         }
-        
+
         .preview-container {
             margin: 20px 0;
             text-align: center;
         }
-        
+
         #preview {
             max-width: 100%;
             max-height: 300px;
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
-        
+
         button {
             width: 100%;
             padding: 15px;
@@ -100,18 +101,18 @@
             transition: all 0.3s;
             margin-top: 10px;
         }
-        
+
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
         }
-        
+
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
         }
-        
+
         .results {
             margin-top: 30px;
             padding: 20px;
@@ -119,54 +120,55 @@
             border-radius: 10px;
             display: none;
         }
-        
+
         .results.show {
             display: block;
             animation: slideIn 0.3s ease-out;
         }
-        
+
         @keyframes slideIn {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         .result-item {
             padding: 15px;
             margin: 10px 0;
             background: white;
             border-radius: 8px;
             border-left: 4px solid #667eea;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
-        
+
         .food-name {
             font-size: 18px;
             font-weight: 600;
             color: #333;
             margin-bottom: 5px;
         }
-        
+
         .confidence {
             color: #667eea;
             font-weight: 600;
         }
-        
+
         .loading {
             display: none;
             text-align: center;
             margin: 20px 0;
         }
-        
+
         .loading.show {
             display: block;
         }
-        
+
         .spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #667eea;
@@ -176,18 +178,23 @@
             animation: spin 1s linear infinite;
             margin: 0 auto;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         .error {
             background: #fee;
             border-left-color: #f44;
             color: #c33;
         }
-        
+
         .info-box {
             background: #e8f4fd;
             padding: 15px;
@@ -198,33 +205,34 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>🍽️ AI-Hub 음식 분류</h1>
         <p class="subtitle">800개 한국 음식을 AI로 분석합니다</p>
-        
+
         <div class="info-box">
-            ℹ️ 현재 더미 모델로 작동 중입니다. 랜덤한 음식 3개를 반환합니다.
+            🔄 Windows PC 서버(172.30.1.43:5001) 연결 중...
         </div>
-        
+
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📸</div>
             <p><strong>클릭하거나 드래그하여 이미지 업로드</strong></p>
             <p style="color: #999; font-size: 14px; margin-top: 10px;">JPG, PNG 파일 지원</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
-        
+
         <div class="preview-container" id="previewContainer" style="display: none;">
             <img id="preview" alt="미리보기">
         </div>
-        
+
         <button id="analyzeBtn" disabled>분석하기</button>
-        
+
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p style="margin-top: 10px; color: #666;">분석 중...</p>
         </div>
-        
+
         <div class="results" id="results"></div>
     </div>
 
@@ -236,42 +244,42 @@
         const analyzeBtn = document.getElementById('analyzeBtn');
         const loading = document.getElementById('loading');
         const results = document.getElementById('results');
-        
+
         let selectedFile = null;
-        
+
         // 클릭으로 파일 선택
         uploadArea.addEventListener('click', () => fileInput.click());
-        
+
         // 파일 선택 이벤트
         fileInput.addEventListener('change', (e) => {
             handleFile(e.target.files[0]);
         });
-        
+
         // 드래그 앤 드롭
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-        
+
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-        
+
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             handleFile(e.dataTransfer.files[0]);
         });
-        
+
         // 파일 처리
         function handleFile(file) {
             if (!file || !file.type.startsWith('image/')) {
                 alert('이미지 파일만 업로드 가능합니다.');
                 return;
             }
-            
+
             selectedFile = file;
-            
+
             // 미리보기 표시
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -282,32 +290,32 @@
             };
             reader.readAsDataURL(file);
         }
-        
+
         // 분석 버튼 클릭
         analyzeBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
-            
+
             // UI 업데이트
             analyzeBtn.disabled = true;
             loading.classList.add('show');
             results.classList.remove('show');
-            
+
             try {
                 // FormData 생성
                 const formData = new FormData();
                 formData.append('image', selectedFile);
-                
-                // API 호출
-                const response = await fetch('http://localhost:5001/predict', {
+
+                // API 호출 (Windows PC 서버)
+                const response = await fetch('http://172.30.1.43:5001/predict', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
+
                 // 결과 표시
                 displayResults(data);
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 results.innerHTML = `
@@ -323,7 +331,7 @@
                 analyzeBtn.disabled = false;
             }
         });
-        
+
         // 결과 표시
         function displayResults(data) {
             if (!data.success) {
@@ -335,11 +343,11 @@
                 `;
             } else {
                 let html = '<h3 style="margin-bottom: 15px; color: #333;">🎯 분석 결과</h3>';
-                
+
                 if (data.note) {
                     html += `<p style="color: #666; font-size: 14px; margin-bottom: 15px;">📝 ${data.note}</p>`;
                 }
-                
+
                 if (data.predictions && data.predictions.length > 0) {
                     data.predictions.forEach((pred, index) => {
                         const rank = ['🥇', '🥈', '🥉'][index] || '🏅';
@@ -357,24 +365,36 @@
                         </div>
                     `;
                 }
-                
+
                 results.innerHTML = html;
             }
-            
+
             results.classList.add('show');
         }
-        
+
         // 페이지 로드 시 서버 상태 확인
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('http://localhost:5001/health');
+                const response = await fetch('http://172.30.1.43:5001/health');
                 const data = await response.json();
                 console.log('서버 상태:', data);
+
+                // 서버 상태를 페이지에 표시
+                if (data.models_loaded) {
+                    document.querySelector('.info-box').innerHTML =
+                        '✅ Windows PC 서버 연결됨 - 실제 AI-Hub 800개 모델 작동 중!';
+                    document.querySelector('.info-box').style.background = '#d4edda';
+                    document.querySelector('.info-box').style.color = '#155724';
+                }
             } catch (error) {
                 console.error('서버 연결 실패:', error);
+                document.querySelector('.info-box').innerHTML =
+                    '❌ 서버 연결 실패 - Windows PC 서버(172.30.1.43:5001)가 실행 중인지 확인하세요.';
+                document.querySelector('.info-box').style.background = '#f8d7da';
+                document.querySelector('.info-box').style.color = '#721c24';
             }
         });
     </script>
 </body>
-</html>
 
+</html>

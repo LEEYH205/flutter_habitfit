@@ -1,5 +1,8 @@
 temp/
 
+# AI-Hub 모델 파일
+training_scripts/aihub_food/
+
 # Miscellaneous
 *.class
 *.log

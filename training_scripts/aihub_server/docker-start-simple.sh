@@ -31,3 +31,4 @@ echo "📋 유용한 명령어:"
 echo "  - 로그 확인: docker-compose -f docker-compose.simple.yml logs -f"
 echo "  - 서버 중지: docker-compose -f docker-compose.simple.yml down"
 echo "  - 컨테이너 상태: docker-compose -f docker-compose.simple.yml ps"
+

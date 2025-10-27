@@ -63,3 +63,4 @@ echo "✅ 테스트 완료!"
 echo ""
 echo "💡 웹 테스트 페이지: file://$(pwd)/test_web.html"
 
+
