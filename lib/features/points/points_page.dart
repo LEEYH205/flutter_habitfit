@@ -21,7 +21,8 @@ class _PointsPageState extends ConsumerState<PointsPage>
 
   UserPoints? _userPoints;
   List<PointEarned> _pointsHistory = [];
-  List<Achievement> _achievements = [];
+  List<Achievement> _achievements = []; // 달성한 업적만 (기존 호환성)
+  List<Map<String, dynamic>> _allAchievements = []; // 모든 업적 템플릿과 진행 상황
   Map<String, dynamic> _stats = {};
   bool _isLoading = true;
 
@@ -46,19 +47,50 @@ class _PointsPageState extends ConsumerState<PointsPage>
         _isLoading = true;
       });
 
+      print('🔄 업적 데이터 로드 시작...');
+
+      // 먼저 현재 포인트 정보를 가져와서 업적 체크
+      final userPoints = await _pointsService.getCurrentUserPoints();
+      if (userPoints != null) {
+        print('📊 현재 레벨: ${userPoints.currentLevel}, 포인트: ${userPoints.totalPoints}');
+        // 포인트 페이지 로드 시에도 업적 체크 (이미 달성한 업적이 누락되지 않도록)
+        await _pointsService.checkAchievementsForCurrentUser();
+      }
+
       final futures = await Future.wait([
         _pointsService.getCurrentUserPoints(),
         _pointsService.getPointsHistory(limit: 20),
-        _pointsService.getUserAchievements(),
+        _pointsService.getAchievementsWithProgress(), // 모든 업적 템플릿과 진행 상황 가져오기
         _pointsService.getPointsStats(),
       ]);
+
+      final achievementsWithProgress = futures[2] as List<Map<String, dynamic>>;
+      
+      // 달성한 업적만 추출 (기존 호환성 유지)
+      final unlockedAchievements = achievementsWithProgress
+          .where((item) => item['isUnlocked'] == true)
+          .map((item) => item['template'] as Achievement)
+          .toList();
+
+      print('✅ 업적 데이터 로드 완료: 템플릿 ${achievementsWithProgress.length}개, 달성 ${unlockedAchievements.length}개');
+      if (achievementsWithProgress.isNotEmpty) {
+        print('📋 첫 번째 업적: ${(achievementsWithProgress[0]['template'] as Achievement).title}');
+        print('📋 첫 번째 업적 isUnlocked: ${achievementsWithProgress[0]['isUnlocked']}');
+      }
 
       setState(() {
         _userPoints = futures[0] as UserPoints?;
         _pointsHistory = futures[1] as List<PointEarned>;
-        _achievements = futures[2] as List<Achievement>;
+        _achievements = unlockedAchievements;
+        _allAchievements = achievementsWithProgress; // 모든 업적 저장
         _stats = futures[3] as Map<String, dynamic>;
       });
+
+      // UI 업데이트 후 디버그
+      if (_allAchievements.isNotEmpty) {
+        final first = _allAchievements[0];
+        print('🔍 UI 상태 확인: 첫 번째 업적 isUnlocked = ${first['isUnlocked']}');
+      }
     } catch (e) {
       print('❌ 포인트 데이터 로드 오류: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -515,7 +547,8 @@ class _PointsPageState extends ConsumerState<PointsPage>
   }
 
   Widget _buildAchievementsTab() {
-    if (_achievements.isEmpty) {
+    // 모든 업적 템플릿 표시
+    if (_allAchievements.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -527,18 +560,9 @@ class _PointsPageState extends ConsumerState<PointsPage>
             ),
             SizedBox(height: 16),
             Text(
-              '아직 달성한 업적이 없습니다',
+              '업적을 불러오는 중...',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '습관을 완료하고 운동을 하면\n업적을 달성할 수 있습니다!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
                 color: Colors.grey,
               ),
             ),
@@ -548,30 +572,73 @@ class _PointsPageState extends ConsumerState<PointsPage>
     }
 
     return ListView.builder(
+      key: ValueKey('achievements_${_allAchievements.length}'), // 강제 rebuild
       padding: const EdgeInsets.all(16),
-      itemCount: _achievements.length,
+      itemCount: _allAchievements.length,
       itemBuilder: (context, index) {
-        final achievement = _achievements[index];
+        final item = _allAchievements[index];
+        final achievement = item['template'] as Achievement;
+        // isUnlocked 값을 명시적으로 bool로 변환
+        final isUnlockedValue = item['isUnlocked'];
+        final isUnlocked = isUnlockedValue is bool 
+            ? isUnlockedValue 
+            : (isUnlockedValue == true || isUnlockedValue == 'true');
+        final unlockedAt = item['unlockedAt'] as DateTime?;
+
+        // 디버그 로그 (첫 번째 항목만)
+        if (index == 0) {
+          print('🎨 UI 렌더링: ${achievement.title}, isUnlocked=$isUnlocked, 원본값=$isUnlockedValue, 타입=${isUnlockedValue.runtimeType}');
+        }
+
+        // 체크 표시는 isUnlocked가 true일 때만
+        final shouldShowCheck = isUnlocked == true;
+
         return Card(
+          key: ValueKey('achievement_${achievement.id}_$shouldShowCheck'), // 강제 rebuild
           margin: const EdgeInsets.only(bottom: 12),
+          color: shouldShowCheck ? null : Colors.grey.shade50,
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.amber.withOpacity(0.1),
+              backgroundColor: shouldShowCheck
+                  ? Colors.amber.withOpacity(0.1)
+                  : Colors.grey.withOpacity(0.1),
               child: Text(
                 achievement.icon,
-                style: const TextStyle(fontSize: 24),
+                style: TextStyle(
+                  fontSize: 24,
+                  color: shouldShowCheck ? null : Colors.grey.shade400,
+                ),
               ),
             ),
-            title: Text(
-              achievement.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    achievement.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: shouldShowCheck ? null : Colors.grey,
+                    ),
+                  ),
+                ),
+                // shouldShowCheck가 true일 때만 체크 표시
+                if (shouldShowCheck)
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 20,
+                  ),
+              ],
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(achievement.description),
+                Text(
+                  achievement.description,
+                  style: TextStyle(
+                    color: shouldShowCheck ? null : Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -590,21 +657,19 @@ class _PointsPageState extends ConsumerState<PointsPage>
                       ),
                     ),
                     const Spacer(),
-                    Text(
-                      _formatDateTime(achievement.unlockedAt!),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                    if (shouldShowCheck && unlockedAt != null)
+                      Text(
+                        _formatDateTime(unlockedAt),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],
             ),
-            trailing: const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-            ),
+            // trailing 제거 - 체크 표시는 title의 Row에만 표시
           ),
         );
       },

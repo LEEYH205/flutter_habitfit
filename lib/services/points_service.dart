@@ -16,6 +16,7 @@ class PointsService {
   static const String _pointsCollection = 'user_points';
   static const String _pointsEarnedCollection = 'points_earned';
   static const String _achievementsCollection = 'achievements';
+  static const String _achievementTemplatesCollection = 'achievement_templates';
 
   /// 포인트 획득
   Future<bool> earnPoints({
@@ -403,7 +404,7 @@ class PointsService {
     return basePoints;
   }
 
-  /// 업적 확인
+  /// 업적 확인 (내부 메서드)
   Future<void> _checkAchievements() async {
     try {
       final user = _auth.currentUser;
@@ -416,6 +417,17 @@ class PointsService {
       await _checkBasicAchievements(userPoints);
     } catch (e) {
       print('❌ 업적 확인 오류: $e');
+    }
+  }
+
+  /// 현재 사용자의 업적 확인 (외부에서 호출 가능)
+  Future<void> checkAchievementsForCurrentUser() async {
+    try {
+      print('🔄 현재 사용자 업적 확인 시작...');
+      await _checkAchievements();
+      print('✅ 현재 사용자 업적 확인 완료');
+    } catch (e) {
+      print('❌ 현재 사용자 업적 확인 오류: $e');
     }
   }
 
@@ -494,7 +506,10 @@ class PointsService {
       await _firestore
           .collection(_achievementsCollection)
           .doc('${user.uid}_$id')
-          .set(achievement.toMap());
+          .set({
+            ...achievement.toMap(),
+            'userId': user.uid, // userId 필드 추가
+          });
 
       // 업적 보상 포인트 지급
       await earnPoints(
@@ -534,11 +549,13 @@ class PointsService {
     }
   }
 
-  /// 사용자 업적 목록 조회
+  /// 사용자 업적 목록 조회 (달성한 업적만)
   Future<List<Achievement>> getUserAchievements() async {
     try {
       final user = _auth.currentUser;
       if (user == null) return [];
+
+      print('🔄 사용자 업적 조회 시작 (userId: ${user.uid})');
 
       final snapshot = await _firestore
           .collection(_achievementsCollection)
@@ -546,11 +563,223 @@ class PointsService {
           .orderBy('unlockedAt', descending: true)
           .get();
 
-      return snapshot.docs
-          .map((doc) => Achievement.fromMap(doc.data()))
-          .toList();
+      print('📊 조회된 업적 문서 수: ${snapshot.docs.length}');
+
+      final achievements = snapshot.docs.map((doc) {
+        final data = doc.data();
+        final docId = doc.id;
+        
+        // 문서 ID에서 업적 ID 추출 (형식: ${userId}_${achievementId})
+        String achievementId;
+        if (docId.startsWith('${user.uid}_')) {
+          achievementId = docId.substring('${user.uid}_'.length);
+        } else {
+          // 데이터에 id 필드가 있으면 사용, 없으면 문서 ID 사용
+          achievementId = data['id'] ?? docId;
+        }
+
+        print('📄 문서 ID: $docId, 추출된 업적 ID: $achievementId');
+
+        final achievement = Achievement.fromMap({
+          ...data,
+          'id': achievementId, // 올바른 업적 ID로 설정
+        });
+
+        print('🏆 업적: ${achievement.title} (ID: ${achievement.id})');
+        return achievement;
+      }).toList();
+
+      print('✅ 사용자 업적 조회 완료: ${achievements.length}개');
+      return achievements;
     } catch (e) {
       print('❌ 사용자 업적 조회 오류: $e');
+      return [];
+    }
+  }
+
+  /// 모든 업적 템플릿 목록 조회 (Firebase Firestore에서)
+  Future<List<Achievement>> getAllAchievementTemplates() async {
+    try {
+      print('🔄 Firebase에서 업적 템플릿 조회 시작...');
+      
+      // 색인이 없을 수 있으므로 먼저 색인 없이 시도
+      QuerySnapshot snapshot;
+      try {
+        snapshot = await _firestore
+            .collection(_achievementTemplatesCollection)
+            .orderBy('category')
+            .orderBy('pointsReward')
+            .get();
+      } catch (e) {
+        // 색인 오류인 경우 단순 조회로 대체
+        if (e.toString().contains('index') || e.toString().contains('requires an index')) {
+          print('⚠️ 색인 오류, 단순 조회로 대체: $e');
+          snapshot = await _firestore
+              .collection(_achievementTemplatesCollection)
+              .get();
+        } else {
+          rethrow;
+        }
+      }
+
+      print('📊 조회된 문서 수: ${snapshot.docs.length}');
+
+      final achievements = snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            print('📄 문서 ID: ${doc.id}, 데이터: $data');
+            return Achievement.fromMap({
+              ...data,
+              'id': doc.id, // 문서 ID를 업적 ID로 사용
+            });
+          })
+          .toList();
+
+      print('✅ 업적 템플릿 조회 완료: ${achievements.length}개');
+      if (achievements.isNotEmpty) {
+        print('📋 첫 번째 업적: ${achievements[0].title}');
+      }
+
+      return achievements;
+    } catch (e) {
+      print('❌ 업적 템플릿 조회 오류: $e');
+      // Firebase에 없으면 기본 설정에서 가져오기
+      print('🔄 기본 업적 템플릿 사용');
+      return _getDefaultAchievementTemplates();
+    }
+  }
+
+  /// 기본 업적 템플릿 목록 (Firebase에 없을 때 사용)
+  List<Achievement> _getDefaultAchievementTemplates() {
+    return [
+      Achievement(
+        id: 'level_5',
+        title: '첫 번째 레벨업',
+        description: '레벨 5 달성',
+        icon: '🎯',
+        pointsReward: 50,
+        category: 'level',
+        requirements: {'level': 5},
+      ),
+      Achievement(
+        id: 'level_10',
+        title: '습관러',
+        description: '레벨 10 달성',
+        icon: '🌿',
+        pointsReward: 100,
+        category: 'level',
+        requirements: {'level': 10},
+      ),
+      Achievement(
+        id: 'level_20',
+        title: '달성자',
+        description: '레벨 20 달성',
+        icon: '🌳',
+        pointsReward: 200,
+        category: 'level',
+        requirements: {'level': 20},
+      ),
+      Achievement(
+        id: 'level_30',
+        title: '마스터',
+        description: '레벨 30 달성',
+        icon: '🏆',
+        pointsReward: 300,
+        category: 'level',
+        requirements: {'level': 30},
+      ),
+      Achievement(
+        id: 'points_1000',
+        title: '첫 1000점',
+        description: '1000 포인트 달성',
+        icon: '💯',
+        pointsReward: 100,
+        category: 'points',
+        requirements: {'points': 1000},
+      ),
+      Achievement(
+        id: 'points_5000',
+        title: '포인트 마스터',
+        description: '5000 포인트 달성',
+        icon: '💰',
+        pointsReward: 200,
+        category: 'points',
+        requirements: {'points': 5000},
+      ),
+      Achievement(
+        id: 'points_10000',
+        title: '포인트 레전드',
+        description: '10000 포인트 달성',
+        icon: '💎',
+        pointsReward: 500,
+        category: 'points',
+        requirements: {'points': 10000},
+      ),
+    ];
+  }
+
+  /// 사용자의 업적 진행 상황과 함께 업적 템플릿 목록 조회
+  Future<List<Map<String, dynamic>>> getAchievementsWithProgress() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('⚠️ 사용자 로그인 안됨');
+        return [];
+      }
+
+      print('🔄 업적 진행 상황 조회 시작...');
+
+      // 모든 업적 템플릿 가져오기
+      final templates = await getAllAchievementTemplates();
+      print('📋 템플릿 개수: ${templates.length}');
+      
+      // 사용자가 달성한 업적 가져오기
+      final userAchievements = await getUserAchievements();
+      print('🏆 달성한 업적 개수: ${userAchievements.length}');
+      if (userAchievements.isNotEmpty) {
+        print('🏆 달성한 업적 ID 목록: ${userAchievements.map((a) => a.id).join(", ")}');
+      }
+      final unlockedIds = userAchievements.map((a) => a.id).toSet();
+
+      // 템플릿과 달성 상태 결합
+      final result = templates.map((template) {
+        final isUnlocked = unlockedIds.contains(template.id);
+        
+        if (isUnlocked) {
+          print('✅ 업적 달성됨: ${template.id} (${template.title})');
+        } else {
+          print('⏳ 업적 미달성: ${template.id} (${template.title})');
+        }
+
+        final userAchievement = userAchievements.firstWhere(
+          (a) => a.id == template.id,
+          orElse: () => Achievement(
+            id: template.id,
+            title: template.title,
+            description: template.description,
+            icon: template.icon,
+            pointsReward: template.pointsReward,
+            category: template.category,
+            requirements: template.requirements,
+            isSecret: template.isSecret,
+            unlockedAt: null, // 달성하지 않은 업적
+          ),
+        );
+
+        return {
+          'template': template,
+          'isUnlocked': isUnlocked,
+          'unlockedAt': userAchievement.unlockedAt,
+        };
+      }).toList();
+
+      print('✅ 업적 진행 상황 조회 완료: ${result.length}개');
+      final unlockedCount = result.where((r) => r['isUnlocked'] == true).length;
+      print('📊 달성한 업적: $unlockedCount개 / ${result.length}개');
+      return result;
+    } catch (e, stackTrace) {
+      print('❌ 업적 진행 상황 조회 오류: $e');
+      print('📍 스택 트레이스: $stackTrace');
       return [];
     }
   }

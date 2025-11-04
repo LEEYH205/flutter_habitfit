@@ -206,6 +206,18 @@ service cloud.firestore {
 
 
 
+    /** ---------- 업적 템플릿 (모든 사용자 읽기 가능, 관리자만 쓰기) ---------- **/
+
+    match /achievement_templates/{doc} {
+
+      allow read: if true; // 모든 사용자가 읽기 가능
+
+      allow write: if isAdmin(); // 관리자만 쓰기 가능
+
+    }
+
+
+
     /** ---------- 러닝 관련 컬렉션 (userId 필드 기반) ---------- **/
 
     match /running_events/{doc} {
