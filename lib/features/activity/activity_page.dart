@@ -1210,7 +1210,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   }
 
   /// 실제 운동 데이터 로드
-  Future<void> _loadRecentWorkouts({bool includeSelectedMonth = false}) async {
+  Future<void> _loadRecentWorkouts({bool includeSelectedMonth = false, String? period}) async {
     setState(() {
       _isLoadingWorkouts = true;
     });
@@ -1220,15 +1220,37 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
 
       final healthKitService = HealthKitService();
       
-      // 선택된 월을 포함하도록 충분한 기간의 데이터 로드
+      // 선택된 기간에 따라 필요한 일수 계산
       int daysToLoad = 30;
-      if (includeSelectedMonth) {
+      
+      if (period == '주') {
+        daysToLoad = 7;
+      } else if (period == '월') {
+        if (includeSelectedMonth) {
+          final now = DateTime.now();
+          final selectedMonthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+          final daysDiff = now.difference(selectedMonthStart).inDays;
+          // 선택된 월이 과거라면 더 많은 데이터를 로드
+          if (daysDiff > 30) {
+            daysToLoad = daysDiff + 10; // 선택된 월을 포함할 수 있도록 여유있게
+          }
+        }
+      } else if (period == '년') {
+        // 올해 1월 1일부터 현재까지
+        final now = DateTime.now();
+        final yearStart = DateTime(now.year, 1, 1);
+        final daysDiff = now.difference(yearStart).inDays;
+        daysToLoad = daysDiff + 10; // 여유있게
+      } else if (period == '전체') {
+        // 모든 데이터를 위해 충분히 큰 값 (예: 10년치)
+        daysToLoad = 365 * 10;
+      } else if (includeSelectedMonth) {
+        // 기존 로직 유지
         final now = DateTime.now();
         final selectedMonthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
         final daysDiff = now.difference(selectedMonthStart).inDays;
-        // 선택된 월이 과거라면 더 많은 데이터를 로드
         if (daysDiff > 30) {
-          daysToLoad = daysDiff + 10; // 선택된 월을 포함할 수 있도록 여유있게
+          daysToLoad = daysDiff + 10;
         }
       }
       
@@ -1462,6 +1484,142 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
     return dailyData;
   }
 
+  /// 주간 데이터 생성 (최근 7일간)
+  List<Map<String, dynamic>> _generateWeeklyData() {
+    final now = DateTime.now();
+    final weekDays = ['월', '화', '수', '목', '금', '토', '일'];
+    
+    print('📅 주간 데이터 생성 시작 - 최근 7일');
+    print('📊 현재 _recentWorkouts 개수: ${_recentWorkouts.length}');
+    
+    List<Map<String, dynamic>> weeklyData = [];
+    
+    // 최근 7일간의 데이터 생성
+    for (int i = 6; i >= 0; i--) {
+      final targetDate = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      // DateTime.weekday는 1(월요일)~7(일요일), 배열은 0~6
+      final dayOfWeek = weekDays[(targetDate.weekday - 1) % 7];
+      
+      // 해당 일의 운동 데이터 필터링
+      final dayWorkouts = _recentWorkouts.where((workout) {
+        final workoutDate = DateTime(
+          workout.startTime.year,
+          workout.startTime.month,
+          workout.startTime.day,
+        );
+        return workoutDate.isAtSameMomentAs(targetDate);
+      }).toList();
+      
+      // 해당 일의 총 거리 합산
+      double totalDistance = 0.0;
+      for (final workout in dayWorkouts) {
+        totalDistance += workout.distance ?? 0.0;
+      }
+      
+      if (totalDistance > 0) {
+        print('  📌 ${targetDate.month}/${targetDate.day} ($dayOfWeek): ${totalDistance.toStringAsFixed(2)}km');
+      }
+      
+      weeklyData.add({
+        'label': dayOfWeek,
+        'value': totalDistance,
+      });
+    }
+    
+    print('✅ 주간 데이터 생성 완료: 총 ${weeklyData.length}일, 0이 아닌 값: ${weeklyData.where((d) => d['value'] as double > 0).length}일');
+    return weeklyData;
+  }
+
+  /// 연간 데이터 생성 (올해 1월부터 현재 월까지)
+  List<Map<String, dynamic>> _generateYearlyData() {
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final currentMonth = now.month;
+    
+    print('📅 연간 데이터 생성 시작 - $currentYear년 1월부터 $currentMonth월까지');
+    print('📊 현재 _recentWorkouts 개수: ${_recentWorkouts.length}');
+    
+    // 올해 데이터만 필터링
+    final yearlyWorkouts = _recentWorkouts.where((workout) {
+      return workout.startTime.year == currentYear;
+    }).toList();
+    
+    print('🏃‍♂️ $currentYear년 운동 데이터: ${yearlyWorkouts.length}개');
+    
+    List<Map<String, dynamic>> monthlyData = [];
+    
+    // 1월부터 현재 월까지 데이터 생성
+    for (int month = 1; month <= currentMonth; month++) {
+      final monthWorkouts = yearlyWorkouts.where((workout) {
+        return workout.startTime.month == month;
+      }).toList();
+      
+      // 해당 월의 총 거리 합산
+      double totalDistance = 0.0;
+      for (final workout in monthWorkouts) {
+        totalDistance += workout.distance ?? 0.0;
+      }
+      
+      if (totalDistance > 0 || monthWorkouts.isNotEmpty) {
+        print('  📌 $month월: ${totalDistance.toStringAsFixed(2)}km (${monthWorkouts.length}개 운동)');
+      }
+      
+      monthlyData.add({
+        'label': '$month월',
+        'value': totalDistance,
+      });
+    }
+    
+    print('✅ 연간 데이터 생성 완료: 총 ${monthlyData.length}개월, 0이 아닌 값: ${monthlyData.where((d) => d['value'] as double > 0).length}개월');
+    return monthlyData;
+  }
+
+  /// 전체 기간 데이터 생성 (연도별)
+  List<Map<String, dynamic>> _generateAllTimeData() {
+    print('📅 전체 기간 데이터 생성 시작');
+    print('📊 현재 _recentWorkouts 개수: ${_recentWorkouts.length}');
+    
+    // 연도별로 그룹화
+    final Map<int, List<WorkoutData>> workoutsByYear = {};
+    for (final workout in _recentWorkouts) {
+      final year = workout.startTime.year;
+      if (!workoutsByYear.containsKey(year)) {
+        workoutsByYear[year] = [];
+      }
+      workoutsByYear[year]!.add(workout);
+    }
+    
+    // 연도별로 정렬
+    final sortedYears = workoutsByYear.keys.toList()..sort();
+    
+    print('🏃‍♂️ 연도별 운동 데이터: ${sortedYears.length}개 연도');
+    
+    List<Map<String, dynamic>> yearlyData = [];
+    
+    for (final year in sortedYears) {
+      final yearWorkouts = workoutsByYear[year]!;
+      
+      // 해당 연도의 총 거리 합산
+      double totalDistance = 0.0;
+      for (final workout in yearWorkouts) {
+        totalDistance += workout.distance ?? 0.0;
+      }
+      
+      print('  📌 $year년: ${totalDistance.toStringAsFixed(2)}km (${yearWorkouts.length}개 운동)');
+      
+      yearlyData.add({
+        'label': '$year',
+        'value': totalDistance,
+      });
+    }
+    
+    // 최신 연도가 맨 뒤에 오도록 정렬 (그래프 표시 순서)
+    yearlyData.sort((a, b) => int.parse(a['label'] as String).compareTo(int.parse(b['label'] as String)));
+    
+    print('✅ 전체 기간 데이터 생성 완료: 총 ${yearlyData.length}개 연도, 0이 아닌 값: ${yearlyData.where((d) => d['value'] as double > 0).length}개 연도');
+    return yearlyData;
+  }
+
   /// 활동 데이터 로드
   Future<void> _loadActivityData() async {
     print('🔄 _loadActivityData() 호출됨 - _selectedPeriod: $_selectedPeriod');
@@ -1470,30 +1628,21 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
     });
 
     try {
-      // 월별 데이터인 경우 실제 운동 데이터를 먼저 로드해야 함
-      if (_selectedPeriod == '월') {
-        // 선택된 월을 포함하도록 운동 데이터 로드
-        print('🔄 월별 데이터 로드를 위해 운동 데이터 로드 시작...');
-        await _loadRecentWorkouts(includeSelectedMonth: true);
-        print('✅ 운동 데이터 로드 완료, _recentWorkouts: ${_recentWorkouts.length}개');
-      } else {
-        // 다른 기간은 기존 방식 유지 (샘플 데이터)
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
+      // 모든 기간에서 실제 운동 데이터를 먼저 로드해야 함
+      print('🔄 $_selectedPeriod 데이터 로드를 위해 운동 데이터 로드 시작...');
+      await _loadRecentWorkouts(
+        includeSelectedMonth: _selectedPeriod == '월',
+        period: _selectedPeriod,
+      );
+      print('✅ 운동 데이터 로드 완료, _recentWorkouts: ${_recentWorkouts.length}개');
 
       List<Map<String, dynamic>> data = [];
 
       switch (_selectedPeriod) {
         case '주':
-          data = [
-            {'label': '월', 'value': 2.5},
-            {'label': '화', 'value': 3.2},
-            {'label': '수', 'value': 1.8},
-            {'label': '목', 'value': 4.1},
-            {'label': '금', 'value': 2.9},
-            {'label': '토', 'value': 5.2},
-            {'label': '일', 'value': 3.7},
-          ];
+          print('📊 _generateWeeklyData() 호출 시작...');
+          data = _generateWeeklyData();
+          print('📊 _generateWeeklyData() 호출 완료, 데이터: ${data.length}개');
           break;
         case '월':
           print('📊 _generateMonthlyData() 호출 시작...');
@@ -1501,23 +1650,14 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
           print('📊 _generateMonthlyData() 호출 완료, 데이터: ${data.length}개');
           break;
         case '년':
-          data = [
-            {'label': '1월', 'value': 45.2},
-            {'label': '2월', 'value': 38.7},
-            {'label': '3월', 'value': 52.3},
-            {'label': '4월', 'value': 41.5},
-            {'label': '5월', 'value': 48.9},
-            {'label': '6월', 'value': 35.2},
-          ];
+          print('📊 _generateYearlyData() 호출 시작...');
+          data = _generateYearlyData();
+          print('📊 _generateYearlyData() 호출 완료, 데이터: ${data.length}개');
           break;
         case '전체':
-          data = [
-            {'label': '2021', 'value': 425.2},
-            {'label': '2022', 'value': 538.7},
-            {'label': '2023', 'value': 652.3},
-            {'label': '2024', 'value': 441.5},
-            {'label': '2025', 'value': 248.9},
-          ];
+          print('📊 _generateAllTimeData() 호출 시작...');
+          data = _generateAllTimeData();
+          print('📊 _generateAllTimeData() 호출 완료, 데이터: ${data.length}개');
           break;
       }
 
