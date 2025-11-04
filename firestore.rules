@@ -1,0 +1,335 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+
+
+    /** ---------- 공통 헬퍼 함수 ---------- **/
+
+    function signedIn() {
+
+      return request.auth != null;
+
+    }
+
+
+
+    // 관리자 권한 확인 (Custom Claims 또는 특정 이메일)
+
+    function isAdmin() {
+
+      return signedIn() && (
+
+        (request.auth.token.admin == true) ||
+
+        (request.auth.token.role == "admin") ||
+
+        (request.auth.token.email == "enoma20523@gmail.com")
+
+      );
+
+    }
+
+
+
+    // 코치 권한 확인 (Custom Claims 또는 특정 이메일)
+
+    function isCoach() {
+
+      return signedIn() && (
+
+        (request.auth.token.coach == true) ||
+
+        (request.auth.token.role == "coach") ||
+
+        (request.auth.token.email == "enoma20523@gmail.com")
+
+      );
+
+    }
+
+
+
+    /** ---------- 관리자 전용 컬렉션 ---------- **/
+
+    match /admin_promotions/{doc} {
+
+      allow read, write: if isAdmin();
+
+    }
+
+    
+
+    match /coach_promotions/{doc} {
+
+      allow read, write: if isAdmin() || isCoach();
+
+    }
+
+
+
+    /** ---------- 사용자 프로필 (문서 ID = UID) ---------- **/
+
+    match /users/{userId} {
+
+      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == userId);
+
+    }
+
+
+
+    /** ---------- 사용자 레벨 (문서 ID = UID) ---------- **/
+
+    match /user_levels/{userId} {
+
+      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == userId);
+
+    }
+
+
+
+    /** ---------- 사용자 패턴 분석 (문서 ID = UID) ---------- **/
+
+    match /user_patterns/{userId} {
+
+      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == userId);
+
+    }
+
+
+
+    /** ---------- 사용자 개인 데이터 컬렉션 (uid 필드 기반) ---------- **/
+
+    match /user_habits/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
+
+    }
+
+
+
+    /** ---------- 사용자 포인트 (문서 ID = userId 또는 userId 필드 기반) ---------- **/
+
+    match /user_points/{doc} {
+
+      // 문서 ID가 userId인 경우 또는 문서 내 userId 필드 확인
+
+      allow read, write: if isAdmin() || 
+
+                            (signedIn() && (
+
+                              doc == request.auth.uid ||
+
+                              (resource != null && resource.data.userId == request.auth.uid)
+
+                            ));
+
+      allow create: if isAdmin() || 
+
+                       (signedIn() && (
+
+                         doc == request.auth.uid ||
+
+                         request.resource.data.userId == request.auth.uid
+
+                       ));
+
+    }
+
+
+
+    match /habit_completions/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
+
+    }
+
+
+
+    /** ---------- 포인트 획득 기록 (userId 필드 기반) ---------- **/
+
+    match /points_earned/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    match /workouts/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
+
+    }
+
+
+
+    match /meals/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
+
+    }
+
+
+
+    match /subscriptions/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    /** ---------- 업적 (userId 필드 기반) ---------- **/
+
+    match /achievements/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    /** ---------- 러닝 관련 컬렉션 (userId 필드 기반) ---------- **/
+
+    match /running_events/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    match /running_coach_settings/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    match /training_plans/{doc} {
+
+      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    /** ---------- 랭킹 시스템 (읽기 공개, 쓰기 제한) ---------- **/
+
+    match /rankings/{doc} {
+
+      allow read: if true; // 랭킹은 모든 사용자가 읽기 가능
+
+      allow write: if isAdmin(); // 랭킹 업데이트는 관리자만
+
+    }
+
+
+
+    /** ---------- 친구 관계 (양방향 권한) ---------- **/
+
+    match /friendships/{doc} {
+
+      allow read: if isAdmin() || 
+
+                    (signedIn() && (
+
+                      resource.data.userId == request.auth.uid ||
+
+                      resource.data.friendId == request.auth.uid
+
+                    ));
+
+      allow write: if isAdmin() || 
+
+                     (signedIn() && (
+
+                       (resource.data.userId == request.auth.uid && 
+
+                        request.resource.data.userId == request.auth.uid) ||
+
+                       (resource.data.friendId == request.auth.uid &&
+
+                        request.resource.data.friendId == request.auth.uid)
+
+                     ));
+
+      allow create: if isAdmin() || 
+
+                       (signedIn() && (
+
+                         request.resource.data.userId == request.auth.uid ||
+
+                         request.resource.data.friendId == request.auth.uid
+
+                       ));
+
+    }
+
+
+
+    /** ---------- 클럽 시스템 ---------- **/
+
+    match /clubs/{doc} {
+
+      allow read: if true; // 클럽 정보는 공개
+
+      allow write: if isAdmin() || 
+
+                     (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
+
+    }
+
+
+
+    match /club_members/{doc} {
+
+      allow read: if isAdmin() || 
+
+                     (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow write: if isAdmin();
+
+      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+
+    }
+
+
+
+    /** ---------- 기본 거부 규칙 ---------- **/
+
+    match /{document=**} {
+
+      allow read, write: if false;
+
+    }
+
+  }
+
+}
