@@ -112,7 +112,7 @@ class HealthKitService {
     }
   }
 
-  /// 최근 운동 데이터 가져오기 (WORKOUT 데이터 우선, 없으면 걸음 수 기반으로 추정)
+  /// 최근 운동 데이터 가져오기 (실제 WORKOUT 데이터만 사용)
   Future<List<WorkoutData>> getRecentWorkouts({int days = 7}) async {
     try {
       if (!_isInitialized) {
@@ -125,7 +125,7 @@ class HealthKitService {
 
       print('🔍 운동 데이터 조회 시작: ${startDate.toLocal()} ~ ${now.toLocal()}');
 
-      // 1. WORKOUT 데이터 우선 조회 (가장 정확한 운동 정보)
+      // WORKOUT 데이터만 조회 (실제 운동 데이터만 사용)
       try {
         print('🏃‍♂️ WORKOUT 데이터 조회 시도 중...');
 
@@ -152,9 +152,12 @@ class HealthKitService {
               print('    값: ${workout.value}, 소스: ${workout.sourceName}');
             }
 
-            return _parseWorkoutData(workoutData);
+            final parsedWorkouts = _parseWorkoutData(workoutData);
+            print('✅ ${parsedWorkouts.length}개의 실제 운동 데이터를 가져왔습니다');
+            return parsedWorkouts;
           } else {
-            print('⚠️ WORKOUT 데이터가 비어있습니다. 다른 방법으로 시도합니다.');
+            print('⚠️ WORKOUT 데이터가 없습니다. 실제 운동 데이터만 사용합니다.');
+            return [];
           }
         } else {
           print('❌ WORKOUT 권한이 없습니다. 권한을 다시 요청합니다.');
@@ -173,99 +176,22 @@ class HealthKitService {
 
             if (workoutData.isNotEmpty) {
               print('✅ WORKOUT 권한 재요청 후 데이터 ${workoutData.length}개 발견');
-              return _parseWorkoutData(workoutData);
+              final parsedWorkouts = _parseWorkoutData(workoutData);
+              print('✅ ${parsedWorkouts.length}개의 실제 운동 데이터를 가져왔습니다');
+              return parsedWorkouts;
+            } else {
+              print('⚠️ WORKOUT 권한은 있지만 데이터가 없습니다.');
+              return [];
             }
+          } else {
+            print('❌ WORKOUT 권한이 거부되었습니다.');
+            return [];
           }
         }
       } catch (e) {
-        print('⚠️ WORKOUT 데이터 조회 실패: $e');
+        print('❌ WORKOUT 데이터 조회 실패: $e');
+        return [];
       }
-
-      // 2. WORKOUT 데이터가 없으면 걸음 수 기반으로 운동 추정
-      print('📊 걸음 수 기반으로 운동 데이터 추정 중...');
-
-      // 걸음 수 데이터 조회
-      final stepsData = await _health.getHealthDataFromTypes(
-        startDate,
-        now,
-        [HealthDataType.STEPS],
-      );
-
-      // 거리 데이터 조회
-      final distanceData = await _health.getHealthDataFromTypes(
-        startDate,
-        now,
-        [HealthDataType.DISTANCE_WALKING_RUNNING],
-      );
-
-      // 심박수 데이터 조회
-      final heartRateData = await _health.getHealthDataFromTypes(
-        startDate,
-        now,
-        [HealthDataType.HEART_RATE],
-      );
-
-      // 일별 운동 데이터 생성
-      final workoutList = <WorkoutData>[];
-      final dailyData = <DateTime, Map<String, dynamic>>{};
-
-      // 걸음 수 데이터 처리
-      for (final step in stepsData) {
-        final date = DateTime(
-            step.dateFrom.year, step.dateFrom.month, step.dateFrom.day);
-        if (!dailyData.containsKey(date)) {
-          dailyData[date] = {
-            'steps': 0,
-            'distance': 0.0,
-            'heartRate': <double>[]
-          };
-        }
-        dailyData[date]!['steps'] += _getIntValue(step.value);
-      }
-
-      // 거리 데이터 처리
-      for (final distance in distanceData) {
-        final date = DateTime(distance.dateFrom.year, distance.dateFrom.month,
-            distance.dateFrom.day);
-        if (dailyData.containsKey(date)) {
-          dailyData[date]!['distance'] += _getDoubleValue(distance.value);
-        }
-      }
-
-      // 심박수 데이터 처리
-      for (final hr in heartRateData) {
-        final date =
-            DateTime(hr.dateFrom.year, hr.dateFrom.month, hr.dateFrom.day);
-        if (dailyData.containsKey(date)) {
-          dailyData[date]!['heartRate'].add(_getDoubleValue(hr.value));
-        }
-      }
-
-      // 운동 데이터 생성
-      for (final entry in dailyData.entries) {
-        final date = entry.key;
-        final data = entry.value;
-
-        if (data['steps'] > 0) {
-          final workout = WorkoutData(
-            id: date.millisecondsSinceEpoch.toString(),
-            type: _determineWorkoutType(data['steps'], data['distance']),
-            startTime: date,
-            endTime: date.add(Duration(days: 1)),
-            duration: Duration(hours: 24),
-            distance: data['distance'],
-            calories: _estimateCalories(data['steps'], data['distance']),
-            source: 'HealthKit (추정)',
-          );
-          workoutList.add(workout);
-        }
-      }
-
-      // 날짜순으로 정렬 (최신순)
-      workoutList.sort((a, b) => b.startTime.compareTo(a.startTime));
-
-      print('✅ ${workoutList.length}개의 운동 데이터를 가져왔습니다 (걸음 수 기반 추정)');
-      return workoutList;
     } catch (e) {
       print('❌ 운동 데이터 조회 오류: $e');
       return [];
@@ -393,27 +319,6 @@ class HealthKitService {
     return distanceList;
   }
 
-  /// 운동 타입 결정 (걸음 수와 거리 기반)
-  String _determineWorkoutType(int steps, double distance) {
-    if (steps >= 10000) {
-      return '걷기';
-    } else if (steps >= 5000) {
-      return '가벼운 운동';
-    } else if (steps >= 1000) {
-      return '일상 활동';
-    } else {
-      return '휴식';
-    }
-  }
-
-  /// 칼로리 추정 (걸음 수와 거리 기반)
-  double? _estimateCalories(int steps, double distance) {
-    // 간단한 칼로리 계산 공식 (체중 70kg 기준)
-    if (steps > 0) {
-      return (steps * 0.04) + (distance * 50); // 걸음당 0.04kcal + 거리당 50kcal
-    }
-    return null;
-  }
 
   /// 권한 상태 확인
   Future<bool> checkPermissions() async {
@@ -498,31 +403,73 @@ class HealthKitService {
   double? _extractDistanceFromWorkout(HealthDataPoint point) {
     try {
       if (point.value is WorkoutHealthValue) {
-        // value.toString()에서 거리 정보 파싱
-        final valueStr = point.value.toString();
-        print('🔍 거리 파싱 시도: $valueStr');
-
-        if (valueStr.contains('totalDistance:')) {
-          final regex = RegExp(r'totalDistance:\s*(\d+)');
-          final match = regex.firstMatch(valueStr);
-          if (match != null) {
-            final distanceMeters = int.parse(match.group(1)!);
-            final distanceKm = distanceMeters / 1000.0;
-            print('✅ 거리 파싱 성공: ${distanceMeters}m -> ${distanceKm}km');
-            return distanceKm;
+        final workoutValue = point.value as WorkoutHealthValue;
+        
+        // WorkoutHealthValue의 totalDistance 속성에 직접 접근 시도
+        try {
+          // 리플렉션을 사용하여 totalDistance 속성 접근 시도
+          final valueStr = workoutValue.toString();
+          print('🔍 거리 파싱 시도: $valueStr');
+          
+          // totalDistance 속성이 있는지 확인 (일반적으로 미터 단위)
+          double? distanceKm;
+          
+          // 패턴 1: totalDistance: 숫자 (소수점 포함 가능)
+          if (valueStr.contains('totalDistance:')) {
+            // 소수점을 포함한 숫자 매칭
+            final regex = RegExp(r'totalDistance:\s*(\d+\.?\d*)');
+            final match = regex.firstMatch(valueStr);
+            if (match != null) {
+              final distanceValue = double.parse(match.group(1)!);
+              
+              // 값이 비정상적으로 큰 경우 (100km 이상) 필터링
+              // HealthKit의 totalDistance는 보통 미터 단위이므로, 
+              // 100000m (100km) 이상이면 이미 km 단위일 가능성 있음
+              if (distanceValue > 100000) {
+                // 이미 km 단위로 추정
+                distanceKm = distanceValue;
+                print('⚠️ 거리 값이 매우 큼 (${distanceValue}), km 단위로 처리: ${distanceKm}km');
+              } else {
+                // 미터 단위로 가정하고 km로 변환
+                distanceKm = distanceValue / 1000.0;
+                print('✅ 거리 파싱 성공: ${distanceValue}m -> ${distanceKm}km');
+              }
+              
+              // 비정상적으로 큰 값 필터링 (일반적으로 하루에 100km 이상은 비정상)
+              if (distanceKm > 100) {
+                print('⚠️ 비정상적으로 큰 거리 값 감지: ${distanceKm}km, null 반환');
+                return null;
+              }
+              
+              return distanceKm;
+            }
           }
-        }
 
-        // 다른 패턴 시도
-        if (valueStr.contains('distance:')) {
-          final regex = RegExp(r'distance:\s*(\d+)');
-          final match = regex.firstMatch(valueStr);
-          if (match != null) {
-            final distanceMeters = int.parse(match.group(1)!);
-            final distanceKm = distanceMeters / 1000.0;
-            print('✅ 거리 파싱 성공 (대체 패턴): ${distanceMeters}m -> ${distanceKm}km');
-            return distanceKm;
+          // 패턴 2: distance: 숫자 (소수점 포함 가능)
+          if (valueStr.contains('distance:')) {
+            final regex = RegExp(r'distance:\s*(\d+\.?\d*)');
+            final match = regex.firstMatch(valueStr);
+            if (match != null) {
+              final distanceValue = double.parse(match.group(1)!);
+              
+              if (distanceValue > 100000) {
+                distanceKm = distanceValue;
+                print('⚠️ 거리 값이 매우 큼 (${distanceValue}), km 단위로 처리: ${distanceKm}km');
+              } else {
+                distanceKm = distanceValue / 1000.0;
+                print('✅ 거리 파싱 성공 (대체 패턴): ${distanceValue}m -> ${distanceKm}km');
+              }
+              
+              if (distanceKm > 100) {
+                print('⚠️ 비정상적으로 큰 거리 값 감지: ${distanceKm}km, null 반환');
+                return null;
+              }
+              
+              return distanceKm;
+            }
           }
+        } catch (e) {
+          print('⚠️ 거리 파싱 중 오류: $e');
         }
       }
 

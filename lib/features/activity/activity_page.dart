@@ -604,13 +604,28 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
       );
     }
 
+    // 모든 값이 0인지 확인
+    final hasNonZeroValue = _activityData.any((d) => (d['value'] as double) > 0);
+    if (!hasNonZeroValue) {
+      return SizedBox(
+        height: 200,
+        child: const Center(
+          child: Text(
+            '활동 데이터가 없습니다',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
     // 월별 데이터인 경우 가로 스크롤 가능하도록
     if (_selectedPeriod == '월') {
       // 최대값 계산
       final maxValue = _activityData.isNotEmpty
-          ? _activityData
-              .map((d) => d['value'] as double)
-              .reduce((a, b) => a > b ? a : b)
+          ? (_activityData
+                  .map((d) => d['value'] as double)
+                  .reduce((a, b) => a > b ? a : b))
+              .clamp(1.0, double.infinity) // 최소값 1.0으로 설정하여 0으로 나누기 방지
           : 1.0;
 
       return SizedBox(
@@ -798,9 +813,10 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
 
     // 다른 기간 (주, 년, 전체) - Y축과 x축 라벨 포함
     final maxValue = _activityData.isNotEmpty
-        ? _activityData
-            .map((d) => d['value'] as double)
-            .reduce((a, b) => a > b ? a : b)
+        ? (_activityData
+                .map((d) => d['value'] as double)
+                .reduce((a, b) => a > b ? a : b))
+            .clamp(1.0, double.infinity) // 최소값 1.0으로 설정하여 0으로 나누기 방지
         : 1.0;
 
     return SizedBox(
@@ -892,9 +908,10 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   Widget _buildBarOnly(Map<String, dynamic> data) {
     final value = data['value'] as double;
     final maxValue = _activityData.isNotEmpty
-        ? _activityData
-            .map((d) => d['value'] as double)
-            .reduce((a, b) => a > b ? a : b)
+        ? (_activityData
+                .map((d) => d['value'] as double)
+                .reduce((a, b) => a > b ? a : b))
+            .clamp(1.0, double.infinity) // 최소값 1.0으로 설정하여 0으로 나누기 방지
         : 1.0;
     final height = (value / maxValue) * 150;
 
@@ -922,8 +939,11 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
 
   /// X축 라벨만 생성
   Widget _buildXAxisLabel(Map<String, dynamic> data) {
+    // 안전하게 라벨 가져오기
+    final label = data['label']?.toString() ?? '';
+    
     // 월별 데이터에서 특정 날짜만 라벨 표시
-    final day = int.tryParse(data['label'] ?? '') ?? 0;
+    final day = int.tryParse(label) ?? 0;
     final lastDayOfMonth =
         DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
     final shouldShowLabel = _selectedPeriod == '월'
@@ -947,20 +967,22 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
         width: labelWidth,
         child: shouldShowLabel
             ? Text(
-                data['label'] ?? '',
+                label,
                 style: const TextStyle(fontSize: 10),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               )
             : const SizedBox.shrink(), // 텍스트는 숨기지만 공간은 차지
       );
     } else {
       // 주간/연간/전체: 모든 라벨 표시
       return Text(
-        data['label'] ?? '',
+        label,
         style: const TextStyle(fontSize: 10),
         textAlign: TextAlign.center,
         overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       );
     }
   }
@@ -969,9 +991,10 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   Widget _buildBar(Map<String, dynamic> data) {
     final value = data['value'] as double;
     final maxValue = _activityData.isNotEmpty
-        ? _activityData
-            .map((d) => d['value'] as double)
-            .reduce((a, b) => a > b ? a : b)
+        ? (_activityData
+                .map((d) => d['value'] as double)
+                .reduce((a, b) => a > b ? a : b))
+            .clamp(1.0, double.infinity) // 최소값 1.0으로 설정하여 0으로 나누기 방지
         : 1.0;
     final height = (value / maxValue) * 150;
 
