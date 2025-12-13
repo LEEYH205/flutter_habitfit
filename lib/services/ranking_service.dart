@@ -363,71 +363,135 @@ class RankingService {
   ) async {
     try {
       final batch = _firestore.batch();
+      int successCount = 0;
+      int errorCount = 0;
 
       for (final friendId in friendIds) {
-        // 기존 랭킹 데이터 확인
-        final existingDoc = await _firestore
-            .collection(_rankingsCollection)
-            .where('userId', isEqualTo: friendId)
-            .where('category', isEqualTo: category.value)
-            .where('type', isEqualTo: type.value)
-            .where('period', isEqualTo: period)
-            .limit(1)
-            .get();
-
-        if (existingDoc.docs.isEmpty) {
-          // 사용자 정보 조회
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(friendId)
+        try {
+          // 기존 랭킹 데이터 확인
+          final existingDoc = await _firestore
+              .collection(_rankingsCollection)
+              .where('userId', isEqualTo: friendId)
+              .where('category', isEqualTo: category.value)
+              .where('type', isEqualTo: type.value)
+              .where('period', isEqualTo: period)
+              .limit(1)
               .get();
 
-          String displayName = 'Unknown User';
-          String? profileImageUrl;
+          if (existingDoc.docs.isEmpty) {
+            // 사용자 정보 조회 (권한 오류 처리)
+            String displayName = 'Unknown User';
+            String? profileImageUrl;
 
-          if (userDoc.exists) {
-            final userData = userDoc.data()!;
-            displayName = userData['displayName'] ?? 'Unknown User';
-            profileImageUrl = userData['photoURL'];
+            try {
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(friendId)
+                  .get();
+
+              if (userDoc.exists) {
+                final userData = userDoc.data()!;
+                displayName = userData['displayName'] ?? 'Unknown User';
+                profileImageUrl = userData['photoURL'];
+              }
+            } catch (e) {
+              // 권한 오류가 발생해도 계속 진행 (기본값 사용)
+              // 개별 친구의 권한 오류는 조용히 처리 (너무 많은 로그 방지)
+              if (e.toString().contains('permission-denied')) {
+                // 권한 오류는 조용히 처리
+              } else {
+                print('⚠️ 사용자 정보 조회 오류 (friendId: $friendId): $e');
+              }
+            }
+
+            // 기본 점수 설정 (권한 오류 처리)
+            double score = 0.0;
+            if (category == RankingCategory.totalPoints) {
+              try {
+                // 포인트 정보 조회
+                final userPoints = await _pointsService.getUserPoints(friendId);
+                score = userPoints?.totalPoints.toDouble() ?? 0.0;
+              } catch (e) {
+                // 권한 오류가 발생해도 계속 진행 (기본값 0.0 사용)
+                if (e.toString().contains('permission-denied')) {
+                  // 권한 오류는 조용히 처리
+                } else {
+                  print('⚠️ 포인트 정보 조회 오류 (friendId: $friendId): $e');
+                }
+              }
+            }
+
+            // 기본 랭킹 데이터 생성 (권한 오류 처리)
+            try {
+              final rankingId = _firestore.collection(_rankingsCollection).doc().id;
+              batch.set(
+                _firestore.collection(_rankingsCollection).doc(rankingId),
+                {
+                  'userId': friendId,
+                  'displayName': displayName,
+                  'profileImageUrl': profileImageUrl,
+                  'score': score,
+                  'category': category.value,
+                  'type': type.value,
+                  'period': period,
+                  'rank': 0, // 나중에 재계산됨
+                  'metadata': {
+                    'scoreChange': 0.0,
+                    'rankChange': 0,
+                    'lastUpdated': DateTime.now().toIso8601String(),
+                  },
+                  'createdAt': DateTime.now().toIso8601String(),
+                  'updatedAt': DateTime.now().toIso8601String(),
+                },
+              );
+              successCount++;
+            } catch (e) {
+              // 랭킹 데이터 쓰기 권한 오류는 조용히 처리
+              if (e.toString().contains('permission-denied')) {
+                errorCount++;
+                // 권한 오류는 조용히 처리
+              } else {
+                errorCount++;
+                print('⚠️ 랭킹 데이터 쓰기 오류 (friendId: $friendId): $e');
+              }
+            }
           }
-
-          // 기본 점수 설정
-          double score = 0.0;
-          if (category == RankingCategory.totalPoints) {
-            // 포인트 정보 조회
-            final userPoints = await _pointsService.getUserPoints(friendId);
-            score = userPoints?.totalPoints.toDouble() ?? 0.0;
+        } catch (e) {
+          // 개별 친구 처리 중 오류 발생 시 해당 친구만 건너뛰고 계속 진행
+          errorCount++;
+          if (!e.toString().contains('permission-denied')) {
+            print('⚠️ 친구 랭킹 데이터 생성 중 오류 (friendId: $friendId): $e');
           }
-
-          // 기본 랭킹 데이터 생성
-          final rankingId = _firestore.collection(_rankingsCollection).doc().id;
-          batch.set(
-            _firestore.collection(_rankingsCollection).doc(rankingId),
-            {
-              'userId': friendId,
-              'displayName': displayName,
-              'profileImageUrl': profileImageUrl,
-              'score': score,
-              'category': category.value,
-              'type': type.value,
-              'period': period,
-              'rank': 0, // 나중에 재계산됨
-              'metadata': {
-                'scoreChange': 0.0,
-                'rankChange': 0,
-                'lastUpdated': DateTime.now().toIso8601String(),
-              },
-              'createdAt': DateTime.now().toIso8601String(),
-              'updatedAt': DateTime.now().toIso8601String(),
-            },
-          );
         }
       }
 
-      await batch.commit();
-      print('✅ 누락된 친구 랭킹 데이터 생성 완료');
+      if (successCount > 0) {
+        try {
+          await batch.commit();
+          print('✅ 누락된 친구 랭킹 데이터 생성 완료: $successCount개 성공, $errorCount개 실패');
+        } catch (e) {
+          // 배치 커밋 실패 시에도 조용히 처리
+          if (e.toString().contains('permission-denied')) {
+            print('⚠️ 랭킹 데이터 쓰기 권한 오류: 일부 데이터만 저장되었을 수 있습니다');
+          } else {
+            print('❌ 랭킹 데이터 배치 커밋 오류: $e');
+          }
+        }
+      } else if (errorCount > 0) {
+        // 모든 친구 처리 실패 시에도 조용히 처리 (권한 오류인 경우)
+        if (errorCount == friendIds.length) {
+          // 모든 친구에서 권한 오류가 발생한 경우 조용히 처리
+        } else {
+          print('⚠️ 친구 랭킹 데이터 생성 실패: 모든 친구 처리 중 오류 발생 ($errorCount개)');
+        }
+      }
     } catch (e) {
-      print('❌ 누락된 친구 랭킹 데이터 생성 오류: $e');
+      // 전체 배치 처리 실패 시에도 앱이 계속 작동하도록 함
+      if (e.toString().contains('permission-denied')) {
+        // 권한 오류는 조용히 처리
+      } else {
+        print('❌ 누락된 친구 랭킹 데이터 생성 오류: $e');
+      }
     }
   }
 

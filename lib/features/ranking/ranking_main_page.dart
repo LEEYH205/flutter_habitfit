@@ -149,7 +149,9 @@ class _RankingMainPageState extends ConsumerState<RankingMainPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const RankingPage(),
+                        builder: (context) => const RankingPage(
+                          initialTabIndex: 1, // 친구 랭킹 탭으로 시작
+                        ),
                       ),
                     );
                   },

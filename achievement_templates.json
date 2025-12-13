@@ -1,0 +1,124 @@
+{
+  "level_1": {
+    "title": "첫 로그인",
+    "description": "첫 로그인",
+    "icon": "🥰",
+    "pointsReward": 50,
+    "category": "level",
+    "requirements": {
+      "level": 1
+    },
+    "isSecret": false
+  },
+  "level_5": {
+    "title": "첫 번째 레벨업",
+    "description": "레벨 5 달성",
+    "icon": "🎯",
+    "pointsReward": 50,
+    "category": "level",
+    "requirements": {
+      "level": 5
+    },
+    "isSecret": false
+  },
+  "level_10": {
+    "title": "두 번째 레벨업",
+    "description": "레벨 10 달성",
+    "icon": "🎯",
+    "pointsReward": 50,
+    "category": "level",
+    "requirements": {
+      "level": 10
+    },
+    "isSecret": false
+  },
+  "level_20": {
+    "title": "달성자",
+    "description": "레벨 20 달성",
+    "icon": "🌳",
+    "pointsReward": 200,
+    "category": "level",
+    "requirements": {
+      "level": 20
+    },
+    "isSecret": false
+  },
+  "level_30": {
+    "title": "마스터",
+    "description": "레벨 30 달성",
+    "icon": "🏆",
+    "pointsReward": 300,
+    "category": "level",
+    "requirements": {
+      "level": 30
+    },
+    "isSecret": false
+  },
+  "points_1000": {
+    "title": "첫 1000점",
+    "description": "1000 포인트 달성",
+    "icon": "💯",
+    "pointsReward": 100,
+    "category": "points",
+    "requirements": {
+      "points": 1000
+    },
+    "isSecret": false
+  },
+  "points_5000": {
+    "title": "포인트 마스터",
+    "description": "5000 포인트 달성",
+    "icon": "💰",
+    "pointsReward": 200,
+    "category": "points",
+    "requirements": {
+      "points": 5000
+    },
+    "isSecret": false
+  },
+  "points_10000": {
+    "title": "포인트 레전드",
+    "description": "10000 포인트 달성",
+    "icon": "💎",
+    "pointsReward": 500,
+    "category": "points",
+    "requirements": {
+      "points": 10000
+    },
+    "isSecret": false
+  },
+  "habit_7days": {
+    "title": "일주일의 전사",
+    "description": "7일 연속으로 습관을 완료하세요",
+    "icon": "📅",
+    "pointsReward": 75,
+    "category": "habit",
+    "requirements": {
+      "streak": 7
+    },
+    "isSecret": false
+  },
+  "habit_30days": {
+    "title": "한 달의 전사",
+    "description": "30일 연속으로 습관을 완료하세요",
+    "icon": "📆",
+    "pointsReward": 200,
+    "category": "habit",
+    "requirements": {
+      "streak": 30
+    },
+    "isSecret": false
+  },
+  "workout_first": {
+    "title": "첫 걸음",
+    "description": "첫 번째 운동을 완료하세요",
+    "icon": "🏃",
+    "pointsReward": 25,
+    "category": "workout",
+    "requirements": {
+      "workoutCount": 1
+    },
+    "isSecret": false
+  }
+}
+

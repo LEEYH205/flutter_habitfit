@@ -189,6 +189,11 @@ class PointsService {
       }
       return null;
     } catch (e) {
+      // 권한 오류는 조용히 처리 (다른 사용자의 포인트 조회 시 발생할 수 있음)
+      if (e.toString().contains('permission-denied')) {
+        // 권한 오류는 조용히 처리
+        return null;
+      }
       print('❌ 사용자 포인트 조회 오류: $e');
       return null;
     }

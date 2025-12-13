@@ -74,7 +74,25 @@ service cloud.firestore {
 
     match /users/{userId} {
 
-      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      // 자신의 프로필 또는 친구 관계가 있는 경우 읽기 가능
+
+      allow read: if isAdmin() || 
+
+                    (signedIn() && (
+
+                      request.auth.uid == userId ||
+
+                      // 친구 관계 확인 (양방향) - 문서 ID 형식: userId_friendId
+
+                      exists(/databases/$(database)/documents/friendships/$(userId + '_' + request.auth.uid)) ||
+
+                      exists(/databases/$(database)/documents/friendships/$(request.auth.uid + '_' + userId))
+
+                    ));
+
+      // 쓰기는 자신의 프로필만
+
+      allow write: if isAdmin() || (signedIn() && request.auth.uid == userId);
 
     }
 
@@ -118,15 +136,35 @@ service cloud.firestore {
 
       // 문서 ID가 userId인 경우 또는 문서 내 userId 필드 확인
 
-      allow read, write: if isAdmin() || 
+      // 자신의 포인트 또는 친구 관계가 있는 경우 읽기 가능
 
-                            (signedIn() && (
+      allow read: if isAdmin() || 
 
-                              doc == request.auth.uid ||
+                    (signedIn() && (
 
-                              (resource != null && resource.data.userId == request.auth.uid)
+                      doc == request.auth.uid ||
 
-                            ));
+                      (resource != null && resource.data.userId == request.auth.uid) ||
+
+                      // 친구 관계 확인 (양방향) - 문서 ID 형식: userId_friendId
+
+                      exists(/databases/$(database)/documents/friendships/$(doc + '_' + request.auth.uid)) ||
+
+                      exists(/databases/$(database)/documents/friendships/$(request.auth.uid + '_' + doc))
+
+                    ));
+
+      // 쓰기는 자신의 포인트만
+
+      allow write: if isAdmin() || 
+
+                     (signedIn() && (
+
+                       doc == request.auth.uid ||
+
+                       (resource != null && resource.data.userId == request.auth.uid)
+
+                     ));
 
       allow create: if isAdmin() || 
 
@@ -194,13 +232,54 @@ service cloud.firestore {
 
 
 
-    /** ---------- 업적 (userId 필드 기반) ---------- **/
+    /** ---------- 업적 (문서 ID 형식: userId_achievementId 또는 userId 필드 기반) ---------- **/
 
     match /achievements/{doc} {
 
-      allow read, write: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      // 문서 ID에서 userId 추출 (형식: userId_achievementId)
+      function getUserIdFromDocId() {
+        // 문서 ID에 '_'가 있으면 userId_achievementId 형식
+        return doc.split('_')[0];
+      }
 
-      allow create: if isAdmin() || (signedIn() && request.resource.data.userId == request.auth.uid);
+      // 자신의 업적 읽기 가능 (문서 ID 또는 userId 필드 확인)
+      allow read: if isAdmin() || 
+
+                    (signedIn() && (
+
+                      // 문서 ID 형식: userId_achievementId
+                      getUserIdFromDocId() == request.auth.uid ||
+
+                      // 또는 userId 필드 확인 (문서가 존재하는 경우)
+                      (resource != null && resource.data.userId == request.auth.uid)
+
+                    ));
+
+      // 자신의 업적 쓰기 가능
+      allow write: if isAdmin() || 
+
+                     (signedIn() && (
+
+                       // 문서 ID 형식: userId_achievementId
+                       getUserIdFromDocId() == request.auth.uid ||
+
+                       // 또는 userId 필드 확인 (문서가 존재하는 경우)
+                       (resource != null && resource.data.userId == request.auth.uid)
+
+                     ));
+
+      // 자신의 업적 생성 가능
+      allow create: if isAdmin() || 
+
+                      (signedIn() && (
+
+                        // 문서 ID 형식: userId_achievementId
+                        getUserIdFromDocId() == request.auth.uid ||
+
+                        // 또는 userId 필드 확인
+                        request.resource.data.userId == request.auth.uid
+
+                      ));
 
     }
 
@@ -256,7 +335,35 @@ service cloud.firestore {
 
       allow read: if true; // 랭킹은 모든 사용자가 읽기 가능
 
-      allow write: if isAdmin(); // 랭킹 업데이트는 관리자만
+      // 자신의 랭킹 데이터 생성 가능
+
+      allow create: if isAdmin() || 
+
+                      (signedIn() && (
+
+                        request.resource.data.userId == request.auth.uid
+
+                      ));
+
+      // 자신의 랭킹 데이터 업데이트 가능 (.set() 메서드 사용 시에도 적용)
+
+      allow update: if isAdmin() || 
+
+                      (signedIn() && (
+
+                        // 기존 문서의 userId가 자신의 것이고, 새 데이터의 userId도 자신의 것인지 확인
+
+                        resource.data.userId == request.auth.uid &&
+
+                        request.resource.data.userId == request.auth.uid
+
+                      ));
+
+      // 자신의 랭킹 데이터 삭제 가능
+
+      allow delete: if isAdmin() || 
+
+                      (signedIn() && resource.data.userId == request.auth.uid);
 
     }
 

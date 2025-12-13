@@ -174,3 +174,8 @@ venv.bak/
 .venv-tf215/
 *.h5
 *.tflite
+serviceAccountKey.json
+
+# Node.js
+node_modules/
+package-lock.json

@@ -6,7 +6,12 @@ import 'friends_page.dart';
 
 /// 랭킹 메인 페이지
 class RankingPage extends ConsumerStatefulWidget {
-  const RankingPage({super.key});
+  final int initialTabIndex; // 초기 탭 인덱스 (0: 전체, 1: 친구, 2: 클럽)
+
+  const RankingPage({
+    super.key,
+    this.initialTabIndex = 0, // 기본값은 전체 랭킹
+  });
 
   @override
   ConsumerState<RankingPage> createState() => _RankingPageState();
@@ -26,7 +31,12 @@ class _RankingPageState extends ConsumerState<RankingPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // 초기 탭 인덱스로 TabController 생성
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 2), // 0~2 범위로 제한
+    );
     _loadRankingData();
   }
 

@@ -27,14 +27,15 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   DateTime _selectedMonth = DateTime.now(); // 현재 선택된 월
   List<WorkoutData> _recentWorkouts = []; // 실제 운동 데이터
   bool _isLoadingWorkouts = false;
+  bool _isLoadingActivityData = false; // 중복 호출 방지용 플래그
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _checkHealthKitPermissions();
+    // _loadActivityData() 내부에서 _loadRecentWorkouts()를 호출하므로 중복 호출 제거
     _loadActivityData();
-    _loadRecentWorkouts();
   }
 
   @override
@@ -156,8 +157,8 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
+          // _loadActivityData() 내부에서 _loadRecentWorkouts()를 호출하므로 중복 호출 제거
           await _loadActivityData();
-          await _loadRecentWorkouts();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -605,7 +606,8 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
     }
 
     // 모든 값이 0인지 확인
-    final hasNonZeroValue = _activityData.any((d) => (d['value'] as double) > 0);
+    final hasNonZeroValue =
+        _activityData.any((d) => (d['value'] as double) > 0);
     if (!hasNonZeroValue) {
       return SizedBox(
         height: 200,
@@ -941,7 +943,7 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
   Widget _buildXAxisLabel(Map<String, dynamic> data) {
     // 안전하게 라벨 가져오기
     final label = data['label']?.toString() ?? '';
-    
+
     // 월별 데이터에서 특정 날짜만 라벨 표시
     final day = int.tryParse(label) ?? 0;
     final lastDayOfMonth =
@@ -1755,7 +1757,14 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
 
   /// 활동 데이터 로드
   Future<void> _loadActivityData() async {
+    // 중복 호출 방지
+    if (_isLoadingActivityData) {
+      print('⚠️ _loadActivityData() 이미 실행 중입니다. 중복 호출을 무시합니다.');
+      return;
+    }
+
     print('🔄 _loadActivityData() 호출됨 - _selectedPeriod: $_selectedPeriod');
+    _isLoadingActivityData = true;
     setState(() {
       _isLoading = true;
     });
@@ -1797,11 +1806,13 @@ class _ActivityPageState extends ConsumerState<ActivityPage>
       setState(() {
         _activityData = data;
         _isLoading = false;
+        _isLoadingActivityData = false;
       });
     } catch (e) {
       print('❌ 활동 데이터 로드 실패: $e');
       setState(() {
         _isLoading = false;
+        _isLoadingActivityData = false;
       });
     }
   }
